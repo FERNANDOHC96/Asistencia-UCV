@@ -1,0 +1,6 @@
+{
+  "name": "AsisQR UCV",
+  "description": "Plataforma universitaria de asistencia académica con QR. Proyecto institucional con roles de Administrador, Profesor y Alumno.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
