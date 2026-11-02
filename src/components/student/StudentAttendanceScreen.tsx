@@ -25,8 +25,9 @@ import {
 } from '../../services/studentService';
 import { isSupabaseConfigured } from '../../lib/supabase';
 import { AttendanceRecord, AttendanceStatus } from '../../types';
-import { formatDisplayDate, formatTime } from '../../lib/dateUtils';
+import { formatDisplayDate, formatTime, formatLimaTime } from '../../lib/dateUtils';
 import { translateSupabaseError } from '../../lib/supabaseErrors';
+import { getMethodLabel } from '../../lib/attendanceUtils';
 
 export const StudentAttendanceScreen: React.FC = () => {
   const { user } = useAuth();
@@ -522,12 +523,17 @@ export const StudentAttendanceScreen: React.FC = () => {
                         </span>
                       </td>
                       <td className="py-2.5 px-4 text-center">
-                        <span className="font-mono text-[10px] uppercase font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
-                          {rec.method}
+                        <span className="inline-block text-xs font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                          {getMethodLabel(rec.method)}
                         </span>
+                        {rec.bt_verified_at && (
+                          <span className="block text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded mt-1">
+                            Verificado por Bluetooth
+                          </span>
+                        )}
                       </td>
                       <td className="py-2.5 px-4 text-[11px] text-slate-500 font-mono whitespace-nowrap">
-                        {rec.registered_at ? formatTime(rec.registered_at) : '—'}
+                        {rec.registered_at ? formatLimaTime(rec.registered_at) : '—'}
                       </td>
                     </tr>
                   );

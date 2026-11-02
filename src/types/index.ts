@@ -8,6 +8,7 @@ export interface Profile {
   role: UserRole;
   active: boolean;
   created_at?: string;
+  avatar_updated_at?: string | null;
 }
 
 export interface CreateUserPayload {
@@ -62,6 +63,19 @@ export interface CourseOffering {
   period_id: string;
   course?: Course;
   period?: Period;
+}
+
+export interface CourseOverview {
+  course_id: string;
+  code: string;
+  name: string;
+  offering_id: string;
+  section_id: string;
+  section_name: string;
+  teacher_id: string | null;
+  teacher_first_names: string | null;
+  teacher_last_names: string | null;
+  students: number;
 }
 
 export interface Section {
@@ -152,7 +166,7 @@ export interface ClassSession {
 }
 
 export type AttendanceStatus = 'presente' | 'tardanza' | 'falta' | 'justificado';
-export type AttendanceMethod = 'manual' | 'qr' | 'sistema';
+export type AttendanceMethod = 'manual' | 'qr' | 'sistema' | 'bluetooth' | (string & {});
 
 export interface AttendanceRecord {
   id: string;
@@ -164,6 +178,7 @@ export interface AttendanceRecord {
   registered_at?: string;
   modified_by?: string | null;
   modified_at?: string | null;
+  bt_verified_at?: string | null;
   student?: Profile;
   class_session?: ClassSession;
 }
@@ -217,6 +232,24 @@ export interface TeacherName {
   id: string;
   first_names: string;
   last_names: string;
+}
+
+export interface FaceStatus {
+  student_id: string;
+  registered: boolean;
+  model?: string | null;
+  registered_at?: string | null;
+  last_pass?: string | null;
+  enrollment_open_until?: string | null;
+}
+
+export interface FaceSettings {
+  face_required: boolean;
+  face_threshold: number;
+  face_threshold_turn: number;
+  face_pair_min: number;
+  face_pair_max: number;
+  enrollment_supervised: boolean;
 }
 
 

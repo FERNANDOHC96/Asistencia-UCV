@@ -5,18 +5,9 @@ import { Breadcrumb } from './components/Breadcrumb';
 import { LoginScreen } from './components/LoginScreen';
 import { AdminDashboard } from './components/AdminDashboard';
 import { AdminUsersList } from './components/AdminUsersList';
-import { PeriodsScreen } from './components/academic/PeriodsScreen';
 import { CoursesScreen } from './components/academic/CoursesScreen';
-import { SectionsScreen } from './components/academic/SectionsScreen';
-import { EnrollmentsScreen } from './components/academic/EnrollmentsScreen';
-import { SchedulesScreen } from './components/academic/SchedulesScreen';
 import { TeacherHome } from './components/teacher/TeacherHome';
 import { TeacherCoursesScreen } from './components/teacher/TeacherCoursesScreen';
-import { TeacherUnitsWeeksScreen } from './components/teacher/TeacherUnitsWeeksScreen';
-import { TeacherSessionsScreen } from './components/teacher/TeacherSessionsScreen';
-import { TeacherAttendanceScreen } from './components/teacher/TeacherAttendanceScreen';
-import { TeacherQrAttendanceScreen } from './components/teacher/TeacherQrAttendanceScreen';
-import { TeacherSchedulesScreen } from './components/teacher/TeacherSchedulesScreen';
 import { StudentHome } from './components/student/StudentHome';
 import { StudentCoursesScreen } from './components/student/StudentCoursesScreen';
 import { StudentAttendanceScreen } from './components/student/StudentAttendanceScreen';
@@ -31,11 +22,11 @@ const MainContent: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#EEF2F7] flex flex-col items-center justify-center p-4">
         <div className="bg-white p-8 rounded-2xl shadow-md border border-slate-200 text-center max-w-sm w-full">
-          <div className="w-12 h-12 rounded-xl bg-[#0B2A5B] text-white flex items-center justify-center mx-auto mb-4 font-black text-xl">
-            QR
+          <div className="w-14 h-14 rounded-2xl bg-white p-1.5 shadow-xs flex items-center justify-center mx-auto mb-4">
+            <img src="/logo-ucvgo.png" alt="Logo de UCVGO" className="h-11 w-auto object-contain" />
           </div>
           <Loader2 className="w-8 h-8 text-[#1F5FA8] animate-spin mx-auto mb-3" />
-          <h2 className="text-base font-bold text-slate-800">Cargando AsisQR UCV</h2>
+          <h2 className="text-base font-bold text-slate-800">Cargando UCVGO</h2>
           <p className="text-xs text-slate-500 mt-1">Verificando sesión institucional...</p>
         </div>
       </div>
@@ -55,16 +46,8 @@ const MainContent: React.FC = () => {
           return <AdminUsersList role="alumno" />;
         case 'profesores':
           return <AdminUsersList role="profesor" />;
-        case 'periodos':
-          return <PeriodsScreen />;
         case 'cursos':
           return <CoursesScreen />;
-        case 'secciones':
-          return <SectionsScreen />;
-        case 'matriculas':
-          return <EnrollmentsScreen />;
-        case 'horarios':
-          return <SchedulesScreen />;
         case 'inicio':
         default:
           return <AdminDashboard onNavigate={setCurrentTab} />;
@@ -73,18 +56,9 @@ const MainContent: React.FC = () => {
 
     if (profile.role === 'profesor') {
       switch (currentTab) {
+        case 'mis_cursos':
         case 'mis_asignaturas':
           return <TeacherCoursesScreen />;
-        case 'unidades_semanas':
-          return <TeacherUnitsWeeksScreen />;
-        case 'sesiones':
-          return <TeacherSessionsScreen />;
-        case 'asistencia':
-          return <TeacherAttendanceScreen />;
-        case 'asistencia_qr':
-          return <TeacherQrAttendanceScreen />;
-        case 'horarios':
-          return <TeacherSchedulesScreen />;
         case 'inicio':
         default:
           return <TeacherHome onNavigate={setCurrentTab} />;
@@ -122,9 +96,9 @@ const MainContent: React.FC = () => {
         {renderTabContent()}
       </main>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 py-3 px-6 text-center text-[11px] text-slate-500">
-        AsisQR UCV · Proyecto universitario, no oficial
+      {/* Pie de página */}
+      <footer className="py-4 text-center text-xs text-slate-500 border-t border-slate-200/60 bg-white/40">
+        UCVGO
       </footer>
     </div>
   );

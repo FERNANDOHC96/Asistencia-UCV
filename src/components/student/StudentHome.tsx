@@ -147,7 +147,7 @@ export const StudentHome: React.FC<StudentHomeProps> = ({ onNavigate }) => {
       <div className="flex items-center gap-3 px-4 py-3 bg-blue-50/70 border border-blue-200/80 rounded-xl text-xs text-slate-700">
         <Smartphone className="w-5 h-5 text-[#1F5FA8] shrink-0" />
         <p className="font-medium">
-          Para registrar tu asistencia con QR usa la app <strong className="font-bold text-[#0B2A5B]">AsisQR UCV</strong> en tu celular.
+          Para registrar tu asistencia con QR usa la app <strong className="font-bold text-[#0B2A5B]">UCVGO</strong> en tu celular.
         </p>
       </div>
 
