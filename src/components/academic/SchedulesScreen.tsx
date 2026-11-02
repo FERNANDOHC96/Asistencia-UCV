@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Clock, Plus, Edit2, Archive, RefreshCw, AlertCircle, Loader2, X, Calendar, MapPin, CheckCircle2 } from 'lucide-react';
+import { Clock, Plus, Edit2, Archive, RefreshCw, AlertCircle, Loader2, X, Calendar, MapPin, CheckCircle2, Info } from 'lucide-react';
 import { getSupabaseClient, isSupabaseConfigured } from '../../lib/supabase';
 import { translateSupabaseError } from '../../lib/supabaseErrors';
 import { Section, Schedule } from '../../types';
@@ -207,6 +207,11 @@ export const SchedulesScreen: React.FC = () => {
 
     if (!starts_at || !ends_at) {
       setFormError('Debe ingresar la hora de inicio y de fin.');
+      return;
+    }
+
+    if (!kind || (kind !== 'teoria' && kind !== 'practica')) {
+      setFormError('El tipo de horario (Teoría o Práctica) es obligatorio.');
       return;
     }
 
@@ -531,6 +536,14 @@ export const SchedulesScreen: React.FC = () => {
             </div>
 
             <form onSubmit={handleSave} className="p-6 space-y-4 text-xs">
+              {/* Aviso obligatorio para franjas de horarios */}
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-900 flex items-start gap-2">
+                <Info className="w-4 h-4 text-[#1F5FA8] shrink-0 mt-0.5" />
+                <div className="leading-relaxed font-medium">
+                  Cada día de clase se genera a partir de estas franjas.
+                </div>
+              </div>
+
               {formError && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-800 flex items-start gap-2">
                   <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
@@ -559,14 +572,15 @@ export const SchedulesScreen: React.FC = () => {
                 </select>
               </div>
 
-              {/* Tipo de horario (Teoría / Práctica) */}
+              {/* Tipo de horario (Teoría / Práctica) Obligatorio */}
               <div>
                 <label className="block font-bold text-slate-700 uppercase tracking-wide mb-1">
-                  Tipo de Horario *
+                  Tipo de Horario * <span className="text-[#C8102E] font-bold">(Obligatorio)</span>
                 </label>
                 <select
                   value={formData.kind}
                   onChange={(e) => setFormData({ ...formData, kind: e.target.value as 'teoria' | 'practica' })}
+                  required
                   disabled={formLoading}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1F5FA8] text-slate-900"
                 >

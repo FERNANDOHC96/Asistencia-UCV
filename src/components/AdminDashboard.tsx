@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Users, GraduationCap, Calendar, BookOpen, Layers, UserCheck, ArrowRight, RefreshCw, AlertCircle, UserPlus } from 'lucide-react';
+import { Users, GraduationCap, BookOpen, UserCheck, ArrowRight, RefreshCw, AlertCircle, UserPlus, Plus } from 'lucide-react';
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabase';
 import { translateSupabaseError } from '../lib/supabaseErrors';
 import { useAuth } from '../context/AuthContext';
@@ -15,9 +15,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   // Metrics
   const [studentCount, setStudentCount] = useState<number | null>(null);
   const [teacherCount, setTeacherCount] = useState<number | null>(null);
-  const [periodCount, setPeriodCount] = useState<number | null>(null);
   const [courseCount, setCourseCount] = useState<number | null>(null);
-  const [sectionCount, setSectionCount] = useState<number | null>(null);
   const [enrollmentCount, setEnrollmentCount] = useState<number | null>(null);
 
   const [loading, setLoading] = useState<boolean>(true);
@@ -37,56 +35,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     try {
       const supabase = getSupabaseClient();
 
-      // 1. Alumnos
+      // 1. Alumnos: profiles con role = 'alumno'
       const { count: cAlumnos, error: errAlumnos } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
         .eq('role', 'alumno');
       if (errAlumnos) throw errAlumnos;
 
-      // 2. Profesores
+      // 2. Profesores: profiles con role = 'profesor'
       const { count: cProfesores, error: errProfesores } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
         .eq('role', 'profesor');
       if (errProfesores) throw errProfesores;
 
-      // 3. Periodos (no archivados)
-      const { count: cPeriodos, error: errPeriodos } = await supabase
-        .from('periods')
-        .select('*', { count: 'exact', head: true })
-        .is('archived_at', null);
-      if (errPeriodos) throw errPeriodos;
-
-      // 4. Cursos (no archivados)
+      // 3. Cursos: filas de la vista course_overview
       const { count: cCursos, error: errCursos } = await supabase
-        .from('courses')
-        .select('*', { count: 'exact', head: true })
-        .is('archived_at', null);
+        .from('course_overview')
+        .select('*', { count: 'exact', head: true });
       if (errCursos) throw errCursos;
 
-      // 5. Secciones (no archivadas y con padres activos)
-      const { data: secData, error: errSecciones } = await supabase
-        .from('sections')
-        .select(`
-          id,
-          archived_at,
-          offering:course_offerings (
-            course:courses (archived_at),
-            period:periods (archived_at)
-          )
-        `)
-        .is('archived_at', null);
-      if (errSecciones) throw errSecciones;
-
-      const validSectionsCount = (secData || []).filter((s: any) => {
-        const off = Array.isArray(s.offering) ? s.offering[0] : s.offering;
-        const crs = off && Array.isArray(off.course) ? off.course[0] : off?.course;
-        const per = off && Array.isArray(off.period) ? off.period[0] : off?.period;
-        return crs && !crs.archived_at && per && !per.archived_at;
-      }).length;
-
-      // 6. Matrículas activas
+      // 4. Matrículas activas: enrollments con status = 'activa'
       const { count: cMatriculas, error: errMatriculas } = await supabase
         .from('enrollments')
         .select('*', { count: 'exact', head: true })
@@ -95,17 +64,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
       setStudentCount(cAlumnos ?? 0);
       setTeacherCount(cProfesores ?? 0);
-      setPeriodCount(cPeriodos ?? 0);
       setCourseCount(cCursos ?? 0);
-      setSectionCount(validSectionsCount);
       setEnrollmentCount(cMatriculas ?? 0);
     } catch (err: unknown) {
       setError(translateSupabaseError(err));
       setStudentCount(null);
       setTeacherCount(null);
-      setPeriodCount(null);
       setCourseCount(null);
-      setSectionCount(null);
       setEnrollmentCount(null);
     } finally {
       setLoading(false);
@@ -125,7 +90,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             Panel de Administración
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Bienvenido, <span className="font-semibold text-slate-800">{profile?.first_names} {profile?.last_names}</span>. Visión general de catálogos y estructura académica.
+            Bienvenido, <span className="font-semibold text-slate-800">{profile?.first_names} {profile?.last_names}</span>. Gestión simplificada de alumnos, profesores y cursos.
           </p>
         </div>
 
@@ -148,7 +113,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       )}
 
       {/* Grid of Real Count Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* Card Alumnos */}
         <div className="bg-white rounded-2xl shadow-xs border border-slate-200 p-5 flex flex-col justify-between hover:shadow-md transition-shadow">
           <div>
@@ -157,7 +122,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 <Users className="w-5 h-5" />
               </div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Usuarios
+                Catálogo
               </span>
             </div>
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -170,9 +135,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               <span className="text-xs text-slate-500">estudiantes</span>
             </div>
             {!loading && studentCount === 0 && (
-              <p className="mt-2 text-[11px] text-amber-700 bg-amber-50 p-2 rounded-lg border border-amber-200">
-                Sin alumnos en Supabase.
-              </p>
+              <div className="mt-3 p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-center">
+                <p className="text-[11px] font-medium text-amber-800 mb-2">No hay alumnos registrados</p>
+                <button
+                  onClick={() => setModalRole('alumno')}
+                  className="w-full py-1 px-2 bg-[#1F5FA8] hover:bg-[#0B2A5B] text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Registrar primer alumno</span>
+                </button>
+              </div>
             )}
           </div>
           <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
@@ -201,7 +173,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 <GraduationCap className="w-5 h-5" />
               </div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Usuarios
+                Catálogo
               </span>
             </div>
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -214,9 +186,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               <span className="text-xs text-slate-500">docentes</span>
             </div>
             {!loading && teacherCount === 0 && (
-              <p className="mt-2 text-[11px] text-amber-700 bg-amber-50 p-2 rounded-lg border border-amber-200">
-                Sin profesores en Supabase.
-              </p>
+              <div className="mt-3 p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-center">
+                <p className="text-[11px] font-medium text-amber-800 mb-2">No hay profesores registrados</p>
+                <button
+                  onClick={() => setModalRole('profesor')}
+                  className="w-full py-1 px-2 bg-[#1F5FA8] hover:bg-[#0B2A5B] text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Registrar primer profesor</span>
+                </button>
+              </div>
             )}
           </div>
           <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
@@ -237,43 +216,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
           </div>
         </div>
 
-        {/* Card Periodos */}
-        <div className="bg-white rounded-2xl shadow-xs border border-slate-200 p-5 flex flex-col justify-between hover:shadow-md transition-shadow">
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
-                <Calendar className="w-5 h-5" />
-              </div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Académico
-              </span>
-            </div>
-            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Periodos Lectivos
-            </h3>
-            <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-[#0B2A5B] font-mono">
-                {loading ? '...' : periodCount !== null ? periodCount : '-'}
-              </span>
-              <span className="text-xs text-slate-500">semestres</span>
-            </div>
-            {!loading && periodCount === 0 && (
-              <p className="mt-2 text-[11px] text-amber-700 bg-amber-50 p-2 rounded-lg border border-amber-200">
-                Sin periodos registrados.
-              </p>
-            )}
-          </div>
-          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-            <button
-              onClick={() => onNavigate('periodos')}
-              className="text-xs font-bold text-[#1F5FA8] hover:text-[#0B2A5B] flex items-center gap-1 group cursor-pointer"
-            >
-              <span>Gestionar periodos</span>
-              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-            </button>
-          </div>
-        </div>
-
         {/* Card Cursos */}
         <div className="bg-white rounded-2xl shadow-xs border border-slate-200 p-5 flex flex-col justify-between hover:shadow-md transition-shadow">
           <div>
@@ -286,18 +228,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               </span>
             </div>
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Catálogo de Cursos
+              Cursos
             </h3>
             <div className="mt-1 flex items-baseline gap-2">
               <span className="text-3xl font-extrabold text-[#0B2A5B] font-mono">
                 {loading ? '...' : courseCount !== null ? courseCount : '-'}
               </span>
-              <span className="text-xs text-slate-500">asignaturas</span>
+              <span className="text-xs text-slate-500">cursos activos</span>
             </div>
             {!loading && courseCount === 0 && (
-              <p className="mt-2 text-[11px] text-amber-700 bg-amber-50 p-2 rounded-lg border border-amber-200">
-                Sin cursos registrados.
-              </p>
+              <div className="mt-3 p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-center">
+                <p className="text-[11px] font-medium text-amber-800 mb-2">No hay cursos registrados</p>
+                <button
+                  onClick={() => onNavigate('cursos')}
+                  className="w-full py-1 px-2 bg-[#1F5FA8] hover:bg-[#0B2A5B] text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Crear primer curso</span>
+                </button>
+              </div>
             )}
           </div>
           <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
@@ -311,52 +260,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
           </div>
         </div>
 
-        {/* Card Secciones */}
+        {/* Card Matrículas Activas */}
         <div className="bg-white rounded-2xl shadow-xs border border-slate-200 p-5 flex flex-col justify-between hover:shadow-md transition-shadow">
           <div>
             <div className="flex items-center justify-between mb-3">
               <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center">
-                <Layers className="w-5 h-5" />
-              </div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Académico
-              </span>
-            </div>
-            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Secciones Habilitadas
-            </h3>
-            <div className="mt-1 flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-[#0B2A5B] font-mono">
-                {loading ? '...' : sectionCount !== null ? sectionCount : '-'}
-              </span>
-              <span className="text-xs text-slate-500">aulas/secciones</span>
-            </div>
-            {!loading && sectionCount === 0 && (
-              <p className="mt-2 text-[11px] text-amber-700 bg-amber-50 p-2 rounded-lg border border-amber-200">
-                Sin secciones creadas.
-              </p>
-            )}
-          </div>
-          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-            <button
-              onClick={() => onNavigate('secciones')}
-              className="text-xs font-bold text-[#1F5FA8] hover:text-[#0B2A5B] flex items-center gap-1 group cursor-pointer"
-            >
-              <span>Gestionar secciones</span>
-              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-            </button>
-          </div>
-        </div>
-
-        {/* Card Matrículas */}
-        <div className="bg-white rounded-2xl shadow-xs border border-slate-200 p-5 flex flex-col justify-between hover:shadow-md transition-shadow">
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
                 <UserCheck className="w-5 h-5" />
               </div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Académico
+                Inscripciones
               </span>
             </div>
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -366,17 +278,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               <span className="text-3xl font-extrabold text-[#0B2A5B] font-mono">
                 {loading ? '...' : enrollmentCount !== null ? enrollmentCount : '-'}
               </span>
-              <span className="text-xs text-slate-500">inscripciones</span>
+              <span className="text-xs text-slate-500">estudiantes inscritos</span>
             </div>
             {!loading && enrollmentCount === 0 && (
-              <p className="mt-2 text-[11px] text-amber-700 bg-amber-50 p-2 rounded-lg border border-amber-200">
-                Sin matrículas activas.
-              </p>
+              <div className="mt-3 p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-center">
+                <p className="text-[11px] font-medium text-amber-800 mb-2">Sin alumnos matriculados</p>
+                <button
+                  onClick={() => onNavigate('cursos')}
+                  className="w-full py-1 px-2 bg-[#1F5FA8] hover:bg-[#0B2A5B] text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                >
+                  <ArrowRight className="w-3.5 h-3.5" />
+                  <span>Ir a Cursos para matricular</span>
+                </button>
+              </div>
             )}
           </div>
           <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
             <button
-              onClick={() => onNavigate('matriculas')}
+              onClick={() => onNavigate('cursos')}
               className="text-xs font-bold text-[#1F5FA8] hover:text-[#0B2A5B] flex items-center gap-1 group cursor-pointer"
             >
               <span>Gestionar matrículas</span>
@@ -385,8 +304,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
           </div>
         </div>
       </div>
-
-
 
       {/* Quick Action Modal for users */}
       {modalRole && (

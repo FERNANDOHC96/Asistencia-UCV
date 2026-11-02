@@ -92,11 +92,15 @@ export const LoginScreen: React.FC = () => {
         <div className="w-full max-w-xl">
           {/* Institutional Header Card */}
           <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#0B2A5B] text-white shadow-md mb-3">
-              <span className="font-extrabold text-2xl tracking-wider">QR</span>
+            <div className="inline-flex items-center justify-center p-2 rounded-2xl bg-white shadow-xs mb-3">
+              <img
+                src="/logo-ucvgo.png"
+                alt="Logo de UCVGO"
+                className="h-24 w-auto object-contain"
+              />
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0B2A5B] tracking-tight">
-              AsisQR UCV
+              UCVGO
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 font-medium mt-1">
               Plataforma de asistencia académica con QR
@@ -296,9 +300,9 @@ export const LoginScreen: React.FC = () => {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="text-center py-3 text-[11px] text-slate-500 border-t border-slate-200 bg-white">
-        AsisQR UCV · Proyecto universitario, no oficial
+      {/* Pie de página */}
+      <footer className="py-4 text-center text-xs text-slate-500">
+        UCVGO
       </footer>
     </div>
   );

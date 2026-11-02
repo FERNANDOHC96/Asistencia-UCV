@@ -185,6 +185,7 @@ export async function getStudentAttendanceRecords(studentId: string): Promise<At
       method,
       justification,
       registered_at,
+      bt_verified_at,
       class_session:class_sessions (
         id,
         section_id,

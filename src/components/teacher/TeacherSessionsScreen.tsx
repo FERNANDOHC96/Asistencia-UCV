@@ -21,8 +21,20 @@ export const TeacherSessionsScreen: React.FC = () => {
   const [loadingSessions, setLoadingSessions] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [archiveSuccess, setArchiveSuccess] = useState<string | null>(null);
+  const [globalClassDayNotice, setGlobalClassDayNotice] = useState<string | null>(null);
 
-  // Modal create/edit
+  // Modal Crear Día de Clase (automático a partir de franjas de horario)
+  const [isClassDayModalOpen, setIsClassDayModalOpen] = useState<boolean>(false);
+  const [classDayMode, setClassDayMode] = useState<'single' | 'range'>('single');
+  const [classDayDate, setClassDayDate] = useState<string>(getTodayLima());
+  const [classDayFrom, setClassDayFrom] = useState<string>(getTodayLima());
+  const [classDayTo, setClassDayTo] = useState<string>(getTodayLima());
+  const [classDayTopic, setClassDayTopic] = useState<string>('');
+  const [classDayLoading, setClassDayLoading] = useState<boolean>(false);
+  const [classDayError, setClassDayError] = useState<string | null>(null);
+  const [classDaySuccess, setClassDaySuccess] = useState<string | null>(null);
+
+  // Modal create/edit manual
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingSession, setEditingSession] = useState<ClassSession | null>(null);
   const [formData, setFormData] = useState({
@@ -130,6 +142,127 @@ export const TeacherSessionsScreen: React.FC = () => {
       fetchSessionsData();
     }
   }, [selectedSectionId, fetchSessionsData]);
+
+  const handleOpenClassDayModal = () => {
+    setClassDayMode('single');
+    setClassDayDate(getTodayLima());
+    setClassDayFrom(getTodayLima());
+    setClassDayTo(getTodayLima());
+    setClassDayTopic('');
+    setClassDayError(null);
+    setClassDaySuccess(null);
+    setIsClassDayModalOpen(true);
+  };
+
+  const handleCreateClassDay = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSectionId) return;
+
+    setClassDayError(null);
+    setClassDaySuccess(null);
+
+    const isRange = classDayMode === 'range';
+    const p_from = isRange ? classDayFrom : classDayDate;
+    const p_to = isRange ? classDayTo : null;
+
+    if (!p_from) {
+      setClassDayError('Debe ingresar la fecha.');
+      return;
+    }
+
+    if (isRange) {
+      if (!p_to) {
+        setClassDayError('Debe ingresar la fecha final.');
+        return;
+      }
+      if (p_to < p_from) {
+        setClassDayError('La fecha final no puede ser anterior a la inicial.');
+        return;
+      }
+      const dFrom = new Date(p_from);
+      const dTo = new Date(p_to);
+      const diffTime = Math.abs(dTo.getTime() - dFrom.getTime());
+      const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
+      if (diffDays > 200) {
+        setClassDayError('El rango máximo es de 200 días.');
+        return;
+      }
+    }
+
+    setClassDayLoading(true);
+
+    try {
+      const supabase = getSupabaseClient();
+      const { data, error: rpcErr } = await supabase.rpc('create_class_days', {
+        p_section: selectedSectionId,
+        p_from,
+        p_to: p_to || null,
+        p_week: null,
+        p_unit: null,
+        p_topic: classDayTopic.trim() || null,
+      });
+
+      if (rpcErr) {
+        setClassDayError(translateSupabaseError(rpcErr));
+        return;
+      }
+
+      let res = data;
+      if (typeof res === 'string') {
+        try {
+          res = JSON.parse(res);
+        } catch {
+          // keep as is
+        }
+      }
+
+      if (res && res.code === 'success') {
+        const created = Number(res.created ?? 0);
+        const existing = Number(res.existing ?? 0);
+        let msg = '';
+        if (created === 0 && existing > 0) {
+          msg = 'Ese día ya estaba creado.';
+        } else {
+          msg = `Se crearon ${created} sesiones${existing > 0 ? ` (${existing} ya existían)` : ''}`;
+        }
+        setClassDaySuccess(msg);
+        setGlobalClassDayNotice(msg);
+        fetchSessionsData();
+        setTimeout(() => {
+          setIsClassDayModalOpen(false);
+          setClassDaySuccess(null);
+        }, 1500);
+      } else {
+        const code = res?.code;
+        let errMsg = '';
+        switch (code) {
+          case 'no_schedule':
+            errMsg = 'Esta sección no tiene horario ese día. Pide al administrador que cargue las franjas de teoría y práctica en Horarios, o crea la sesión manualmente.';
+            break;
+          case 'unauthorized':
+            errMsg = 'No tienes permiso sobre esta sección.';
+            break;
+          case 'invalid_dates':
+            errMsg = 'La fecha final no puede ser anterior a la inicial.';
+            break;
+          case 'range_too_long':
+            errMsg = 'El rango máximo es de 200 días.';
+            break;
+          case 'invalid_section':
+            errMsg = 'Sección no válida o no encontrada.';
+            break;
+          default:
+            errMsg = res?.message || code || 'No se pudo crear el día de clase. Inténtalo de nuevo.';
+            break;
+        }
+        setClassDayError(errMsg);
+      }
+    } catch (err: unknown) {
+      setClassDayError(translateSupabaseError(err));
+    } finally {
+      setClassDayLoading(false);
+    }
+  };
 
   const handleOpenCreate = () => {
     setEditingSession(null);
@@ -298,7 +431,7 @@ export const TeacherSessionsScreen: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => {
               fetchSections();
@@ -311,12 +444,20 @@ export const TeacherSessionsScreen: React.FC = () => {
             <RefreshCw className={`w-4 h-4 ${loadingSessions ? 'animate-spin text-[#1F5FA8]' : ''}`} />
           </button>
           <button
-            onClick={handleOpenCreate}
+            onClick={handleOpenClassDayModal}
             disabled={!selectedSectionId}
             className="px-4 py-2 bg-[#1F5FA8] hover:bg-[#174B88] text-white text-xs sm:text-sm font-bold rounded-lg shadow-xs transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-50"
           >
+            <Calendar className="w-4 h-4" />
+            <span>Crear día de clase</span>
+          </button>
+          <button
+            onClick={handleOpenCreate}
+            disabled={!selectedSectionId}
+            className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 hover:text-[#1F5FA8] border border-slate-300 text-xs sm:text-sm font-bold rounded-lg shadow-2xs transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+          >
             <Plus className="w-4 h-4" />
-            <span>Nueva sesión</span>
+            <span>Crear sesión manual</span>
           </button>
         </div>
       </div>
@@ -360,6 +501,19 @@ export const TeacherSessionsScreen: React.FC = () => {
         </div>
       )}
 
+      {/* Class Day Creation Success Notice */}
+      {globalClassDayNotice && (
+        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center justify-between animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="font-semibold">{globalClassDayNotice}</span>
+          </div>
+          <button onClick={() => setGlobalClassDayNotice(null)} className="text-emerald-700 hover:text-emerald-900 cursor-pointer">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Archive Success Notice */}
       {archiveSuccess && (
         <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between animate-in fade-in">
@@ -389,15 +543,24 @@ export const TeacherSessionsScreen: React.FC = () => {
             <Clock className="w-10 h-10 text-slate-300 mx-auto mb-2" />
             <h3 className="text-sm font-bold text-slate-800">No hay sesiones de clase registradas</h3>
             <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-              Programa las clases presenciales para registrar la asistencia manual de tus alumnos.
+              Crea el día de clase con un clic según el horario configurado, o programa una sesión manual.
             </p>
-            <button
-              onClick={handleOpenCreate}
-              className="mt-4 px-4 py-2 bg-[#1F5FA8] hover:bg-[#174B88] text-white text-xs font-bold rounded-lg shadow-xs transition-colors inline-flex items-center gap-1.5 cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Programar primera sesión</span>
-            </button>
+            <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
+              <button
+                onClick={handleOpenClassDayModal}
+                className="px-4 py-2 bg-[#1F5FA8] hover:bg-[#174B88] text-white text-xs font-bold rounded-lg shadow-xs transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+              >
+                <Calendar className="w-4 h-4" />
+                <span>Crear día de clase</span>
+              </button>
+              <button
+                onClick={handleOpenCreate}
+                className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-bold rounded-lg shadow-2xs transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Crear sesión manual</span>
+              </button>
+            </div>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -523,18 +686,190 @@ export const TeacherSessionsScreen: React.FC = () => {
         )}
       </div>
 
-      {/* Modal Form (Create / Edit Session) */}
+      {/* Modal Crear Día de Clase (automático: teoría y práctica) */}
+      {isClassDayModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
+            {/* Modal Header */}
+            <div className="bg-[#0B2A5B] text-white px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-white">
+                  <Calendar className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold">Crear Día de Clase</h3>
+                  <p className="text-[11px] text-blue-200">
+                    Genera las sesiones a partir de los horarios de la sección
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsClassDayModalOpen(false)}
+                disabled={classDayLoading}
+                className="text-slate-300 hover:text-white p-1 rounded-md cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleCreateClassDay} className="p-6 space-y-4 text-xs">
+              {/* Error Message */}
+              {classDayError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-800 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                  <div className="leading-relaxed">{classDayError}</div>
+                </div>
+              )}
+
+              {/* Success Message */}
+              {classDaySuccess && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <div className="leading-relaxed font-semibold">{classDaySuccess}</div>
+                </div>
+              )}
+
+              {/* Mode Toggle Tabs */}
+              <div className="flex rounded-lg bg-slate-100 p-1">
+                <button
+                  type="button"
+                  onClick={() => setClassDayMode('single')}
+                  disabled={classDayLoading}
+                  className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
+                    classDayMode === 'single'
+                      ? 'bg-white text-[#0B2A5B] shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Un solo día
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setClassDayMode('range')}
+                  disabled={classDayLoading}
+                  className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
+                    classDayMode === 'range'
+                      ? 'bg-white text-[#0B2A5B] shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Crear varios días
+                </button>
+              </div>
+
+              {/* Mode: Single Day */}
+              {classDayMode === 'single' ? (
+                <div>
+                  <label className="block font-bold text-slate-700 uppercase tracking-wide mb-1">
+                    Fecha del Día de Clase *
+                  </label>
+                  <input
+                    type="date"
+                    value={classDayDate}
+                    onChange={(e) => setClassDayDate(e.target.value)}
+                    required
+                    disabled={classDayLoading}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1F5FA8] font-mono text-slate-900"
+                  />
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Se crearán las sesiones de teoría y práctica configuradas para este día de la semana.
+                  </p>
+                </div>
+              ) : (
+                /* Mode: Range */
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-slate-700 uppercase tracking-wide mb-1">
+                        Fecha de Inicio *
+                      </label>
+                      <input
+                        type="date"
+                        value={classDayFrom}
+                        onChange={(e) => setClassDayFrom(e.target.value)}
+                        required
+                        disabled={classDayLoading}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1F5FA8] font-mono text-slate-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-700 uppercase tracking-wide mb-1">
+                        Fecha Final *
+                      </label>
+                      <input
+                        type="date"
+                        value={classDayTo}
+                        onChange={(e) => setClassDayTo(e.target.value)}
+                        required
+                        disabled={classDayLoading}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1F5FA8] font-mono text-slate-900"
+                      />
+                    </div>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-blue-50/70 border border-blue-200 text-blue-900 text-[11px] leading-relaxed">
+                    Se crearán las sesiones de todos los días que tengan horario.
+                  </div>
+                </div>
+              )}
+
+              {/* Tema (Opcional) */}
+              <div>
+                <label className="block font-bold text-slate-700 uppercase tracking-wide mb-1">
+                  Tema <span className="font-normal text-slate-400 lowercase">(opcional)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ej: Introducción a la asignatura"
+                  value={classDayTopic}
+                  onChange={(e) => setClassDayTopic(e.target.value)}
+                  disabled={classDayLoading}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1F5FA8] text-slate-900"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-2 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsClassDayModalOpen(false)}
+                  disabled={classDayLoading}
+                  className="px-4 py-2 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={classDayLoading}
+                  className="px-4 py-2 text-xs font-bold text-white bg-[#1F5FA8] hover:bg-[#174B88] rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {classDayLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{classDayMode === 'single' ? 'Crear día de clase' : 'Crear sesiones'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Form (Create / Edit Session Manual) */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
             <div className="bg-[#0B2A5B] text-white px-6 py-4 flex items-center justify-between">
-              <h3 className="text-base font-bold">
-                {editingSession ? 'Editar Sesión de Clase' : 'Programar Nueva Sesión'}
-              </h3>
+              <div>
+                <h3 className="text-base font-bold">
+                  {editingSession ? 'Editar Sesión de Clase' : 'Crear Sesión Manual'}
+                </h3>
+                <p className="text-[11px] text-blue-200">
+                  {editingSession ? 'Actualiza los datos de la sesión' : 'Para horarios especiales o de recuperación'}
+                </p>
+              </div>
               <button
                 onClick={() => setIsModalOpen(false)}
                 disabled={formLoading}
-                className="text-slate-300 hover:text-white p-1 rounded-md"
+                className="text-slate-300 hover:text-white p-1 rounded-md cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -697,7 +1032,7 @@ export const TeacherSessionsScreen: React.FC = () => {
                   className="px-4 py-2 text-xs font-bold text-white bg-[#1F5FA8] hover:bg-[#174B88] rounded-lg transition-colors flex items-center gap-1.5"
                 >
                   {formLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>{editingSession ? 'Guardar cambios' : 'Programar sesión'}</span>
+                  <span>{editingSession ? 'Guardar cambios' : 'Crear sesión manual'}</span>
                 </button>
               </div>
             </form>

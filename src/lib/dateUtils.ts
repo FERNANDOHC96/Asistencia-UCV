@@ -49,6 +49,47 @@ export function formatLimaTime(isoOrTimestampStr?: string | null): string {
   }
 }
 
+/**
+ * Formatea una fecha/hora ISO en fecha de Lima en formato DD/MM/YYYY
+ */
+export function formatLimaDate(isoOrTimestampStr?: string | null): string {
+  if (!isoOrTimestampStr) return '-';
+  try {
+    const d = new Date(isoOrTimestampStr);
+    if (isNaN(d.getTime())) return '-';
+    return new Intl.DateTimeFormat('es-PE', {
+      timeZone: 'America/Lima',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).format(d);
+  } catch {
+    return '-';
+  }
+}
+
+/**
+ * Formatea una fecha/hora ISO en fecha y hora de Lima en formato DD/MM/YYYY HH:MM
+ */
+export function formatLimaDateTime(isoOrTimestampStr?: string | null): string {
+  if (!isoOrTimestampStr) return '-';
+  try {
+    const d = new Date(isoOrTimestampStr);
+    if (isNaN(d.getTime())) return '-';
+    return new Intl.DateTimeFormat('es-PE', {
+      timeZone: 'America/Lima',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(d);
+  } catch {
+    return '-';
+  }
+}
+
 export interface ToleranceEvaluation {
   startTimeStr: string;        // e.g. "06:10"
   limitTimeStr: string;        // e.g. "06:20"

@@ -13,28 +13,13 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({ currentTab, onNavigate }
         return { section: null, label: 'Alumnos' };
       case 'profesores':
         return { section: null, label: 'Profesores' };
-      case 'periodos':
-        return { section: 'Académico', label: 'Periodos' };
       case 'cursos':
-        return { section: 'Académico', label: 'Cursos' };
-      case 'secciones':
-        return { section: 'Académico', label: 'Secciones' };
-      case 'matriculas':
-        return { section: 'Académico', label: 'Matrículas' };
-      case 'horarios':
-        return { section: 'Académico', label: 'Horarios' };
+        return { section: null, label: 'Cursos' };
+      case 'mis_cursos':
       case 'mis_asignaturas':
-        return { section: 'Docente', label: 'Mis Asignaturas' };
-      case 'unidades_semanas':
-        return { section: 'Docente', label: 'Unidades y Semanas' };
-      case 'sesiones':
-        return { section: 'Docente', label: 'Sesiones de Clase' };
-      case 'asistencia':
-        return { section: 'Docente', label: 'Asistencia Manual' };
-      case 'asistencia_qr':
-        return { section: 'Docente', label: 'Asistencia QR' };
+        return { section: null, label: 'Mis Cursos' };
       case 'mi_asistencia':
-        return { section: 'Estudiante', label: 'Mi Historial de Asistencia' };
+        return { section: null, label: 'Mi Asistencia' };
       case 'inicio':
       default:
         return { section: null, label: 'Inicio' };

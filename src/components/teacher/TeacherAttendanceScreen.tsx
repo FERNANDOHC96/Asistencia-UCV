@@ -4,8 +4,12 @@ import { useAuth } from '../../context/AuthContext';
 import { getSupabaseClient, isSupabaseConfigured } from '../../lib/supabase';
 import { getTeacherSections, getSectionActiveStudents, TeacherSection } from '../../services/teacherService';
 import { ClassSession, LearningUnit, AcademicWeek, AttendanceRecord, AttendanceStatus, Profile } from '../../types';
-import { formatDisplayDate, formatTime } from '../../lib/dateUtils';
+import { formatDisplayDate, formatTime, formatLimaTime } from '../../lib/dateUtils';
 import { translateSupabaseError, translateAttendanceRpcError } from '../../lib/supabaseErrors';
+import { getMethodLabel } from '../../lib/attendanceUtils';
+import { StudentAvatar } from '../StudentAvatar';
+import { useStudentAvatarUrls } from '../../lib/avatarCache';
+import { AttendanceStatusButtonGroup } from './AttendanceStatusButton';
 
 interface StudentAttendanceRow {
   student: Profile;
@@ -15,10 +19,14 @@ interface StudentAttendanceRow {
   isSaving?: boolean;
 }
 
-export const TeacherAttendanceScreen: React.FC = () => {
+interface TeacherAttendanceScreenProps {
+  presetSectionId?: string;
+}
+
+export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = ({ presetSectionId }) => {
   const { user } = useAuth();
   const [sections, setSections] = useState<TeacherSection[]>([]);
-  const [selectedSectionId, setSelectedSectionId] = useState<string>('');
+  const [selectedSectionId, setSelectedSectionId] = useState<string>(presetSectionId || '');
 
   // Cascade selectors
   const [units, setUnits] = useState<LearningUnit[]>([]);
@@ -37,6 +45,13 @@ export const TeacherAttendanceScreen: React.FC = () => {
   const [students, setStudents] = useState<Profile[]>([]);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [attendanceRows, setAttendanceRows] = useState<Record<string, StudentAttendanceRow>>({});
+
+  // URLs firmadas de avatares en caché
+  const avatarUrls = useStudentAvatarUrls(students);
+
+  // Estados de guardado individual por botón y animación
+  const [savingTargetStatus, setSavingTargetStatus] = useState<Record<string, AttendanceStatus>>({});
+  const [animatedStudentIds, setAnimatedStudentIds] = useState<Record<string, AttendanceStatus>>({});
 
   const [loadingSections, setLoadingSections] = useState<boolean>(true);
   const [loadingCascade, setLoadingCascade] = useState<boolean>(false);
@@ -59,7 +74,9 @@ export const TeacherAttendanceScreen: React.FC = () => {
     try {
       const data = await getTeacherSections(user.id);
       setSections(data);
-      if (data.length > 0 && !selectedSectionId) {
+      if (presetSectionId) {
+        setSelectedSectionId(presetSectionId);
+      } else if (data.length > 0 && !selectedSectionId) {
         setSelectedSectionId(data[0].id);
       }
     } catch (err: unknown) {
@@ -67,7 +84,7 @@ export const TeacherAttendanceScreen: React.FC = () => {
     } finally {
       setLoadingSections(false);
     }
-  }, [user, selectedSectionId]);
+  }, [user, selectedSectionId, presetSectionId]);
 
   useEffect(() => {
     fetchSections();
@@ -184,7 +201,7 @@ export const TeacherAttendanceScreen: React.FC = () => {
       // B. Attendance records for this class_session_id (ONLY READ, NO created_at)
       const { data: aRecords, error: aErr } = await supabase
         .from('attendance_records')
-        .select('id, class_session_id, student_id, status, method, justification, registered_at, modified_by, modified_at')
+        .select('id, class_session_id, student_id, status, method, justification, registered_at, modified_by, modified_at, bt_verified_at')
         .eq('class_session_id', selectedSessionId);
 
       if (aErr) throw aErr;
@@ -233,12 +250,12 @@ export const TeacherAttendanceScreen: React.FC = () => {
     const previousStatus = currentRow.optimisticStatus;
     const justification = currentRow.justificationInput || null;
 
-    // Optimistic update
+    // Estado cargando: el botón se muestra en gris con spinner girando
+    setSavingTargetStatus((prev) => ({ ...prev, [studentId]: targetStatus }));
     setAttendanceRows((prev) => ({
       ...prev,
       [studentId]: {
         ...prev[studentId],
-        optimisticStatus: targetStatus,
         isSaving: true,
       },
     }));
@@ -262,12 +279,10 @@ export const TeacherAttendanceScreen: React.FC = () => {
       // Check return string: strictly "success"
       if (rpcResponse !== 'success') {
         const translatedMsg = translateAttendanceRpcError(String(rpcResponse));
-        // Revert row state
         setAttendanceRows((prev) => ({
           ...prev,
           [studentId]: {
             ...prev[studentId],
-            optimisticStatus: previousStatus,
             isSaving: false,
           },
         }));
@@ -275,7 +290,7 @@ export const TeacherAttendanceScreen: React.FC = () => {
         return;
       }
 
-      // Success
+      // Success: Solo ahora pasa al nuevo color y se anima
       setAttendanceRows((prev) => ({
         ...prev,
         [studentId]: {
@@ -294,6 +309,16 @@ export const TeacherAttendanceScreen: React.FC = () => {
         },
       }));
 
+      // Animación pop para el nuevo estado
+      setAnimatedStudentIds((prev) => ({ ...prev, [studentId]: targetStatus }));
+      setTimeout(() => {
+        setAnimatedStudentIds((prev) => {
+          const n = { ...prev };
+          delete n[studentId];
+          return n;
+        });
+      }, 1500);
+
       setActionFeedback({
         type: 'success',
         message: `Asistencia actualizada para ${currentRow.student.first_names} ${currentRow.student.last_names} (${targetStatus}).`,
@@ -302,23 +327,27 @@ export const TeacherAttendanceScreen: React.FC = () => {
       // Refetch records in background to keep history fresh
       const { data: freshRecords } = await supabase
         .from('attendance_records')
-        .select('id, class_session_id, student_id, status, method, justification, registered_at, modified_by, modified_at')
+        .select('id, class_session_id, student_id, status, method, justification, registered_at, modified_by, modified_at, bt_verified_at')
         .eq('class_session_id', selectedSessionId);
       if (freshRecords) {
         setAttendanceRecords(freshRecords as AttendanceRecord[]);
       }
     } catch (err: unknown) {
-      // Revert on exception
       setAttendanceRows((prev) => ({
         ...prev,
         [studentId]: {
           ...prev[studentId],
-          optimisticStatus: previousStatus,
           isSaving: false,
         },
       }));
       const msg = err instanceof Error ? err.message : 'Error inesperado al invocar set_attendance.';
       setActionFeedback({ type: 'error', message: msg });
+    } finally {
+      setSavingTargetStatus((prev) => {
+        const next = { ...prev };
+        delete next[studentId];
+        return next;
+      });
     }
   };
 
@@ -650,16 +679,22 @@ export const TeacherAttendanceScreen: React.FC = () => {
                       key={student.id}
                       className="p-4 hover:bg-slate-50/70 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs"
                     >
-                      {/* Left: Student Identity and Registered Info */}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold text-[#0B2A5B] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded text-[11px]">
-                            {student.code}
-                          </span>
-                          <span className="font-bold text-slate-900 text-sm">
-                            {student.first_names} {student.last_names}
-                          </span>
-                        </div>
+                      {/* Left: Student Avatar + Identity and Registered Info */}
+                      <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
+                        <StudentAvatar
+                          student={student}
+                          status={optimisticStatus}
+                          signedUrl={avatarUrls[student.id]}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-[#0B2A5B] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded text-[11px]">
+                              {student.code}
+                            </span>
+                            <span className="font-bold text-slate-900 text-sm">
+                              {student.first_names} {student.last_names}
+                            </span>
+                          </div>
 
                         {/* Status, method and time indicator */}
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
@@ -686,11 +721,16 @@ export const TeacherAttendanceScreen: React.FC = () => {
                             <>
                               <span>•</span>
                               <span>
-                                Método: <strong className="uppercase font-mono text-slate-700">{record.method}</strong>
+                                Método: <strong className="font-semibold text-slate-800">{getMethodLabel(record.method)}</strong>
                               </span>
+                              {record.bt_verified_at && (
+                                <span className="inline-flex items-center text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded">
+                                  Verificado por Bluetooth
+                                </span>
+                              )}
                               <span>•</span>
                               <span>
-                                Hora: <strong className="font-mono text-slate-700">{new Date(record.registered_at).toLocaleTimeString()}</strong>
+                                Hora: <strong className="font-mono text-slate-700">{formatLimaTime(record.registered_at)}</strong>
                               </span>
                             </>
                           )}
@@ -722,78 +762,17 @@ export const TeacherAttendanceScreen: React.FC = () => {
                           </div>
                         )}
                       </div>
+                    </div>
 
-                      {/* Right: 4 Circular Controls with Icon and Text */}
-                      <div className="flex items-center gap-2 shrink-0">
-                        {isSaving ? (
-                          <div className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#1F5FA8] font-semibold bg-blue-50 rounded-lg border border-blue-200">
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            <span>Guardando...</span>
-                          </div>
-                        ) : (
-                          <>
-                            {/* 1. Presente (Verde) */}
-                            <button
-                              type="button"
-                              onClick={() => handleSetAttendance(student.id, 'presente')}
-                              title="Marcar Presente"
-                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold transition-all cursor-pointer ${
-                                optimisticStatus === 'presente'
-                                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs ring-2 ring-emerald-200'
-                                  : 'bg-white border-emerald-200 text-emerald-800 hover:bg-emerald-50'
-                              }`}
-                            >
-                              <Check className="w-3.5 h-3.5" />
-                              <span>Presente</span>
-                            </button>
-
-                            {/* 2. Tardanza (Ámbar) */}
-                            <button
-                              type="button"
-                              onClick={() => handleSetAttendance(student.id, 'tardanza')}
-                              title="Marcar Tardanza"
-                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold transition-all cursor-pointer ${
-                                optimisticStatus === 'tardanza'
-                                  ? 'bg-amber-500 border-amber-500 text-white shadow-xs ring-2 ring-amber-200'
-                                  : 'bg-white border-amber-200 text-amber-800 hover:bg-amber-50'
-                              }`}
-                            >
-                              <Clock className="w-3.5 h-3.5" />
-                              <span>Tardanza</span>
-                            </button>
-
-                            {/* 3. Falta (Rojo) */}
-                            <button
-                              type="button"
-                              onClick={() => handleSetAttendance(student.id, 'falta')}
-                              title="Marcar Falta"
-                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold transition-all cursor-pointer ${
-                                optimisticStatus === 'falta'
-                                  ? 'bg-red-600 border-red-600 text-white shadow-xs ring-2 ring-red-200'
-                                  : 'bg-white border-red-200 text-red-800 hover:bg-red-50'
-                              }`}
-                            >
-                              <XCircle className="w-3.5 h-3.5" />
-                              <span>Falta</span>
-                            </button>
-
-                            {/* 4. Justificado (Azul Grisáceo) */}
-                            <button
-                              type="button"
-                              onClick={() => handleSetAttendance(student.id, 'justificado')}
-                              title="Marcar Justificado"
-                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold transition-all cursor-pointer ${
-                                optimisticStatus === 'justificado'
-                                  ? 'bg-slate-700 border-slate-700 text-white shadow-xs ring-2 ring-slate-300'
-                                  : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
-                              }`}
-                            >
-                              <FileText className="w-3.5 h-3.5" />
-                              <span>Justificado</span>
-                            </button>
-                          </>
-                        )}
-                      </div>
+                      {/* Right: 4 Controles Circulares de Estado (Componente Reutilizable) */}
+                      <AttendanceStatusButtonGroup
+                        currentStatus={optimisticStatus}
+                        savingStatus={savingTargetStatus[student.id]}
+                        isAnimated={Boolean(animatedStudentIds[student.id])}
+                        size="md"
+                        className="self-end sm:self-auto shrink-0"
+                        onSelectStatus={(status) => handleSetAttendance(student.id, status)}
+                      />
                     </div>
                   );
                 })}
@@ -833,11 +812,16 @@ export const TeacherAttendanceScreen: React.FC = () => {
                           <td className="px-4 py-2">
                             <span className="font-bold capitalize text-slate-800">{r.status}</span>
                           </td>
-                          <td className="px-4 py-2 uppercase font-mono text-[11px] text-slate-500">
-                            {r.method}
+                          <td className="px-4 py-2 text-xs">
+                            <span className="font-semibold text-slate-800">{getMethodLabel(r.method)}</span>
+                            {r.bt_verified_at && (
+                              <span className="block text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded mt-0.5 w-fit">
+                                Verificado por Bluetooth
+                              </span>
+                            )}
                           </td>
                           <td className="px-4 py-2 font-mono text-slate-600">
-                            {r.registered_at ? new Date(r.registered_at).toLocaleTimeString() : '-'}
+                            {r.registered_at ? formatLimaTime(r.registered_at) : '-'}
                           </td>
                           <td className="px-4 py-2 text-slate-500 max-w-xs truncate">
                             {r.justification || '-'}

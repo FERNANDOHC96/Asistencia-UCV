@@ -127,9 +127,9 @@ export function translateOpenAttendanceError(rpcResult: string): string {
     case 'session_cancelled':
       return 'La sesión está cancelada.';
     case 'session_closed':
-      return 'La sesión ya está cerrada.';
+      return 'La asistencia ya está cerrada.';
     case 'not_today':
-      return 'Solo se puede abrir la asistencia el día de la clase.';
+      return 'Solo se puede abrir el día de la clase.';
     case 'success':
       return 'Asistencia abierta exitosamente.';
     default:
