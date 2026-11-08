@@ -201,7 +201,7 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
       // B. Attendance records for this class_session_id (ONLY READ, NO created_at)
       const { data: aRecords, error: aErr } = await supabase
         .from('attendance_records')
-        .select('id, class_session_id, student_id, status, method, justification, registered_at, modified_by, modified_at, bt_verified_at')
+        .select('id, class_session_id, student_id, status, method, justification, registered_at, modified_by, modified_at')
         .eq('class_session_id', selectedSessionId);
 
       if (aErr) throw aErr;
@@ -327,7 +327,7 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
       // Refetch records in background to keep history fresh
       const { data: freshRecords } = await supabase
         .from('attendance_records')
-        .select('id, class_session_id, student_id, status, method, justification, registered_at, modified_by, modified_at, bt_verified_at')
+        .select('id, class_session_id, student_id, status, method, justification, registered_at, modified_by, modified_at')
         .eq('class_session_id', selectedSessionId);
       if (freshRecords) {
         setAttendanceRecords(freshRecords as AttendanceRecord[]);
@@ -400,15 +400,18 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-[11px] font-mono font-bold text-[#1F5FA8] uppercase tracking-wider mb-2">
+            <span>Módulo de Asistencia</span>
+          </div>
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-100 text-[#1F5FA8] flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 text-[#1F5FA8] flex items-center justify-center">
               <UserCheck className="w-5 h-5" />
             </div>
-            <h1 className="text-xl sm:text-2xl font-bold text-[#0B2A5B]">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
               Registro de Asistencia Manual
             </h1>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
             Control de asistencia por sesión con persistencia mediante función oficial institucional
           </p>
         </div>
@@ -419,7 +422,7 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
             fetchSessionAttendance();
           }}
           disabled={loadingSections || loadingAttendance}
-          className="self-start sm:self-auto px-3 py-1.5 bg-white border border-slate-200 text-slate-700 hover:text-[#1F5FA8] hover:bg-slate-50 rounded-lg text-xs font-semibold shadow-2xs transition-colors flex items-center gap-1.5 cursor-pointer"
+          className="self-start sm:self-auto px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-semibold text-slate-700 shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loadingAttendance ? 'animate-spin text-[#1F5FA8]' : ''}`} />
           <span>Actualizar</span>
@@ -427,20 +430,20 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
       </div>
 
       {/* Selectors Bar in Cascade */}
-      <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 space-y-3">
-        <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-          1. Selección de Sesión de Clase
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
+        <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-2">
+          <span>1. Selección de Sesión de Clase</span>
         </h3>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 text-xs">
           {/* 1. Sección */}
           <div>
-            <label className="block text-slate-500 font-medium mb-1">Sección *</label>
+            <label className="block text-slate-700 font-bold uppercase tracking-wider text-[11px] mb-1.5">Sección *</label>
             <select
               value={selectedSectionId}
               onChange={(e) => setSelectedSectionId(e.target.value)}
               disabled={sections.length === 0}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1F5FA8] bg-white font-mono text-slate-900 truncate"
+              className="w-full px-3 py-2 font-mono text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] transition-all outline-none truncate cursor-pointer"
             >
               {sections.length === 0 ? (
                 <option value="">Sin secciones asignadas</option>
@@ -456,11 +459,11 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
 
           {/* 2. Tipo (Filtro por Tipo) */}
           <div>
-            <label className="block text-slate-500 font-medium mb-1">Tipo de Clase</label>
+            <label className="block text-slate-700 font-bold uppercase tracking-wider text-[11px] mb-1.5">Tipo de Clase</label>
             <select
               value={selectedKind}
               onChange={(e) => setSelectedKind(e.target.value as 'all' | 'teoria' | 'practica')}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1F5FA8] bg-white text-slate-900 truncate"
+              className="w-full px-3 py-2 text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] transition-all outline-none truncate cursor-pointer font-medium"
             >
               <option value="all">Todas (Teoría / Práctica)</option>
               <option value="teoria">Teoría</option>
@@ -470,12 +473,12 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
 
           {/* 3. Unidad (Opcional) */}
           <div>
-            <label className="block text-slate-500 font-medium mb-1">Unidad (Opcional)</label>
+            <label className="block text-slate-700 font-bold uppercase tracking-wider text-[11px] mb-1.5">Unidad (Opcional)</label>
             <select
               value={selectedUnitId}
               onChange={(e) => setSelectedUnitId(e.target.value)}
               disabled={units.length === 0}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1F5FA8] bg-white text-slate-900 truncate"
+              className="w-full px-3 py-2 text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] transition-all outline-none truncate cursor-pointer font-medium"
             >
               <option value="all">Todas las unidades</option>
               {units.map((u) => (
@@ -488,12 +491,12 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
 
           {/* 4. Semana (Opcional) */}
           <div>
-            <label className="block text-slate-500 font-medium mb-1">Semana (Opcional)</label>
+            <label className="block text-slate-700 font-bold uppercase tracking-wider text-[11px] mb-1.5">Semana (Opcional)</label>
             <select
               value={selectedWeekId}
               onChange={(e) => setSelectedWeekId(e.target.value)}
               disabled={weeks.length === 0}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1F5FA8] bg-white text-slate-900 truncate"
+              className="w-full px-3 py-2 text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] transition-all outline-none truncate cursor-pointer font-medium"
             >
               <option value="all">Todas las semanas</option>
               {weeks.map((w) => (
@@ -506,12 +509,12 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
 
           {/* 5. Sesión de Clase */}
           <div>
-            <label className="block text-slate-500 font-medium mb-1">Sesión de Clase *</label>
+            <label className="block text-slate-700 font-bold uppercase tracking-wider text-[11px] mb-1.5">Sesión de Clase *</label>
             <select
               value={selectedSessionId}
               onChange={(e) => setSelectedSessionId(e.target.value)}
               disabled={filteredSessions.length === 0}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1F5FA8] bg-white font-mono text-slate-900 font-semibold truncate disabled:bg-slate-100"
+              className="w-full px-3 py-2 font-mono text-slate-900 font-bold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] transition-all outline-none truncate disabled:opacity-50 cursor-pointer"
             >
               {filteredSessions.length === 0 ? (
                 <option value="">No hay sesiones programadas</option>
@@ -557,21 +560,21 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
       )}
 
       {!selectedSessionId ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center text-xs text-slate-400">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-12 text-center text-xs text-slate-500 font-medium">
           Selecciona una sección y una sesión de clase programada para registrar y consultar asistencias.
         </div>
       ) : (
         <div className="space-y-6">
           {/* Session Banner and Summary Metrics */}
-          <div className="bg-white rounded-2xl shadow-xs border border-slate-200 p-5 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
               <div>
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1.5">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                     Sesión Activa
                   </span>
                   <span
-                    className={`inline-flex items-center gap-1 text-[11px] font-bold border px-2.5 py-0.5 rounded-full ${
+                    className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
                       currentSession?.kind === 'practica'
                         ? 'bg-purple-50 text-purple-700 border-purple-200'
                         : 'bg-blue-50 text-[#1F5FA8] border-blue-200'
@@ -588,23 +591,23 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
                 <h3 className="text-base font-bold text-slate-900">
                   {currentSession?.topic || 'Clase Presencial'}
                 </h3>
-                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 font-mono mt-0.5">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 font-mono mt-1 font-medium">
                   <span>📅 {formatDisplayDate(currentSession?.session_date || '')}</span>
                   <span>•</span>
                   <span>⏰ {formatTime(currentSession?.starts_at)} a {formatTime(currentSession?.ends_at)}</span>
                   <span>•</span>
-                  <span className="capitalize font-semibold text-slate-700">Estado: {currentSession?.status}</span>
+                  <span className="capitalize font-bold text-slate-700">Estado: {currentSession?.status}</span>
                 </div>
               </div>
 
               {/* Status Warning */}
               {currentSession?.status === 'cerrada' && (
-                <span className="px-3 py-1 text-xs font-bold bg-slate-100 text-slate-700 rounded-lg border border-slate-200">
+                <span className="bg-slate-100 border border-slate-200 px-3 py-1 text-xs font-bold text-slate-700 rounded-full">
                   Sesión cerrada
                 </span>
               )}
               {currentSession?.status === 'cancelada' && (
-                <span className="px-3 py-1 text-xs font-bold bg-red-50 text-red-700 rounded-lg border border-red-200">
+                <span className="bg-red-50 border border-red-200 px-3 py-1 text-xs font-bold text-red-700 rounded-full">
                   Sesión cancelada
                 </span>
               )}
@@ -612,35 +615,35 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
 
             {/* Real Summary Bar with Total Counts */}
             <div className="grid grid-cols-2 sm:grid-cols-6 gap-2.5 text-center">
-              <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
                 <span className="text-[10px] uppercase font-bold text-slate-500 block">Matriculados</span>
-                <span className="text-lg font-extrabold text-slate-900 font-mono">{summary.total}</span>
+                <span className="text-lg font-black text-slate-900 font-mono">{summary.total}</span>
               </div>
-              <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-900">
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700">
                 <span className="text-[10px] uppercase font-bold block">Presentes</span>
-                <span className="text-lg font-extrabold font-mono text-emerald-700">{summary.presentes}</span>
+                <span className="text-lg font-black font-mono">{summary.presentes}</span>
               </div>
-              <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-amber-900">
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-700">
                 <span className="text-[10px] uppercase font-bold block">Tardanzas</span>
-                <span className="text-lg font-extrabold font-mono text-amber-700">{summary.tardanzas}</span>
+                <span className="text-lg font-black font-mono">{summary.tardanzas}</span>
               </div>
-              <div className="p-2.5 bg-red-50 rounded-xl border border-red-200 text-red-900">
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700">
                 <span className="text-[10px] uppercase font-bold block">Faltas</span>
-                <span className="text-lg font-extrabold font-mono text-red-700">{summary.faltas}</span>
+                <span className="text-lg font-black font-mono">{summary.faltas}</span>
               </div>
-              <div className="p-2.5 bg-slate-100 rounded-xl border border-slate-300 text-slate-800">
+              <div className="p-3 bg-slate-100 border border-slate-200 rounded-xl text-slate-700">
                 <span className="text-[10px] uppercase font-bold block">Justificados</span>
-                <span className="text-lg font-extrabold font-mono text-slate-700">{summary.justificados}</span>
+                <span className="text-lg font-black font-mono">{summary.justificados}</span>
               </div>
-              <div className="p-2.5 bg-blue-50/50 rounded-xl border border-blue-200 text-blue-900">
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-[#1F5FA8]">
                 <span className="text-[10px] uppercase font-bold block">Sin Registrar</span>
-                <span className="text-lg font-extrabold font-mono text-blue-800">{summary.sinRegistrar}</span>
+                <span className="text-lg font-black font-mono">{summary.sinRegistrar}</span>
               </div>
             </div>
           </div>
 
           {/* Search Filter */}
-          <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-3 flex items-center justify-between gap-3 text-xs">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 flex items-center justify-between gap-3 text-xs">
             <div className="relative flex-1 max-w-sm">
               <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
               <input
@@ -648,36 +651,36 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
                 placeholder="Buscar alumno por código o nombre..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1F5FA8]"
+                className="w-full pl-8 pr-3 py-2 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] focus:ring-2 focus:ring-[#1F5FA8]/20 transition-all outline-none text-slate-800"
               />
             </div>
             <span className="text-slate-500 font-medium">
-              Alumnos: <strong className="text-slate-800">{filteredRows.length}</strong> de {students.length}
+              Alumnos: <strong className="text-slate-800 font-mono">{filteredRows.length}</strong> de {students.length}
             </span>
           </div>
 
           {/* Student Attendance List with 4 Circular Controls */}
-          <div className="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 space-y-3">
             {loadingAttendance ? (
-              <div className="py-16 text-center text-xs text-slate-500">
+              <div className="py-16 text-center text-xs text-slate-500 font-mono">
                 <Loader2 className="w-6 h-6 text-[#1F5FA8] animate-spin mx-auto mb-2" />
                 Cargando lista de asistencia...
               </div>
             ) : filteredRows.length === 0 ? (
-              <div className="py-16 text-center text-xs text-slate-400">
+              <div className="py-16 text-center text-xs text-slate-400 font-medium">
                 {searchQuery
                   ? 'No se encontraron alumnos con el criterio de búsqueda.'
                   : 'No hay alumnos matriculados activos en esta sección.'}
               </div>
             ) : (
-              <div className="divide-y divide-slate-100">
+              <div className="space-y-2.5">
                 {filteredRows.map(({ student, record, optimisticStatus, justificationInput, isSaving }) => {
                   const isJustificado = optimisticStatus === 'justificado';
 
                   return (
                     <div
                       key={student.id}
-                      className="p-4 hover:bg-slate-50/70 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs"
+                      className="p-4 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs rounded-2xl bg-white border border-slate-200 shadow-2xs hover:bg-slate-50/60"
                     >
                       {/* Left: Student Avatar + Identity and Registered Info */}
                       <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
@@ -701,7 +704,7 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
                           <span>
                             Estado actual:{' '}
                             <strong
-                              className={`capitalize ${
+                              className={`capitalize font-bold ${
                                 optimisticStatus === 'presente'
                                   ? 'text-emerald-700'
                                   : optimisticStatus === 'tardanza'
@@ -710,7 +713,7 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
                                   ? 'text-red-700'
                                   : optimisticStatus === 'justificado'
                                   ? 'text-slate-700'
-                                  : 'text-blue-800'
+                                  : 'text-slate-400'
                               }`}
                             >
                               {optimisticStatus === 'sin_registrar' ? 'Sin registrar' : optimisticStatus}
@@ -719,16 +722,11 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
 
                           {record?.registered_at && (
                             <>
-                              <span>•</span>
+                              <span className="text-slate-300">•</span>
                               <span>
                                 Método: <strong className="font-semibold text-slate-800">{getMethodLabel(record.method)}</strong>
                               </span>
-                              {record.bt_verified_at && (
-                                <span className="inline-flex items-center text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded">
-                                  Verificado por Bluetooth
-                                </span>
-                              )}
-                              <span>•</span>
+                              <span className="text-slate-300">•</span>
                               <span>
                                 Hora: <strong className="font-mono text-slate-700">{formatLimaTime(record.registered_at)}</strong>
                               </span>
@@ -739,7 +737,7 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
                         {/* Justification input if status is 'justificado' */}
                         {isJustificado && (
                           <div className="mt-2.5 max-w-md animate-in fade-in">
-                            <label className="block text-[10px] font-bold text-slate-600 uppercase mb-0.5">
+                            <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
                               Motivo de justificación (médica / laboral / institucional):
                             </label>
                             <div className="flex items-center gap-2">
@@ -748,13 +746,13 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
                                 placeholder="Ej: Certificado médico presentado..."
                                 value={justificationInput || ''}
                                 onChange={(e) => handleJustificationChange(student.id, e.target.value)}
-                                className="w-full px-2.5 py-1 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#1F5FA8]"
+                                className="w-full px-2.5 py-1.5 text-xs text-slate-800 font-medium bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-[#1F5FA8] outline-none"
                               />
                               <button
                                 type="button"
                                 onClick={() => handleSetAttendance(student.id, 'justificado')}
                                 disabled={isSaving}
-                                className="px-2.5 py-1 bg-slate-700 hover:bg-slate-800 text-white rounded-lg text-[11px] font-bold shrink-0 cursor-pointer"
+                                className="px-3 py-1.5 bg-[#1F5FA8] hover:bg-[#0B2A5B] text-white text-[11px] font-bold rounded-lg shrink-0 cursor-pointer shadow-xs transition-all"
                               >
                                 Guardar
                               </button>
@@ -782,7 +780,7 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
 
           {/* Session Attendance History Table */}
           {attendanceRecords.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-xs border border-slate-200 p-5 space-y-3">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
               <div className="flex items-center gap-2">
                 <History className="w-4 h-4 text-[#1F5FA8]" />
                 <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wide">
@@ -790,47 +788,44 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
                 </h4>
               </div>
 
-              <div className="overflow-x-auto border border-slate-200 rounded-xl">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-semibold">
-                    <tr>
-                      <th className="px-4 py-2.5">Alumno</th>
-                      <th className="px-4 py-2.5">Estado</th>
-                      <th className="px-4 py-2.5">Método</th>
-                      <th className="px-4 py-2.5">Hora de Registro</th>
-                      <th className="px-4 py-2.5">Justificación</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-slate-700">
-                    {attendanceRecords.map((r) => {
-                      const studentObj = students.find((s) => s.id === r.student_id);
-                      return (
-                        <tr key={r.id} className="hover:bg-slate-50">
-                          <td className="px-4 py-2 font-medium text-slate-900">
-                            {studentObj ? `${studentObj.first_names} ${studentObj.last_names}` : r.student_id}
-                          </td>
-                          <td className="px-4 py-2">
-                            <span className="font-bold capitalize text-slate-800">{r.status}</span>
-                          </td>
-                          <td className="px-4 py-2 text-xs">
-                            <span className="font-semibold text-slate-800">{getMethodLabel(r.method)}</span>
-                            {r.bt_verified_at && (
-                              <span className="block text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded mt-0.5 w-fit">
-                                Verificado por Bluetooth
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-4 py-2 font-mono text-slate-600">
-                            {r.registered_at ? formatLimaTime(r.registered_at) : '-'}
-                          </td>
-                          <td className="px-4 py-2 text-slate-500 max-w-xs truncate">
-                            {r.justification || '-'}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <div className="border border-slate-200 rounded-xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="text-slate-500 uppercase font-bold text-[10px] border-b border-slate-200 bg-slate-50">
+                      <tr>
+                        <th className="px-4 py-3">Alumno</th>
+                        <th className="px-4 py-3">Estado</th>
+                        <th className="px-4 py-3">Método</th>
+                        <th className="px-4 py-3">Hora de Registro</th>
+                        <th className="px-4 py-3">Justificación</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-700">
+                      {attendanceRecords.map((r) => {
+                        const studentObj = students.find((s) => s.id === r.student_id);
+                        return (
+                          <tr key={r.id} className="hover:bg-slate-50/60 transition-colors">
+                            <td className="px-4 py-2.5 font-bold text-slate-900">
+                              {studentObj ? `${studentObj.first_names} ${studentObj.last_names}` : r.student_id}
+                            </td>
+                            <td className="px-4 py-2.5">
+                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-100 border border-slate-200 text-slate-800">{r.status}</span>
+                            </td>
+                            <td className="px-4 py-2.5 text-xs">
+                              <span className="font-semibold text-slate-800">{getMethodLabel(r.method)}</span>
+                            </td>
+                            <td className="px-4 py-2.5 font-mono text-slate-600">
+                              {r.registered_at ? formatLimaTime(r.registered_at) : '-'}
+                            </td>
+                            <td className="px-4 py-2.5 text-slate-500 max-w-xs truncate font-medium">
+                              {r.justification || '-'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}

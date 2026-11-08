@@ -234,23 +234,5 @@ export interface TeacherName {
   last_names: string;
 }
 
-export interface FaceStatus {
-  student_id: string;
-  registered: boolean;
-  model?: string | null;
-  registered_at?: string | null;
-  last_pass?: string | null;
-  enrollment_open_until?: string | null;
-}
-
-export interface FaceSettings {
-  face_required: boolean;
-  face_threshold: number;
-  face_threshold_turn: number;
-  face_pair_min: number;
-  face_pair_max: number;
-  enrollment_supervised: boolean;
-}
-
 
 

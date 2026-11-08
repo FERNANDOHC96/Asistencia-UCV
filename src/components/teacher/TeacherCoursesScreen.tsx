@@ -459,44 +459,44 @@ export const TeacherCoursesScreen: React.FC = () => {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         {/* Header del Curso Seleccionado */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-4">
               <button
                 onClick={() => setSelectedCourse(null)}
-                className="mt-1 p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
+                className="p-2 hover:bg-slate-100 rounded-xl text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
                 title="Volver a Mis Cursos"
               >
                 <ArrowLeft className="w-5 h-5 text-[#0B2A5B]" />
               </button>
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-mono text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-[#1F5FA8]">
                     {selectedCourse.code}
                   </span>
-                  <span className="text-xs text-slate-500 font-medium">
+                  <span className="text-xs text-slate-500 font-semibold">
                     Sección {selectedCourse.section_name}
                   </span>
                 </div>
-                <h1 className="text-xl sm:text-2xl font-black text-[#0B2A5B] mt-1">
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">
                   {selectedCourse.name}
                 </h1>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Estudiantes matriculados: <strong className="text-slate-800">{selectedCourse.students ?? 0}</strong>
+                  Estudiantes matriculados: <strong className="text-slate-700">{selectedCourse.students ?? 0}</strong>
                 </p>
               </div>
             </div>
           </div>
 
           {/* 5 Tabs de Navegación interna */}
-          <div className="mt-5 border-t border-slate-100 pt-3 flex flex-wrap items-center gap-1 sm:gap-2">
+          <div className="mt-5 border-t border-slate-100 pt-3 flex flex-wrap items-center gap-2">
             {/* 1. Horario */}
             <button
               onClick={() => setActiveTab('horario')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
                 activeTab === 'horario'
                   ? 'bg-[#1F5FA8] text-white shadow-xs'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
               <Clock className="w-3.5 h-3.5" />
@@ -506,10 +506,10 @@ export const TeacherCoursesScreen: React.FC = () => {
             {/* 2. Sesiones */}
             <button
               onClick={() => setActiveTab('sesiones')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
                 activeTab === 'sesiones'
                   ? 'bg-[#1F5FA8] text-white shadow-xs'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
               <Calendar className="w-3.5 h-3.5" />
@@ -519,10 +519,10 @@ export const TeacherCoursesScreen: React.FC = () => {
             {/* 3. Asistencia (QR) */}
             <button
               onClick={() => setActiveTab('asistencia')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
                 activeTab === 'asistencia'
                   ? 'bg-[#1F5FA8] text-white shadow-xs'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
               <QrCode className="w-3.5 h-3.5" />
@@ -532,10 +532,10 @@ export const TeacherCoursesScreen: React.FC = () => {
             {/* 4. Asistencia manual */}
             <button
               onClick={() => setActiveTab('asistencia_manual')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
                 activeTab === 'asistencia_manual'
                   ? 'bg-[#1F5FA8] text-white shadow-xs'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
               <Edit3 className="w-3.5 h-3.5" />
@@ -545,10 +545,10 @@ export const TeacherCoursesScreen: React.FC = () => {
             {/* 5. Alumnos */}
             <button
               onClick={() => setActiveTab('alumnos')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
                 activeTab === 'alumnos'
                   ? 'bg-[#1F5FA8] text-white shadow-xs'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
               <Users className="w-3.5 h-3.5" />
@@ -577,7 +577,7 @@ export const TeacherCoursesScreen: React.FC = () => {
             {scheduleSuccess && (
               <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center justify-between">
                 <span>{scheduleSuccess}</span>
-                <button onClick={() => setScheduleSuccess(null)}>
+                <button onClick={() => setScheduleSuccess(null)} className="cursor-pointer">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -585,15 +585,15 @@ export const TeacherCoursesScreen: React.FC = () => {
             {scheduleError && (
               <div className="p-3 bg-red-50 border border-red-200 text-red-800 rounded-xl text-xs font-semibold flex items-center justify-between">
                 <span>{scheduleError}</span>
-                <button onClick={() => setScheduleError(null)}>
+                <button onClick={() => setScheduleError(null)} className="cursor-pointer">
                   <X className="w-4 h-4" />
                 </button>
               </div>
             )}
 
             {/* Horario actual + Botón añadir franja */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
                 <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
                   <Clock className="w-4 h-4 text-[#1F5FA8]" />
                   <span>Franjas Horarias de la Sección ({schedules.length})</span>
@@ -601,7 +601,7 @@ export const TeacherCoursesScreen: React.FC = () => {
 
                 <button
                   onClick={() => setIsAddingSchedule(!isAddingSchedule)}
-                  className="px-3 py-1.5 bg-[#1F5FA8] hover:bg-[#0B2A5B] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer self-start sm:self-auto"
+                  className="px-3.5 py-2 bg-[#1F5FA8] hover:bg-[#0B2A5B] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs self-start sm:self-auto"
                 >
                   <Plus className="w-4 h-4" />
                   <span>{isAddingSchedule ? 'Cerrar formulario' : 'Añadir franja horaria'}</span>
@@ -612,7 +612,7 @@ export const TeacherCoursesScreen: React.FC = () => {
               {isAddingSchedule && (
                 <form
                   onSubmit={handleSaveSchedule}
-                  className="mb-5 p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3"
+                  className="mb-6 p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3"
                 >
                   <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
                     Nueva Franja Horaria
@@ -627,7 +627,7 @@ export const TeacherCoursesScreen: React.FC = () => {
                       <select
                         value={newWeekday}
                         onChange={(e) => setNewWeekday(Number(e.target.value))}
-                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#1F5FA8]"
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#1F5FA8]"
                       >
                         {Object.entries(WEEKDAYS).map(([num, name]) => (
                           <option key={num} value={num}>
@@ -645,7 +645,7 @@ export const TeacherCoursesScreen: React.FC = () => {
                       <select
                         value={newKind}
                         onChange={(e) => setNewKind(e.target.value as SessionKind)}
-                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#1F5FA8]"
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#1F5FA8]"
                       >
                         <option value="teoria">Teoría</option>
                         <option value="practica">Práctica</option>
@@ -662,7 +662,7 @@ export const TeacherCoursesScreen: React.FC = () => {
                         required
                         value={newStartsAt}
                         onChange={(e) => setNewStartsAt(e.target.value)}
-                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#1F5FA8]"
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#1F5FA8]"
                       />
                     </div>
 
@@ -676,7 +676,7 @@ export const TeacherCoursesScreen: React.FC = () => {
                         required
                         value={newEndsAt}
                         onChange={(e) => setNewEndsAt(e.target.value)}
-                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#1F5FA8]"
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#1F5FA8]"
                       />
                     </div>
 
@@ -690,23 +690,23 @@ export const TeacherCoursesScreen: React.FC = () => {
                         placeholder="Ej. Pab. B-302"
                         value={newRoom}
                         onChange={(e) => setNewRoom(e.target.value)}
-                        className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#1F5FA8]"
+                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#1F5FA8]"
                       />
                     </div>
                   </div>
 
-                  <div className="flex justify-end gap-2 pt-1">
+                  <div className="flex justify-end gap-2 pt-2">
                     <button
                       type="button"
                       onClick={() => setIsAddingSchedule(false)}
-                      className="px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-200 rounded-lg cursor-pointer"
+                      className="px-3.5 py-2 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 cursor-pointer"
                     >
                       Cancelar
                     </button>
                     <button
                       type="submit"
                       disabled={savingSchedule}
-                      className="px-4 py-1.5 bg-[#1F5FA8] hover:bg-[#0B2A5B] disabled:opacity-50 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                      className="px-4 py-2 bg-[#1F5FA8] hover:bg-[#0B2A5B] disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
                     >
                       {savingSchedule ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
                       <span>Guardar franja</span>
@@ -766,13 +766,13 @@ export const TeacherCoursesScreen: React.FC = () => {
                           <td className="py-2.5 px-3 font-mono font-bold text-[#1F5FA8]">
                             {s.starts_at?.slice(0, 5)} - {s.ends_at?.slice(0, 5)}
                           </td>
-                          <td className="py-2.5 px-3 text-slate-600">
+                          <td className="py-2.5 px-3 text-slate-600 font-medium">
                             {s.room || '-'}
                           </td>
                           <td className="py-2.5 px-3 text-right">
                             <button
                               onClick={() => handleDeleteSchedule(s.id)}
-                              className="p-1 rounded-md text-red-600 hover:bg-red-50 hover:text-red-800 transition-colors cursor-pointer"
+                              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                               title="Eliminar franja horaria"
                             >
                               <Trash2 className="w-4 h-4" />

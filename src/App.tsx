@@ -97,7 +97,7 @@ const MainContent: React.FC = () => {
       </main>
 
       {/* Pie de página */}
-      <footer className="py-4 text-center text-xs text-slate-500 border-t border-slate-200/60 bg-white/40">
+      <footer className="py-4 text-center text-xs border-t border-slate-200/60 bg-white/40 text-slate-500">
         UCVGO
       </footer>
     </div>

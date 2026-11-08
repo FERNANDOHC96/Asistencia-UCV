@@ -21,7 +21,6 @@ import {
   FlaskConical,
   Edit3,
   X,
-  Bluetooth,
   Shield,
   Search,
   Filter,
@@ -52,7 +51,6 @@ import { getMethodLabel } from '../../lib/attendanceUtils';
 
 interface TeacherQrAttendanceScreenProps {
   presetSectionId?: string;
-  initialSubTab?: 'qr' | 'bluetooth';
 }
 
 interface ToastNotification {
@@ -69,7 +67,6 @@ interface MergedStudentRow {
   status: AttendanceStatus | 'sin_registrar';
   method: string | null;
   registered_at: string | null;
-  bt_verified_at: string | null;
   justification: string | null;
 }
 
@@ -81,7 +78,6 @@ const FADE_MS = 90;   // duración de la transición entre piezas (0 = corte sec
 
 export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps> = ({
   presetSectionId,
-  initialSubTab = 'qr',
 }) => {
   const { user } = useAuth();
   const todayLima = getTodayLima();
@@ -89,14 +85,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
   // Tolerancia de tardanza en minutos (de settings, default 10)
   const [toleranceMinutes, setToleranceMinutes] = useState<number>(10);
 
-  // Subpestañas de Asistencia: 'qr' (Marcador / QR) o 'bluetooth' (Bluetooth)
-  const [attendanceSubTab, setAttendanceSubTab] = useState<'qr' | 'bluetooth'>(initialSubTab);
-
-  // Estado del detector Bluetooth (consultado cada 5s de attendance_sessions)
-  const [btLastSeenAt, setBtLastSeenAt] = useState<string | null>(null);
-  const [isBtDetectorActive, setIsBtDetectorActive] = useState<boolean>(false);
-  const [showBtLostSignalNotice, setShowBtLostSignalNotice] = useState<boolean>(false);
-  const wasBtActiveRef = useRef<boolean>(false);
   const [isOpenAttendanceLoading, setIsOpenAttendanceLoading] = useState<boolean>(false);
 
   // Secciones y sesiones
@@ -188,7 +176,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
 
   // Filtros del panel derecho
   const [statusFilter, setStatusFilter] = useState<'all' | AttendanceStatus | 'sin_registrar'>('all');
-  const [methodFilter, setMethodFilter] = useState<'all' | 'qr' | 'bluetooth' | 'manual' | 'sistema'>('all');
+  const [methodFilter, setMethodFilter] = useState<'all' | 'qr' | 'manual'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Modal para justificar falta
@@ -369,7 +357,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
       const supabase = getSupabaseClient();
       const { data, error: recErr } = await supabase
         .from('attendance_records')
-        .select('id, class_session_id, student_id, status, method, justification, registered_at, bt_verified_at')
+        .select('id, class_session_id, student_id, status, method, justification, registered_at')
         .eq('class_session_id', selectedSessionId);
 
       if (!recErr && data) {
@@ -479,15 +467,13 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
     };
   }, [selectedSessionId, fetchSessionRecords]);
 
-  // 5. Verificar estado de la sesión y detector Bluetooth cada 5 segundos
+  // 5. Verificar estado de la sesión cada 5 segundos
   const checkCurrentSessionStatus = useCallback(async () => {
     if (!selectedSessionId) {
       setIsAttendanceOpen(false);
       setAttendanceSessionId(null);
       setAnimatedDataUrls([]);
       setSimpleDataUrl(null);
-      setBtLastSeenAt(null);
-      setIsBtDetectorActive(false);
       return;
     }
 
@@ -499,10 +485,10 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
         .eq('id', selectedSessionId)
         .single();
 
-      // Consulta GET attendance_sessions?select=status,bt_last_seen_at&class_session_id=eq.<id>
+      // Consulta GET attendance_sessions?select=status&class_session_id=eq.<id>
       const { data: attSess } = await supabase
         .from('attendance_sessions')
-        .select('id, status, bt_last_seen_at')
+        .select('id, status')
         .eq('class_session_id', selectedSessionId)
         .order('opened_at', { ascending: false })
         .limit(1);
@@ -512,34 +498,9 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
         setAttendanceSessionId(latest.id);
         const isOpen = latest.status === 'abierta' && classSess?.status === 'abierta';
         setIsAttendanceOpen(isOpen);
-
-        // Verificación de señal Bluetooth (< 25 segundos, tolerando reloj)
-        const lastSeen = latest.bt_last_seen_at;
-        setBtLastSeenAt(lastSeen);
-
-        let isActive = false;
-        if (lastSeen) {
-          const lastSeenMs = new Date(lastSeen).getTime();
-          const nowMs = Date.now();
-          const diffSec = (nowMs - lastSeenMs) / 1000;
-          // Tolera pequeñas diferencias de reloj (-60s hasta 25s)
-          isActive = diffSec < 25 && diffSec > -60;
-        }
-
-        setIsBtDetectorActive(isActive);
-
-        // Si pasa de Activo a Sin señal mientras la asistencia está abierta
-        if (wasBtActiveRef.current && !isActive && isOpen) {
-          setShowBtLostSignalNotice(true);
-        } else if (isActive) {
-          setShowBtLostSignalNotice(false);
-        }
-        wasBtActiveRef.current = isActive;
       } else {
         setIsAttendanceOpen(false);
         setAttendanceSessionId(null);
-        setBtLastSeenAt(null);
-        setIsBtDetectorActive(false);
       }
     } catch {
       // Ignorar errores transitorios de polling
@@ -832,7 +793,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
 
         const { data: attSess } = await supabase
           .from('attendance_sessions')
-          .select('id, bt_last_seen_at')
+          .select('id')
           .eq('class_session_id', selectedSessionId)
           .eq('status', 'abierta')
           .order('opened_at', { ascending: false })
@@ -840,11 +801,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
 
         if (attSess && attSess.length > 0) {
           setAttendanceSessionId(attSess[0].id);
-          if (attSess[0].bt_last_seen_at) {
-            setBtLastSeenAt(attSess[0].bt_last_seen_at);
-            const diffSec = (Date.now() - new Date(attSess[0].bt_last_seen_at).getTime()) / 1000;
-            setIsBtDetectorActive(diffSec < 25 && diffSec > -60);
-          }
         }
       } else {
         setError(translateOpenAttendanceError(result));
@@ -1018,7 +974,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
           status: rec.status,
           method: rec.method || null,
           registered_at: rec.registered_at || null,
-          bt_verified_at: rec.bt_verified_at || null,
           justification: rec.justification || null,
         };
       }
@@ -1028,7 +983,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
         status: 'sin_registrar',
         method: null,
         registered_at: null,
-        bt_verified_at: null,
         justification: null,
       };
     });
@@ -1040,9 +994,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
   const countTardanzas = allMergedStudents.filter((s) => s.status === 'tardanza').length;
   const countFaltas = allMergedStudents.filter((s) => s.status === 'falta').length;
   const countSinRegistrar = allMergedStudents.filter((s) => s.status === 'sin_registrar').length;
-  const countBluetooth = records.filter(
-    (r) => (r.method && r.method.toLowerCase() === 'bluetooth') || Boolean(r.bt_verified_at)
-  ).length;
 
   // Filtrado de la lista para el panel
   const filteredStudents = useMemo(() => {
@@ -1078,7 +1029,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
   const renderQrPanel = () => {
     if (isAttendanceOpen) {
       return (
-        <div className="lg:col-span-5 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center justify-between text-center relative overflow-hidden">
+        <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-xs p-6 flex flex-col items-center justify-between text-center relative overflow-hidden">
           {/* Cabecera del Marcador con Switch de Modos */}
           <div className="w-full space-y-3 pb-3 border-b border-slate-100 mb-2">
             <div className="flex items-center justify-between">
@@ -1086,18 +1037,18 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
                 <Shield className="w-4 h-4 text-[#C8102E]" />
                 <span>MARCADOR ANIMADO UCV</span>
               </span>
-              <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-[#C8102E] bg-red-50 px-2.5 py-1 rounded-md border border-red-200">
+              <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-[#C8102E] bg-red-50 border border-red-200 px-3 py-1 rounded-full">
                 <Clock className="w-3.5 h-3.5 text-[#C8102E]" />
                 <span>Renovación: {countdown}s</span>
               </div>
             </div>
 
             {/* Selector de dos botones */}
-            <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 rounded-lg">
+            <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 border border-slate-200 rounded-xl">
               <button
                 type="button"
                 onClick={() => setQrMode('animated')}
-                className={`py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                   qrMode === 'animated'
                     ? 'bg-[#C8102E] text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
@@ -1108,7 +1059,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
               <button
                 type="button"
                 onClick={() => setQrMode('simple')}
-                className={`py-1.5 text-xs font-bold rounded-md transition-all cursor-pointer ${
+                className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                   qrMode === 'simple'
                     ? 'bg-[#C8102E] text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
@@ -1314,8 +1265,8 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
               </svg>
             </div>
           ) : (
-            <div className="relative mx-auto my-2 w-[340px] max-w-full bg-white p-3 border-2 border-slate-200 rounded-2xl shadow-sm flex flex-col items-center">
-              <div className="w-[300px] h-[300px] sm:w-[320px] sm:h-[320px] flex items-center justify-center">
+            <div className="relative mx-auto my-3 w-[340px] max-w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl flex flex-col items-center">
+              <div className="w-[300px] h-[300px] sm:w-[320px] sm:h-[320px] bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center justify-center">
                 <canvas
                   ref={canvasSimpleRef}
                   width={320}
@@ -1323,7 +1274,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
                   className="w-full h-full object-contain rounded-lg"
                 />
               </div>
-              <div className="mt-2 text-[11px] font-bold text-slate-500 uppercase tracking-wide">
+              <div className="mt-3 text-[11px] font-mono font-bold text-slate-500 uppercase tracking-wide">
                 Código QR Estático · Expira en {countdown}s
               </div>
             </div>
@@ -1333,7 +1284,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
             <p className="text-xs sm:text-sm font-bold text-slate-800">
               Apunta la cámara al escudo y mantenla 2 segundos
             </p>
-            <p className="text-[11px] text-slate-500 mt-0.5">
+            <p className="text-[11px] text-slate-500 mt-0.5 font-medium">
               Marcador dinámico sincronizado en 4 fases · Pieza {pieceIndex + 1} de 4
             </p>
           </div>
@@ -1343,13 +1294,13 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
 
     // Cuando la asistencia aún no está abierta
     return (
-      <div className="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col items-center justify-center text-center space-y-4">
-        <div className="w-16 h-16 rounded-2xl bg-blue-50 text-[#1F5FA8] flex items-center justify-center">
+      <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-xs p-8 flex flex-col items-center justify-center text-center space-y-4">
+        <div className="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#1F5FA8]">
           <QrCode className="w-8 h-8" />
         </div>
         <div>
           <h3 className="text-base font-bold text-slate-800">Asistencia no iniciada</h3>
-          <p className="text-xs text-slate-500 mt-1 max-w-xs">
+          <p className="text-xs text-slate-500 mt-1 max-w-xs font-medium">
             Abre la asistencia QR para proyectar el marcador animado a los estudiantes y registrar su asistencia en vivo.
           </p>
         </div>
@@ -1358,7 +1309,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
             type="button"
             onClick={handleOpenAttendance}
             disabled={isOpenAttendanceLoading}
-            className="px-5 py-2.5 rounded-xl bg-[#1F5FA8] hover:bg-[#0B2A5B] disabled:opacity-50 text-white font-bold text-xs shadow-xs transition-colors flex items-center gap-2 cursor-pointer"
+            className="px-5 py-2.5 rounded-xl bg-[#1F5FA8] hover:bg-[#0B2A5B] text-white font-bold text-xs flex items-center gap-2 cursor-pointer shadow-xs transition-all"
           >
             {isOpenAttendanceLoading ? <RefreshCw className="w-4 h-4 animate-spin text-white" /> : <Play className="w-4 h-4 fill-white" />}
             <span>{isOpenAttendanceLoading ? 'Iniciando...' : 'Iniciar toma de asistencia'}</span>
@@ -1369,189 +1320,11 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
   };
 
   // ==============================================================
-  // RENDER: PANEL IZQUIERDO BLUETOOTH
-  // ==============================================================
-  const renderBluetoothPanel = () => {
-    if (!activeSession) {
-      return (
-        <div className="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col items-center justify-center text-center space-y-4">
-          <Bluetooth className="w-10 h-10 text-slate-300" />
-          <p className="text-xs text-slate-500">Selecciona una sesión de hoy para gestionar la asistencia Bluetooth.</p>
-        </div>
-      );
-    }
-
-    const isClosed = activeSession.status === 'cerrada';
-    const isCancelled = activeSession.status === 'cancelada';
-
-    return (
-      <div className="lg:col-span-5 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col space-y-4">
-        {/* Cabecera del panel Bluetooth */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold">
-              <Bluetooth className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                Asistencia Bluetooth
-              </h3>
-              <p className="text-[11px] text-slate-500">
-                Detección por app Android del profesor
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <span
-              className={`w-2.5 h-2.5 rounded-full ${
-                isBtDetectorActive ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'
-              }`}
-            />
-            <span className="text-[11px] font-mono font-bold text-slate-600">
-              {isBtDetectorActive ? 'Activo' : 'Sin señal'}
-            </span>
-          </div>
-        </div>
-
-        {/* Chips de estado: Asistencia y Detector Bluetooth */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {/* Chip Asistencia */}
-          <div
-            className={`p-2.5 rounded-xl border flex items-center gap-2 text-xs font-bold ${
-              isAttendanceOpen
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                : isClosed
-                ? 'bg-slate-100 text-slate-700 border-slate-200'
-                : 'bg-blue-50 text-[#1F5FA8] border-blue-200'
-            }`}
-          >
-            {isAttendanceOpen ? (
-              <span className="w-2 h-2 rounded-full bg-emerald-600 animate-ping" />
-            ) : isClosed ? (
-              <CheckCircle2 className="w-4 h-4 text-slate-500" />
-            ) : (
-              <Clock className="w-4 h-4 text-[#1F5FA8]" />
-            )}
-            <span className="truncate">
-              Asistencia: {isAttendanceOpen ? 'Abierta' : isClosed ? 'Cerrada' : 'Por iniciar'}
-            </span>
-          </div>
-
-          {/* Chip Detector Bluetooth */}
-          <div
-            className={`p-2.5 rounded-xl border flex items-center gap-2 text-xs font-bold ${
-              isBtDetectorActive
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                : 'bg-amber-50 text-amber-800 border-amber-200'
-            }`}
-          >
-            <Bluetooth
-              className={`w-4 h-4 shrink-0 ${
-                isBtDetectorActive ? 'text-emerald-600 animate-pulse' : 'text-amber-600'
-              }`}
-            />
-            <span className="truncate">
-              Detector: {isBtDetectorActive ? 'Activo' : 'Sin señal del celular'}
-            </span>
-          </div>
-        </div>
-
-        {/* Franja horaria y tolerancia */}
-        {sessionTolerance && (
-          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
-            <span className="text-slate-600 font-medium">Franja y tolerancia:</span>
-            <span className="font-bold text-slate-800 font-mono">
-              Inicio {sessionTolerance.startTimeStr} · tolerancia hasta {sessionTolerance.limitTimeStr}
-            </span>
-          </div>
-        )}
-
-        {/* Aviso discreto cuando se pierde la señal */}
-        {showBtLostSignalNotice && isAttendanceOpen && (
-          <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl flex items-start gap-2.5 text-xs text-amber-900 animate-in fade-in">
-            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-bold">Aviso de señal</p>
-              <p className="mt-0.5">
-                El celular del profesor dejó de enviar señal. Puedes seguir con el QR o registrar a mano.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Botón Principal: Activar asistencia Bluetooth / Cerrar asistencia */}
-        <div className="pt-1">
-          {!isAttendanceOpen && !isClosed && !isCancelled ? (
-            <button
-              type="button"
-              onClick={handleOpenAttendance}
-              disabled={isOpenAttendanceLoading}
-              className="w-full py-3 px-4 rounded-xl bg-[#1F5FA8] hover:bg-[#0B2A5B] disabled:opacity-50 text-white font-bold text-xs shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
-            >
-              {isOpenAttendanceLoading ? (
-                <RefreshCw className="w-4 h-4 animate-spin text-white" />
-              ) : (
-                <Bluetooth className="w-4 h-4 text-white" />
-              )}
-              <span>
-                {isOpenAttendanceLoading ? 'Activando...' : 'Activar asistencia Bluetooth'}
-              </span>
-            </button>
-          ) : isAttendanceOpen ? (
-            <button
-              type="button"
-              onClick={() => setIsCloseModalOpen(true)}
-              className="w-full py-3 px-4 rounded-xl bg-[#C8102E] hover:bg-red-800 text-white font-bold text-xs shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <StopCircle className="w-4 h-4 text-white" />
-              <span>Cerrar Asistencia</span>
-            </button>
-          ) : (
-            <div className="p-3 bg-slate-100 rounded-xl text-center text-xs font-semibold text-slate-600">
-              {isClosed ? 'La asistencia de esta sesión ya fue cerrada.' : 'Sesión cancelada.'}
-            </div>
-          )}
-        </div>
-
-        {/* Panel de pasos (visible mientras el detector no tenga señal) */}
-        {!isBtDetectorActive && (
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-left space-y-2.5">
-            <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
-              <Info className="w-3.5 h-3.5 text-[#1F5FA8]" />
-              <span>Pasos para la detección:</span>
-            </h4>
-            <ol className="text-xs text-slate-600 space-y-2 list-decimal list-inside pl-1">
-              <li className="leading-snug">
-                En tu celular abre la app <strong>UCVGO</strong>, entra como profesor y elige esta clase.
-              </li>
-              <li className="leading-snug">
-                Pulsa <strong>Iniciar detección</strong>.
-              </li>
-              <li className="leading-snug">
-                Pide a los alumnos que abran <strong>Escáner QR → Bluetooth</strong> y pulsen <strong>Marcar</strong>.
-              </li>
-            </ol>
-          </div>
-        )}
-
-        {/* Aviso fijo */}
-        <div className="p-3 bg-blue-50/60 border border-blue-200 rounded-xl flex items-start gap-2.5 text-xs text-blue-900 text-left">
-          <Info className="w-4 h-4 text-[#1F5FA8] shrink-0 mt-0.5" />
-          <p className="leading-relaxed">
-            Los alumnos que no sean detectados pueden registrarse con el QR, o puedes marcarlos con <strong>Corregir</strong>.
-          </p>
-        </div>
-      </div>
-    );
-  };
-
-  // ==============================================================
   // RENDER: PANEL DERECHO LISTA COMPLETA REUTILIZABLE
   // ==============================================================
   const renderStudentListPanel = () => {
     return (
-      <div className="lg:col-span-7 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col space-y-4">
+      <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-xs p-6 flex flex-col space-y-4">
         {/* Cabecera del panel con Contadores en Vivo y Franja de Tolerancia */}
         <div className="space-y-3 pb-3 border-b border-slate-100">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -1561,7 +1334,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
                 <span>Lista Completa de Alumnos ({countMatriculados})</span>
               </h3>
               {sessionTolerance && (
-                <div className="text-[11px] text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-bold inline-flex items-center gap-1 mt-1">
+                <div className="text-[11px] text-amber-900 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full font-bold inline-flex items-center gap-1.5 mt-1.5">
                   <Clock className="w-3 h-3 text-amber-600 shrink-0" />
                   <span>Inicio {sessionTolerance.startTimeStr} · tolerancia hasta {sessionTolerance.limitTimeStr}</span>
                 </div>
@@ -1569,39 +1342,33 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
             </div>
 
             {recentScansCount > 0 && (
-              <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full animate-pulse self-start sm:self-auto">
+              <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full animate-pulse self-start sm:self-auto">
                 +{recentScansCount} nuevo(s) escaneo(s)
               </span>
             )}
           </div>
 
           {/* Contadores en vivo */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 pt-1">
-            <div className="p-2 bg-slate-50 border border-slate-200 rounded-xl text-center">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1">
+            <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-center">
               <span className="text-[10px] font-bold text-slate-500 uppercase block">Matriculados</span>
               <span className="text-base font-black text-slate-800 font-mono">{countMatriculados}</span>
             </div>
-            <div className="p-2 bg-emerald-50 border border-emerald-200 rounded-xl text-center">
-              <span className="text-[10px] font-bold text-emerald-700 uppercase block">Presentes</span>
-              <span className="text-base font-black text-emerald-700 font-mono">{countPresentes}</span>
+            <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-center text-emerald-700">
+              <span className="text-[10px] font-bold uppercase block">Presentes</span>
+              <span className="text-base font-black font-mono">{countPresentes}</span>
             </div>
-            <div className="p-2 bg-amber-50 border border-amber-200 rounded-xl text-center">
-              <span className="text-[10px] font-bold text-amber-700 uppercase block">Tardanzas</span>
-              <span className="text-base font-black text-amber-700 font-mono">{countTardanzas}</span>
+            <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-center text-amber-700">
+              <span className="text-[10px] font-bold uppercase block">Tardanzas</span>
+              <span className="text-base font-black font-mono">{countTardanzas}</span>
             </div>
-            <div className="p-2 bg-red-50 border border-red-200 rounded-xl text-center">
-              <span className="text-[10px] font-bold text-red-700 uppercase block">Faltas</span>
-              <span className="text-base font-black text-red-700 font-mono">{countFaltas}</span>
+            <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl text-center text-red-700">
+              <span className="text-[10px] font-bold uppercase block">Faltas</span>
+              <span className="text-base font-black font-mono">{countFaltas}</span>
             </div>
-            <div className="p-2 bg-slate-100 border border-slate-300 rounded-xl text-center">
-              <span className="text-[10px] font-bold text-slate-600 uppercase block">Sin registrar</span>
-              <span className="text-base font-black text-slate-600 font-mono">{countSinRegistrar}</span>
-            </div>
-            <div className="p-2 bg-indigo-50 border border-indigo-200 rounded-xl text-center">
-              <span className="text-[10px] font-bold text-indigo-700 uppercase block">Por Bluetooth</span>
-              <span className="text-xs font-black text-indigo-800 font-mono block mt-1">
-                {countBluetooth} de {countMatriculados}
-              </span>
+            <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-center text-slate-600">
+              <span className="text-[10px] font-bold uppercase block">Sin registrar</span>
+              <span className="text-base font-black font-mono">{countSinRegistrar}</span>
             </div>
           </div>
         </div>
@@ -1616,7 +1383,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar código o nombre..."
-              className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#1F5FA8]"
+              className="w-full pl-8 pr-3 py-2 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] focus:ring-2 focus:ring-[#1F5FA8]/20 transition-all outline-none text-slate-800"
             />
           </div>
 
@@ -1625,7 +1392,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:outline-hidden focus:ring-2 focus:ring-[#1F5FA8]"
+              className="w-full px-2.5 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] transition-all outline-none text-slate-700 cursor-pointer"
             >
               <option value="all">Estado: Todos ({countMatriculados})</option>
               <option value="presente">Presente ({countPresentes})</option>
@@ -1641,33 +1408,31 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
             <select
               value={methodFilter}
               onChange={(e) => setMethodFilter(e.target.value as any)}
-              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:outline-hidden focus:ring-2 focus:ring-[#1F5FA8]"
+              className="w-full px-2.5 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] transition-all outline-none text-slate-700 cursor-pointer"
             >
               <option value="all">Método: Todos</option>
               <option value="qr">Código QR</option>
-              <option value="bluetooth">Bluetooth</option>
               <option value="manual">Manual</option>
-              <option value="sistema">Cierre auto.</option>
             </select>
           </div>
         </div>
 
         {/* LISTA COMPLETA DE ALUMNOS (FILAS CON ORDEN FIJO POR APELLIDOS Y NOMBRES) */}
-        <div className="flex-1 overflow-y-auto max-h-[520px] space-y-2 pr-1">
+        <div className="flex-1 overflow-y-auto max-h-[520px] space-y-2.5 pr-1">
           {loadingEnrolled ? (
             <div className="py-12 flex flex-col items-center justify-center text-slate-400">
               <RefreshCw className="w-6 h-6 animate-spin text-[#1F5FA8] mb-2" />
-              <span className="text-xs">Cargando alumnos de la sesión...</span>
+              <span className="text-xs font-mono">Cargando alumnos de la sesión...</span>
             </div>
           ) : countMatriculados === 0 ? (
-            <div className="py-12 text-center text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+            <div className="py-12 text-center text-slate-400 bg-slate-50 rounded-2xl border border-slate-200">
               <Users className="w-8 h-8 mx-auto mb-2 text-slate-300" />
               <p className="text-xs font-bold text-slate-700">
                 Este curso no tiene alumnos matriculados. Pide al administrador que los matricule.
               </p>
             </div>
           ) : filteredStudents.length === 0 ? (
-            <div className="py-12 text-center text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+            <div className="py-12 text-center text-slate-400 bg-slate-50 rounded-2xl border border-slate-200">
               <p className="text-xs font-semibold text-slate-600">
                 No se encontraron alumnos con los filtros seleccionados.
               </p>
@@ -1696,18 +1461,18 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
               return (
                 <div
                   key={st.id}
-                  className={`p-3 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                  className={`p-3.5 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
                     isAnimated
                       ? `${flashClass} shadow-md`
                       : isSinRegistrar
-                      ? 'bg-white border-slate-200 hover:bg-slate-50/70'
+                      ? 'bg-white border-slate-200 hover:bg-slate-50/80 shadow-2xs'
                       : isPresente
-                      ? 'bg-emerald-50/30 border-emerald-200 hover:bg-emerald-50/50'
+                      ? 'bg-emerald-50/60 border-emerald-200 shadow-2xs'
                       : isTardanza
-                      ? 'bg-amber-50/30 border-amber-200 hover:bg-amber-50/50'
+                      ? 'bg-amber-50/60 border-amber-200 shadow-2xs'
                       : isFalta
-                      ? 'bg-red-50/30 border-red-200 hover:bg-red-50/50'
-                      : 'bg-slate-50/60 border-slate-200 hover:bg-slate-50'
+                      ? 'bg-red-50/60 border-red-200 shadow-2xs'
+                      : 'bg-slate-100/60 border-slate-200 shadow-2xs'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
@@ -1722,7 +1487,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
                     {/* Código y Nombre Completo */}
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-mono text-[11px] font-bold text-slate-500 bg-white px-1.5 py-0.5 rounded border border-slate-200">
+                        <span className="font-mono text-[11px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
                           {st.code}
                         </span>
                         <strong className="text-xs font-bold text-slate-900 truncate">
@@ -1730,7 +1495,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
                         </strong>
                       </div>
 
-                      {/* Metadatos: Estado en texto, Método, Hora de registro, Bluetooth */}
+                      {/* Metadatos: Estado en texto, Método, Hora de registro */}
                       <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px]">
                         {/* Estado en Texto */}
                         <span
@@ -1763,9 +1528,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
                         <span className="text-slate-600 flex items-center gap-1 font-medium">
                           {row.method ? (
                             <>
-                              {row.method.toLowerCase() === 'bluetooth' && (
-                                <Bluetooth className="w-3 h-3 text-indigo-600" />
-                              )}
                               {row.method.toLowerCase() === 'qr' && (
                                 <QrCode className="w-3 h-3 text-[#1F5FA8]" />
                               )}
@@ -1782,14 +1544,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
                         <span className="text-slate-500 font-mono">
                           {row.registered_at ? formatLimaTime(row.registered_at) : '—'}
                         </span>
-
-                        {/* Insignia Verificado por Bluetooth */}
-                        {row.bt_verified_at && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.2 rounded-full">
-                            <Bluetooth className="w-3 h-3 text-indigo-600" />
-                            <span>Verificado por Bluetooth</span>
-                          </span>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -1867,11 +1621,13 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
       )}
 
       {/* Selectores de Sesión de HOY (solo visible si no está fija) */}
-      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs space-y-4">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h2 className="text-xs uppercase font-bold text-slate-500 tracking-wider">
-            Sesión de Hoy ({formatDisplayDate(todayLima)})
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xs uppercase font-bold text-slate-700 tracking-wider">
+              Sesión de Hoy ({formatDisplayDate(todayLima)})
+            </h2>
+          </div>
 
           <div className="flex items-center gap-2">
             <button
@@ -1881,7 +1637,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
                 fetchSessionRecords();
               }}
               disabled={loadingSessions || loadingEnrolled}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors disabled:opacity-50 cursor-pointer"
+              className="px-3.5 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-semibold text-slate-700 shadow-xs transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${(loadingSessions || loadingEnrolled) ? 'animate-spin text-[#1F5FA8]' : ''}`} />
               <span>Actualizar datos</span>
@@ -1892,14 +1648,14 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Selector de Sesión de HOY */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+            <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
               Sesión programada para hoy:
             </label>
             <select
               value={selectedSessionId}
               disabled={isAttendanceOpen}
               onChange={(e) => setSelectedSessionId(e.target.value)}
-              className="w-full text-xs px-3 py-2.5 rounded-lg border border-slate-200 bg-white font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#1F5FA8] disabled:bg-slate-100 disabled:text-slate-400"
+              className="w-full text-xs px-3 py-2.5 font-medium bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] transition-all outline-none text-slate-800 disabled:opacity-50 cursor-pointer"
             >
               {sessions.length === 0 ? (
                 <option value="">No hay sesiones programadas para hoy</option>
@@ -1918,11 +1674,11 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
 
           {/* Ficha rápida de estado */}
           {activeSession && (
-            <div className="flex flex-col justify-center bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs">
+            <div className="flex flex-col justify-center bg-slate-50 border border-slate-200 p-3.5 rounded-xl text-xs">
               <div className="flex items-center justify-between">
                 <span className="font-bold text-slate-700">Estado de la sesión:</span>
                 <span
-                  className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
+                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
                     activeSession.status === 'abierta'
                       ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                       : activeSession.status === 'cerrada'
@@ -1933,7 +1689,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
                   {activeSession.status}
                 </span>
               </div>
-              <div className="mt-1 flex items-center justify-between text-slate-500 text-[11px]">
+              <div className="mt-1.5 flex items-center justify-between text-slate-500 font-medium text-[11px]">
                 <span>Horario: {activeSession.starts_at?.slice(0, 5)} - {activeSession.ends_at?.slice(0, 5)}</span>
                 <span>{activeSession.kind === 'practica' ? 'Práctica' : 'Teoría'}</span>
               </div>
@@ -1942,56 +1698,22 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
         </div>
       </div>
 
-      {/* Pestañas de Asistencia: Marcador / QR vs Bluetooth */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
-        <button
-          type="button"
-          onClick={() => setAttendanceSubTab('qr')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
-            attendanceSubTab === 'qr'
-              ? 'bg-[#1F5FA8] text-white shadow-xs'
-              : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
-          }`}
-        >
-          <QrCode className="w-4 h-4" />
-          <span>Marcador / QR</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setAttendanceSubTab('bluetooth');
-            setMethodFilter('all');
-          }}
-          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer relative ${
-            attendanceSubTab === 'bluetooth'
-              ? 'bg-[#1F5FA8] text-white shadow-xs'
-              : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
-          }`}
-        >
-          <Bluetooth className="w-4 h-4" />
-          <span>Bluetooth</span>
-          {isBtDetectorActive && (
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="Detector Bluetooth Activo" />
-          )}
-        </button>
-      </div>
-
       {/* Controles de Apertura / Cierre para Marcador / QR */}
-      {attendanceSubTab === 'qr' && activeSession && (
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-4">
+      {activeSession && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <span
-              className={`w-3 h-3 rounded-full ${
-                isAttendanceOpen ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'
+              className={`w-3.5 h-3.5 rounded-full ${
+                isAttendanceOpen ? 'bg-emerald-500 animate-pulse ring-4 ring-emerald-400/20' : 'bg-slate-300'
               }`}
             />
             <div>
               <h3 className="text-sm font-bold text-slate-800">
-                {isAttendanceOpen ? 'Asistencia en Curso (Código QR y Detección Activa)' : 'Asistencia Detenida'}
+                {isAttendanceOpen ? 'Asistencia en Curso (Código QR Activo)' : 'Asistencia Detenida'}
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
                 {isAttendanceOpen
-                  ? 'El código QR rota cada 8 segundos. Los registros por QR y Bluetooth actualizan la lista en vivo.'
+                  ? 'El código QR rota cada 8 segundos. Los registros por QR actualizan la lista en vivo.'
                   : activeSession.status === 'cerrada'
                   ? 'Esta sesión ya fue cerrada. El resumen de asistencia se muestra abajo.'
                   : 'Presione el botón para abrir la toma de asistencia y mostrar el código QR.'}
@@ -2005,7 +1727,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
                 type="button"
                 onClick={handleOpenAttendance}
                 disabled={isOpenAttendanceLoading}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#1F5FA8] hover:bg-[#174B88] disabled:opacity-50 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
+                className="px-5 py-2.5 rounded-xl bg-[#1F5FA8] hover:bg-[#0B2A5B] text-white font-bold text-xs flex items-center gap-2 cursor-pointer shadow-xs transition-all disabled:opacity-50"
               >
                 {isOpenAttendanceLoading ? <RefreshCw className="w-4 h-4 animate-spin text-white" /> : <Play className="w-4 h-4 fill-white" />}
                 <span>{isOpenAttendanceLoading ? 'Abriendo...' : 'Abrir Asistencia QR'}</span>
@@ -2016,7 +1738,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
               <button
                 type="button"
                 onClick={() => setIsCloseModalOpen(true)}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#C8102E] hover:bg-red-800 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
+                className="px-5 py-2.5 rounded-xl bg-[#C8102E] hover:bg-red-800 text-white font-bold text-xs flex items-center gap-2 cursor-pointer shadow-xs transition-all"
               >
                 <StopCircle className="w-4 h-4" />
                 <span>Cerrar Asistencia</span>
@@ -2028,42 +1750,42 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
 
       {/* Resumen Post-Cierre */}
       {(closeSummary || activeSession?.status === 'cerrada') && (
-        <div className="bg-white p-5 rounded-2xl border border-blue-200 bg-blue-50/20 shadow-xs space-y-3">
-          <div className="flex items-center justify-between border-b border-blue-200/60 pb-2">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-              <h3 className="text-sm font-bold text-[#0B2A5B]">Resumen de Cierre de Asistencia</h3>
+              <h3 className="text-sm font-bold text-slate-900">Resumen de Cierre de Asistencia</h3>
             </div>
-            <span className="text-xs font-semibold text-slate-500 font-mono">Sesión Cerrada</span>
+            <span className="text-xs font-semibold text-slate-500 font-mono bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-md">Sesión Cerrada</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-1">
-            <div className="bg-white p-3 rounded-xl border border-slate-200 text-center">
+            <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl text-center">
               <span className="text-[10px] font-bold text-slate-500 uppercase block">Matriculados</span>
               <strong className="text-xl font-black text-slate-800 font-mono">
                 {closeSummary?.enrolled ?? countMatriculados}
               </strong>
             </div>
-            <div className="bg-white p-3 rounded-xl border border-emerald-200 text-center">
-              <span className="text-[10px] font-bold text-emerald-700 uppercase block">Presentes</span>
-              <strong className="text-xl font-black text-emerald-700 font-mono">
+            <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl text-center text-emerald-700">
+              <span className="text-[10px] font-bold uppercase block">Presentes</span>
+              <strong className="text-xl font-black font-mono">
                 {closeSummary?.presentes ?? countPresentes}
               </strong>
             </div>
-            <div className="bg-white p-3 rounded-xl border border-amber-200 text-center">
-              <span className="text-[10px] font-bold text-amber-700 uppercase block">Tardanzas</span>
-              <strong className="text-xl font-black text-amber-700 font-mono">
+            <div className="bg-amber-50 border border-amber-200 p-3.5 rounded-xl text-center text-amber-700">
+              <span className="text-[10px] font-bold uppercase block">Tardanzas</span>
+              <strong className="text-xl font-black font-mono">
                 {closeSummary?.tardanzas ?? countTardanzas}
               </strong>
             </div>
-            <div className="bg-white p-3 rounded-xl border border-red-200 text-center">
-              <span className="text-[10px] font-bold text-red-700 uppercase block">Faltas</span>
-              <strong className="text-xl font-black text-red-700 font-mono">
+            <div className="bg-red-50 border border-red-200 p-3.5 rounded-xl text-center text-red-700">
+              <span className="text-[10px] font-bold uppercase block">Faltas</span>
+              <strong className="text-xl font-black font-mono">
                 {closeSummary?.faltas ?? countFaltas}
               </strong>
             </div>
-            <div className="bg-white p-3 rounded-xl border border-blue-200 text-center">
-              <span className="text-[10px] font-bold text-blue-700 uppercase block">Justificados</span>
-              <strong className="text-xl font-black text-blue-700 font-mono">
+            <div className="bg-blue-50 border border-blue-200 p-3.5 rounded-xl text-center text-[#1F5FA8]">
+              <span className="text-[10px] font-bold uppercase block">Justificados</span>
+              <strong className="text-xl font-black font-mono">
                 {closeSummary?.justificados ?? allMergedStudents.filter((s) => s.status === 'justificado').length}
               </strong>
             </div>
@@ -2073,59 +1795,59 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
 
       {/* Caso vacío: No hay sesiones de hoy */}
       {sessions.length === 0 ? (
-        <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center space-y-3 shadow-xs">
-          <div className="w-12 h-12 rounded-full bg-blue-50 text-[#1F5FA8] flex items-center justify-center mx-auto">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-10 text-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 text-[#1F5FA8] flex items-center justify-center mx-auto">
             <Calendar className="w-6 h-6" />
           </div>
           <h3 className="text-sm font-bold text-slate-800">
             No hay sesiones programadas para hoy ({formatDisplayDate(todayLima)})
           </h3>
-          <p className="text-xs text-slate-500 max-w-md mx-auto">
+          <p className="text-xs text-slate-500 max-w-md mx-auto font-medium">
             Para registrar asistencia, primero debes crear el día de clase desde la pestaña <strong className="text-slate-700">Sesiones de clase</strong>.
           </p>
         </div>
       ) : activeSession && activeSession.session_date !== todayLima ? (
         /* Caso vacío: La sesión seleccionada no es de hoy */
-        <div className="bg-white p-8 rounded-2xl border border-amber-200 bg-amber-50/30 text-center space-y-3 shadow-xs">
-          <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-10 text-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center mx-auto">
             <AlertTriangle className="w-6 h-6" />
           </div>
           <h3 className="text-sm font-bold text-amber-900">
             Sesión no programada para hoy
           </h3>
-          <p className="text-xs text-amber-800 max-w-md mx-auto">
+          <p className="text-xs text-amber-800 max-w-md mx-auto font-medium">
             Solo se puede abrir el día de la clase. La fecha de la sesión es {activeSession.session_date} y hoy es {todayLima}.
           </p>
         </div>
       ) : (
         /* ============================================================== */
-        /* CUERPO PRINCIPAL: QR / BLUETOOTH (IZQ) + LISTA REUTILIZABLE (DER) */
+        /* CUERPO PRINCIPAL: QR (IZQ) + LISTA REUTILIZABLE (DER) */
         /* ============================================================== */
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {attendanceSubTab === 'qr' ? renderQrPanel() : renderBluetoothPanel()}
+          {renderQrPanel()}
           {renderStudentListPanel()}
         </div>
       )}
       {/* Modal Justificación de Asistencia */}
       {justifyingStudent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200 space-y-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-sm w-full p-6 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs">
+                <span className="w-6 h-6 rounded-full bg-slate-100 border border-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs">
                   J
                 </span>
                 <h3 className="text-sm font-bold text-slate-900">Justificar Inasistencia</h3>
               </div>
               <button
                 onClick={() => setJustifyingStudent(null)}
-                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-600">
+            <p className="text-xs text-slate-600 font-medium">
               Estudiante: <strong className="text-slate-800">{justifyingStudent.studentName}</strong> ({justifyingStudent.studentCode})
             </p>
 
@@ -2137,7 +1859,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
 
             <form onSubmit={handleSaveJustification} className="space-y-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                   Motivo de la Justificación *
                 </label>
                 <textarea
@@ -2146,7 +1868,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
                   placeholder="Ej. Certificado médico presentado / Licencia académica"
                   value={justificationInput}
                   onChange={(e) => setJustificationInput(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-[#1F5FA8]"
+                  className="w-full px-3 py-2 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] focus:ring-2 focus:ring-[#1F5FA8]/20 transition-all outline-none text-slate-800"
                 />
               </div>
 
@@ -2154,14 +1876,14 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
                 <button
                   type="button"
                   onClick={() => setJustifyingStudent(null)}
-                  className="flex-1 py-2 px-3 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
+                  className="flex-1 py-2 px-3 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl shadow-xs transition-all cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingJustification}
-                  className="flex-1 py-2 px-3 bg-[#1F5FA8] hover:bg-[#0B2A5B] disabled:opacity-50 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                  className="flex-1 py-2 px-3 disabled:opacity-50 text-white text-xs font-bold rounded-xl bg-[#1F5FA8] hover:bg-[#0B2A5B] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-all"
                 >
                   {isSavingJustification ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : null}
                   <span>Guardar Justificación</span>
@@ -2175,13 +1897,13 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
       {/* Modal Confirmación Cierre de Asistencia */}
       {isCloseModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200 space-y-4">
-            <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-sm w-full p-6 space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-red-50 border border-red-100 text-red-600 flex items-center justify-center mx-auto">
               <StopCircle className="w-6 h-6" />
             </div>
             <div className="text-center">
               <h3 className="text-base font-bold text-slate-900">¿Cerrar la Asistencia?</h3>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-slate-500 mt-1 font-medium">
                 Al cerrar, los alumnos sin registro pasarán a <strong className="text-red-600">Falta</strong> de forma definitiva en la base de datos y se detendrá la rotación del código QR.
               </p>
             </div>
@@ -2189,14 +1911,14 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
               <button
                 onClick={() => setIsCloseModalOpen(false)}
                 disabled={isClosing}
-                className="flex-1 py-2 px-3 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
+                className="flex-1 py-2 px-3 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl shadow-xs transition-all cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleConfirmCloseAttendance}
                 disabled={isClosing}
-                className="flex-1 py-2 px-3 bg-[#C8102E] hover:bg-red-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                className="flex-1 py-2 px-3 text-white text-xs font-bold rounded-xl bg-[#C8102E] hover:bg-red-800 flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-all"
               >
                 {isClosing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : null}
                 <span>Sí, cerrar asistencia</span>

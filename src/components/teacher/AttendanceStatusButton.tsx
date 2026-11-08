@@ -75,15 +75,14 @@ export const AttendanceStatusButton: React.FC<AttendanceStatusButtonProps> = ({
   // Clases condicionales según estado
   let stateClasses = '';
   if (isLoading) {
-    stateClasses =
-      'bg-[#F1F3F6] dark:bg-slate-800 border-[#D5DCE6] dark:border-slate-700 text-[#8A97A8] dark:text-slate-400 cursor-wait';
+    stateClasses = 'bg-[#F1F3F6] border-[#D5DCE6] text-[#8A97A8] cursor-wait';
   } else if (isActive) {
-    stateClasses = `${config.activeBg} ${config.activeBorder} text-white shadow-2xs cursor-default ${
+    stateClasses = `${config.activeBg} ${config.activeBorder} text-white shadow-xs cursor-default ${
       isAnimated ? 'scale-105 animate-pop motion-reduce:transform-none motion-reduce:animate-none' : ''
     }`;
   } else {
     stateClasses =
-      'bg-[#F1F3F6] dark:bg-slate-800 border-[#D5DCE6] dark:border-slate-700 text-[#8A97A8] dark:text-slate-400 hover:bg-[#E4E8EE] dark:hover:bg-slate-700 hover:border-[#CBD5E1] dark:hover:border-slate-600 hover:text-[#64748B] dark:hover:text-slate-200 cursor-pointer';
+      'bg-[#F1F3F6] border-[#D5DCE6] text-[#8A97A8] hover:bg-[#E4E8EE] hover:text-[#5B6B7C] hover:border-[#CBD4E1] cursor-pointer transition-colors';
   }
 
   return (
@@ -95,10 +94,10 @@ export const AttendanceStatusButton: React.FC<AttendanceStatusButtonProps> = ({
       aria-label={ariaLabel}
       aria-pressed={isActive}
       aria-busy={isLoading ? 'true' : undefined}
-      className={`${sizeClasses} rounded-full border flex items-center justify-center transition-colors duration-200 motion-reduce:transition-none focus:outline-hidden focus:ring-2 focus:ring-[#1F5FA8]/40 focus:ring-offset-1 select-none ${stateClasses}`}
+      className={`${sizeClasses} rounded-full border flex items-center justify-center transition-all duration-150 motion-reduce:transition-none focus:outline-hidden focus:ring-2 focus:ring-[#1F5FA8]/40 focus:ring-offset-1 select-none ${stateClasses}`}
     >
       {isLoading ? (
-        <Loader2 className={`${iconSizeClass} animate-spin text-[#8A97A8] dark:text-slate-400`} />
+        <Loader2 className={`${iconSizeClass} animate-spin text-[#8A97A8]`} />
       ) : (
         config.icon(iconSizeClass)
       )}
