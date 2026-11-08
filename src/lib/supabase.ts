@@ -1,6 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// CONFIGURACIÓN DE CONEXIÓN A SUPABASE
 export const URL = 'https://bqnwlzkzmneinmzxafsb.supabase.co';
 export const CLAVE_PUBLICA = 'sb_publishable_HUCcRbtEW6BfCJvjeOYisA_kxujnWQ7';
 
@@ -25,8 +24,6 @@ export function isSupabaseConfigured(): boolean {
   if (!url || !anonKey) return false;
   if (!url.startsWith('https://') && !url.startsWith('http://')) return false;
 
-  // Validación flexible: acepta claves que empiezan con "sb_publishable_" (nuevo formato de Supabase)
-  // o con "eyJ" (formato JWT tradicional), o cualquier clave no vacía con longitud razonable.
   const isValidKey =
     anonKey.startsWith('sb_publishable_') ||
     anonKey.startsWith('eyJ') ||

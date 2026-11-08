@@ -21,7 +21,6 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Custom scrollbar for dense tables and navigation */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -36,5 +35,3 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
-
-

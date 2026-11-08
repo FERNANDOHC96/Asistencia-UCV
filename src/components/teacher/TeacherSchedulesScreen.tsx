@@ -46,7 +46,7 @@ export const TeacherSchedulesScreen: React.FC = () => {
     setError(null);
 
     try {
-      // 1. Obtener secciones asignadas al profesor
+
       const teacherSecs = await getTeacherSections(user.id);
       setSections(teacherSecs);
 
@@ -62,7 +62,6 @@ export const TeacherSchedulesScreen: React.FC = () => {
         sectionMap[s.id] = s;
       });
 
-      // 2. Consultar horarios correspondientes a esas secciones
       const supabase = getSupabaseClient();
       const { data: schedData, error: schedErr } = await supabase
         .from('schedules')
@@ -91,7 +90,6 @@ export const TeacherSchedulesScreen: React.FC = () => {
     loadData();
   }, [loadData]);
 
-  // Filtrado de horarios
   const filteredSchedules = schedules.filter((s) => {
     if (selectedSectionFilter !== 'all' && s.section_id !== selectedSectionFilter) {
       return false;
@@ -102,7 +100,6 @@ export const TeacherSchedulesScreen: React.FC = () => {
     return true;
   });
 
-  // Agrupación por día de la semana
   const schedulesByDay: Record<number, ScheduleWithDetails[]> = {
     1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [],
   };
@@ -115,7 +112,7 @@ export const TeacherSchedulesScreen: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-      {/* Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
         <div>
           <div className="flex items-center gap-2">
@@ -130,7 +127,7 @@ export const TeacherSchedulesScreen: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Toggle View Mode */}
+
           <div className="bg-slate-100 p-1 rounded-lg border border-slate-200 flex text-xs font-semibold">
             <button
               type="button"
@@ -164,7 +161,6 @@ export const TeacherSchedulesScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Error alert */}
       {error && (
         <div className="p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
@@ -175,14 +171,12 @@ export const TeacherSchedulesScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Filters bar */}
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mr-2">
           <Filter className="w-4 h-4 text-[#1F5FA8]" />
           <span>Filtros:</span>
         </div>
 
-        {/* Section filter */}
         <div className="flex items-center gap-1.5">
           <span className="text-xs text-slate-500">Asignatura:</span>
           <select
@@ -199,7 +193,6 @@ export const TeacherSchedulesScreen: React.FC = () => {
           </select>
         </div>
 
-        {/* Day filter */}
         <div className="flex items-center gap-1.5">
           <span className="text-xs text-slate-500">Día:</span>
           <select
@@ -224,7 +217,6 @@ export const TeacherSchedulesScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Content Area */}
       {loading ? (
         <div className="bg-white p-12 rounded-xl border border-slate-200 text-center shadow-2xs">
           <RefreshCw className="w-8 h-8 text-[#1F5FA8] animate-spin mx-auto mb-3" />
@@ -263,7 +255,7 @@ export const TeacherSchedulesScreen: React.FC = () => {
           )}
         </div>
       ) : viewMode === 'grouped' ? (
-        /* Vista agrupada por día de la semana */
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {WEEKDAYS.map((day) => {
             const daySchedules = schedulesByDay[day.id] || [];
@@ -275,7 +267,7 @@ export const TeacherSchedulesScreen: React.FC = () => {
                 key={day.id}
                 className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden flex flex-col"
               >
-                {/* Header del día */}
+
                 <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-[#1F5FA8]" />
@@ -286,14 +278,13 @@ export const TeacherSchedulesScreen: React.FC = () => {
                   </span>
                 </div>
 
-                {/* Lista de turnos del día */}
                 <div className="p-3 divide-y divide-slate-100 space-y-3">
                   {daySchedules.length === 0 ? (
                     <p className="text-xs text-slate-400 italic py-2 text-center">Sin turnos este día</p>
                   ) : (
                     daySchedules.map((sch) => (
                       <div key={sch.id} className="pt-2 first:pt-0">
-                        {/* Time & Room */}
+
                         <div className="flex items-center justify-between text-xs mb-1.5">
                           <span className="font-bold text-[#1F5FA8] bg-blue-50/80 px-2 py-0.5 rounded border border-blue-100 flex items-center gap-1 font-mono">
                             <Clock className="w-3 h-3 text-[#1F5FA8]" />
@@ -310,7 +301,6 @@ export const TeacherSchedulesScreen: React.FC = () => {
                           </span>
                         </div>
 
-                        {/* Course & Section */}
                         <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
                           <div className="flex items-center justify-between gap-1">
                             <span className="text-[11px] font-bold text-[#0B2A5B] truncate">
@@ -337,7 +327,7 @@ export const TeacherSchedulesScreen: React.FC = () => {
           })}
         </div>
       ) : (
-        /* Vista de tabla lista completa */
+
         <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -405,7 +395,6 @@ export const TeacherSchedulesScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Institutional footer note */}
       <div className="p-4 rounded-xl bg-blue-50/50 border border-blue-100 flex items-start gap-3 text-xs text-slate-600">
         <CheckCircle2 className="w-4 h-4 text-[#1F5FA8] shrink-0 mt-0.5" />
         <div>

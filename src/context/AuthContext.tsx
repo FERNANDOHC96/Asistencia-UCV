@@ -16,14 +16,12 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Equivalencia entre la tarjeta seleccionada y el valor de rol guardado en la base de datos (profiles.role)
 const CARD_TO_DB_ROLE: Record<UserRole, 'admin' | 'profesor' | 'alumno'> = {
   administrador: 'admin',
   profesor: 'profesor',
   alumno: 'alumno',
 };
 
-// Equivalencia inversa para mapear el rol de la base de datos al tipo de rol de la interfaz
 const DB_TO_CARD_ROLE: Record<string, UserRole> = {
   admin: 'administrador',
   profesor: 'profesor',
@@ -81,7 +79,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setProfile(null);
   }, []);
 
-  // Verificar sesión existente al cargar la aplicación
   useEffect(() => {
     let isMounted = true;
 
@@ -155,7 +152,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const supabase = getSupabaseClient();
       const email = `${trimmedCode}@asisqr.local`;
 
-      // 1. Inicio de sesión en Supabase Auth
       const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -183,7 +179,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
 
-      // 2. Leer rol y estado real desde la tabla "profiles"
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('id, code, first_names, last_names, role, active')
@@ -202,14 +197,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
 
-      // 3. Validar si la cuenta está activa
       if (!profileData.active) {
         await supabase.auth.signOut();
         setAuthError('Su cuenta se encuentra inactiva. Comuníquese con la administración universitaria.');
         return false;
       }
 
-      // 4. Validar que el rol real coincida con la tarjeta seleccionada usando la equivalencia
       const expectedDbRole = CARD_TO_DB_ROLE[intendedRole];
       if (profileData.role !== expectedDbRole) {
         await supabase.auth.signOut();

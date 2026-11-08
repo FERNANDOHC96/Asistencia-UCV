@@ -57,7 +57,7 @@ export const StudentHome: React.FC<StudentHomeProps> = ({ onNavigate }) => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-      {/* Tarjeta de bienvenida y perfil */}
+
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-start sm:items-center gap-4">
           <div className="w-16 h-16 rounded-2xl bg-[#EEF2F7] border border-blue-200 flex items-center justify-center text-[#1F5FA8] shrink-0 font-black text-2xl shadow-2xs">
@@ -93,7 +93,6 @@ export const StudentHome: React.FC<StudentHomeProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* Alerta de Error */}
       {error && (
         <div className="p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
@@ -104,9 +103,8 @@ export const StudentHome: React.FC<StudentHomeProps> = ({ onNavigate }) => {
         </div>
       )}
 
-      {/* Contadores Reales */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Asignaturas Matriculadas */}
+
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between">
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
@@ -124,7 +122,6 @@ export const StudentHome: React.FC<StudentHomeProps> = ({ onNavigate }) => {
           </div>
         </div>
 
-        {/* Asistencias Registradas */}
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs flex items-center justify-between">
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
@@ -143,7 +140,6 @@ export const StudentHome: React.FC<StudentHomeProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* Aviso discreto App Móvil */}
       <div className="flex items-center gap-3 px-4 py-3 bg-blue-50/70 border border-blue-200/80 rounded-xl text-xs text-slate-700">
         <Smartphone className="w-5 h-5 text-[#1F5FA8] shrink-0" />
         <p className="font-medium">
@@ -151,9 +147,8 @@ export const StudentHome: React.FC<StudentHomeProps> = ({ onNavigate }) => {
         </p>
       </div>
 
-      {/* Acciones Rápidas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Mis Asignaturas */}
+
         <div
           onClick={() => onNavigate('mis_asignaturas')}
           className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs hover:border-blue-300 transition-all cursor-pointer flex flex-col justify-between group"
@@ -173,7 +168,6 @@ export const StudentHome: React.FC<StudentHomeProps> = ({ onNavigate }) => {
           </div>
         </div>
 
-        {/* Mi Asistencia */}
         <div
           onClick={() => onNavigate('mi_asistencia')}
           className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs hover:border-blue-300 transition-all cursor-pointer flex flex-col justify-between group"
@@ -194,7 +188,6 @@ export const StudentHome: React.FC<StudentHomeProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* Aviso institucional */}
       <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-3 text-xs text-slate-600">
         <ShieldCheck className="w-4 h-4 text-[#1F5FA8] shrink-0 mt-0.5" />
         <div>

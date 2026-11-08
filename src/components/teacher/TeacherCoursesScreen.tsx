@@ -49,19 +49,14 @@ export const TeacherCoursesScreen: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Selected course for detail view
   const [selectedCourse, setSelectedCourse] = useState<CourseOverview | null>(null);
   const [activeTab, setActiveTab] = useState<TeacherCourseTab>('horario');
 
-  // ==========================================
-  // TAB 1: HORARIO STATE
-  // ==========================================
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [scheduleLoading, setScheduleLoading] = useState<boolean>(false);
   const [scheduleError, setScheduleError] = useState<string | null>(null);
   const [scheduleSuccess, setScheduleSuccess] = useState<string | null>(null);
 
-  // New schedule form
   const [newWeekday, setNewWeekday] = useState<number>(1);
   const [newKind, setNewKind] = useState<SessionKind>('teoria');
   const [newStartsAt, setNewStartsAt] = useState<string>('08:00');
@@ -70,15 +65,11 @@ export const TeacherCoursesScreen: React.FC = () => {
   const [isAddingSchedule, setIsAddingSchedule] = useState<boolean>(false);
   const [savingSchedule, setSavingSchedule] = useState<boolean>(false);
 
-  // ==========================================
-  // TAB 2: SESIONES STATE
-  // ==========================================
   const [sessions, setSessions] = useState<ClassSession[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState<boolean>(false);
   const [sessionsError, setSessionsError] = useState<string | null>(null);
   const [sessionsSuccess, setSessionsSuccess] = useState<string | null>(null);
 
-  // Modals for create_class_days
   const [isSingleDayModalOpen, setIsSingleDayModalOpen] = useState<boolean>(false);
   const [singleDate, setSingleDate] = useState<string>(getTodayLima());
   const [singleTopic, setSingleTopic] = useState<string>('');
@@ -92,7 +83,6 @@ export const TeacherCoursesScreen: React.FC = () => {
   const [rangeLoading, setRangeLoading] = useState<boolean>(false);
   const [rangeError, setRangeError] = useState<string | null>(null);
 
-  // Secondary manual session modal
   const [isManualSessionModalOpen, setIsManualSessionModalOpen] = useState<boolean>(false);
   const [manualDate, setManualDate] = useState<string>(getTodayLima());
   const [manualStartsAt, setManualStartsAt] = useState<string>('08:00');
@@ -102,9 +92,6 @@ export const TeacherCoursesScreen: React.FC = () => {
   const [manualLoading, setManualLoading] = useState<boolean>(false);
   const [manualError, setManualError] = useState<string | null>(null);
 
-  // ==========================================
-  // TAB 5: ALUMNOS STATE
-  // ==========================================
   const [students, setStudents] = useState<{ id: string; enrolled_at?: string; profile?: ProfileBasicInfo }[]>([]);
   const [studentsLoading, setStudentsLoading] = useState<boolean>(false);
   const [studentsError, setStudentsError] = useState<string | null>(null);
@@ -115,7 +102,6 @@ export const TeacherCoursesScreen: React.FC = () => {
   );
   const avatarUrls = useStudentAvatarUrls(studentProfiles);
 
-  // 1. Fetch teacher courses from course_overview
   const fetchTeacherCourses = useCallback(async () => {
     if (!user || !isSupabaseConfigured()) {
       setLoading(false);
@@ -153,7 +139,6 @@ export const TeacherCoursesScreen: React.FC = () => {
     fetchTeacherCourses();
   }, [user]);
 
-  // 2. Fetch Schedules for selected course
   const fetchSchedules = useCallback(async (sectionId: string) => {
     setScheduleLoading(true);
     setScheduleError(null);
@@ -176,7 +161,6 @@ export const TeacherCoursesScreen: React.FC = () => {
     }
   }, []);
 
-  // 3. Fetch Sessions for selected course (No unit or week fields)
   const fetchSessions = useCallback(async (sectionId: string) => {
     setSessionsLoading(true);
     setSessionsError(null);
@@ -199,7 +183,6 @@ export const TeacherCoursesScreen: React.FC = () => {
     }
   }, []);
 
-  // 4. Fetch Enrolled Students for selected course
   const fetchStudents = useCallback(async (sectionId: string) => {
     setStudentsLoading(true);
     setStudentsError(null);
@@ -231,7 +214,6 @@ export const TeacherCoursesScreen: React.FC = () => {
     }
   }, []);
 
-  // Load appropriate data when tab or selectedCourse changes
   useEffect(() => {
     if (!selectedCourse) return;
     if (activeTab === 'horario') {
@@ -243,9 +225,6 @@ export const TeacherCoursesScreen: React.FC = () => {
     }
   }, [selectedCourse?.section_id, activeTab]);
 
-  // ==========================================
-  // TAB 1 HANDLERS: HORARIO
-  // ==========================================
   const handleSaveSchedule = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCourse) return;
@@ -298,7 +277,7 @@ export const TeacherCoursesScreen: React.FC = () => {
 
     try {
       const supabase = getSupabaseClient();
-      // Try hard delete or soft delete
+
       const { error: delErr } = await supabase
         .from('schedules')
         .delete()
@@ -320,9 +299,6 @@ export const TeacherCoursesScreen: React.FC = () => {
     }
   };
 
-  // ==========================================
-  // TAB 2 HANDLERS: SESIONES (create_class_days)
-  // ==========================================
   const handleCreateSingleDay = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCourse) return;
@@ -415,7 +391,6 @@ export const TeacherCoursesScreen: React.FC = () => {
     }
   };
 
-  // Secondary manual session creation
   const handleCreateManualSession = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCourse) return;
@@ -452,13 +427,10 @@ export const TeacherCoursesScreen: React.FC = () => {
     }
   };
 
-  // ==========================================
-  // VIEW: DETALLE DEL CURSO (5 PESTAÑAS)
-  // ==========================================
   if (selectedCourse) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* Header del Curso Seleccionado */}
+
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-start gap-4">
@@ -488,9 +460,8 @@ export const TeacherCoursesScreen: React.FC = () => {
             </div>
           </div>
 
-          {/* 5 Tabs de Navegación interna */}
           <div className="mt-5 border-t border-slate-100 pt-3 flex flex-wrap items-center gap-2">
-            {/* 1. Horario */}
+
             <button
               onClick={() => setActiveTab('horario')}
               className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
@@ -503,7 +474,6 @@ export const TeacherCoursesScreen: React.FC = () => {
               <span>1. Horario</span>
             </button>
 
-            {/* 2. Sesiones */}
             <button
               onClick={() => setActiveTab('sesiones')}
               className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
@@ -516,7 +486,6 @@ export const TeacherCoursesScreen: React.FC = () => {
               <span>2. Sesiones</span>
             </button>
 
-            {/* 3. Asistencia (QR) */}
             <button
               onClick={() => setActiveTab('asistencia')}
               className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
@@ -529,7 +498,6 @@ export const TeacherCoursesScreen: React.FC = () => {
               <span>3. Asistencia</span>
             </button>
 
-            {/* 4. Asistencia manual */}
             <button
               onClick={() => setActiveTab('asistencia_manual')}
               className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
@@ -542,7 +510,6 @@ export const TeacherCoursesScreen: React.FC = () => {
               <span>4. Asistencia manual</span>
             </button>
 
-            {/* 5. Alumnos */}
             <button
               onClick={() => setActiveTab('alumnos')}
               className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
@@ -557,12 +524,9 @@ export const TeacherCoursesScreen: React.FC = () => {
           </div>
         </div>
 
-        {/* ============================================================== */}
-        {/* PESTAÑA 1: HORARIO */}
-        {/* ============================================================== */}
         {activeTab === 'horario' && (
           <div className="space-y-5">
-            {/* Texto de ayuda institucional obligatorio */}
+
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl flex items-start gap-3">
               <Info className="w-5 h-5 text-[#1F5FA8] shrink-0 mt-0.5" />
               <div className="text-xs text-blue-900">
@@ -573,7 +537,6 @@ export const TeacherCoursesScreen: React.FC = () => {
               </div>
             </div>
 
-            {/* Feedback banners */}
             {scheduleSuccess && (
               <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center justify-between">
                 <span>{scheduleSuccess}</span>
@@ -591,7 +554,6 @@ export const TeacherCoursesScreen: React.FC = () => {
               </div>
             )}
 
-            {/* Horario actual + Botón añadir franja */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
                 <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
@@ -608,7 +570,6 @@ export const TeacherCoursesScreen: React.FC = () => {
                 </button>
               </div>
 
-              {/* Formulario para añadir franja */}
               {isAddingSchedule && (
                 <form
                   onSubmit={handleSaveSchedule}
@@ -619,7 +580,7 @@ export const TeacherCoursesScreen: React.FC = () => {
                   </h3>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
-                    {/* Día de la semana */}
+
                     <div>
                       <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
                         Día *
@@ -637,7 +598,6 @@ export const TeacherCoursesScreen: React.FC = () => {
                       </select>
                     </div>
 
-                    {/* Tipo (obligatorio) */}
                     <div>
                       <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
                         Tipo *
@@ -652,7 +612,6 @@ export const TeacherCoursesScreen: React.FC = () => {
                       </select>
                     </div>
 
-                    {/* Hora inicio */}
                     <div>
                       <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
                         Inicio *
@@ -666,7 +625,6 @@ export const TeacherCoursesScreen: React.FC = () => {
                       />
                     </div>
 
-                    {/* Hora fin */}
                     <div>
                       <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
                         Fin *
@@ -680,7 +638,6 @@ export const TeacherCoursesScreen: React.FC = () => {
                       />
                     </div>
 
-                    {/* Aula */}
                     <div>
                       <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
                         Aula (opcional)
@@ -715,7 +672,6 @@ export const TeacherCoursesScreen: React.FC = () => {
                 </form>
               )}
 
-              {/* Listado de franjas */}
               {scheduleLoading ? (
                 <div className="py-8 flex flex-col items-center justify-center text-slate-400">
                   <Loader2 className="w-6 h-6 animate-spin text-[#1F5FA8] mb-2" />
@@ -788,12 +744,9 @@ export const TeacherCoursesScreen: React.FC = () => {
           </div>
         )}
 
-        {/* ============================================================== */}
-        {/* PESTAÑA 2: SESIONES */}
-        {/* ============================================================== */}
         {activeTab === 'sesiones' && (
           <div className="space-y-5">
-            {/* Feedback banners */}
+
             {sessionsSuccess && (
               <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center justify-between">
                 <span>{sessionsSuccess}</span>
@@ -811,7 +764,6 @@ export const TeacherCoursesScreen: React.FC = () => {
               </div>
             )}
 
-            {/* Barra de creación rápida de días de clase */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                 <div>
@@ -869,7 +821,6 @@ export const TeacherCoursesScreen: React.FC = () => {
                 </div>
               </div>
 
-              {/* Listado de sesiones */}
               {sessionsLoading ? (
                 <div className="py-8 flex flex-col items-center justify-center text-slate-400">
                   <Loader2 className="w-6 h-6 animate-spin text-[#1F5FA8] mb-2" />
@@ -946,7 +897,6 @@ export const TeacherCoursesScreen: React.FC = () => {
               )}
             </div>
 
-            {/* Modal Crear Día de Clase (un solo día) */}
             {isSingleDayModalOpen && (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
                 <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200 space-y-4">
@@ -1018,7 +968,6 @@ export const TeacherCoursesScreen: React.FC = () => {
               </div>
             )}
 
-            {/* Modal Crear Varios Días (rango) */}
             {isMultiDayModalOpen && (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
                 <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200 space-y-4">
@@ -1100,7 +1049,6 @@ export const TeacherCoursesScreen: React.FC = () => {
               </div>
             )}
 
-            {/* Modal Crear Sesión Manual Secundaria */}
             {isManualSessionModalOpen && (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
                 <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200 space-y-4">
@@ -1213,23 +1161,14 @@ export const TeacherCoursesScreen: React.FC = () => {
           </div>
         )}
 
-        {/* ============================================================== */}
-        {/* PESTAÑA 3: ASISTENCIA QR */}
-        {/* ============================================================== */}
         {activeTab === 'asistencia' && (
           <TeacherQrAttendanceScreen presetSectionId={selectedCourse.section_id} />
         )}
 
-        {/* ============================================================== */}
-        {/* PESTAÑA 4: ASISTENCIA MANUAL */}
-        {/* ============================================================== */}
         {activeTab === 'asistencia_manual' && (
           <TeacherAttendanceScreen presetSectionId={selectedCourse.section_id} />
         )}
 
-        {/* ============================================================== */}
-        {/* PESTAÑA 5: ALUMNOS (Solo Lectura) */}
-        {/* ============================================================== */}
         {activeTab === 'alumnos' && (
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -1315,12 +1254,9 @@ export const TeacherCoursesScreen: React.FC = () => {
     );
   }
 
-  // ==========================================
-  // VIEW: LISTA DE MIS CURSOS
-  // ==========================================
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-      {/* Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-[#0B2A5B] flex items-center gap-2">
@@ -1342,7 +1278,6 @@ export const TeacherCoursesScreen: React.FC = () => {
         </button>
       </div>
 
-      {/* Error state */}
       {error && (
         <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-900 text-xs flex items-center gap-2.5">
           <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
@@ -1350,7 +1285,6 @@ export const TeacherCoursesScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Cards de Cursos */}
       {loading ? (
         <div className="py-16 flex flex-col items-center justify-center text-slate-400">
           <Loader2 className="w-8 h-8 animate-spin text-[#1F5FA8] mb-3" />

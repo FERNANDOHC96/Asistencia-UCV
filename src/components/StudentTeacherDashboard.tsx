@@ -16,7 +16,7 @@ export const StudentTeacherDashboard: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-      {/* Title area */}
+
       <div>
         <h1 className="text-xl sm:text-2xl font-bold text-[#0B2A5B]">
           Bienvenido(a), {profile.first_names}
@@ -27,7 +27,7 @@ export const StudentTeacherDashboard: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Profile Card */}
+
         <div className="bg-white rounded-2xl shadow-xs border border-slate-200 p-6 flex flex-col items-center text-center">
           <div className="relative mb-4">
             <div className="w-24 h-24 rounded-full bg-[#EEF2F7] border-2 border-blue-200 flex items-center justify-center text-[#1F5FA8] shadow-inner">
@@ -64,7 +64,6 @@ export const StudentTeacherDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Informative notice card */}
         <div className="md:col-span-2 space-y-5">
           <div className="bg-white rounded-2xl shadow-xs border border-slate-200 p-6">
             <div className="flex items-center gap-2.5 pb-4 border-b border-slate-100">

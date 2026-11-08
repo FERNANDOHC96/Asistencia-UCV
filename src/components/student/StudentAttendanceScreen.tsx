@@ -37,7 +37,6 @@ export const StudentAttendanceScreen: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Filtros
   const [selectedCourseFilter, setSelectedCourseFilter] = useState<string>('all');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('all');
   const [selectedKindFilter, setSelectedKindFilter] = useState<'all' | 'teoria' | 'practica'>('all');
@@ -51,15 +50,13 @@ export const StudentAttendanceScreen: React.FC = () => {
     setError(null);
 
     try {
-      // 1. Obtener registros de asistencia personales con class_session anidado
+
       const attRecords = await getStudentAttendanceRecords(user.id);
       setRecords(attRecords);
 
-      // 2. Obtener asignaturas matriculadas
       const enrList = await getStudentEnrollments(user.id);
       setEnrollments(enrList);
 
-      // 3. Obtener conteo de sesiones cerradas de sus secciones
       const sectionIds = enrList.map((e) => e.section.id);
       if (sectionIds.length > 0) {
         const closedCounts = await getClosedSessionsCountBySections(sectionIds);
@@ -76,18 +73,15 @@ export const StudentAttendanceScreen: React.FC = () => {
     loadData();
   }, [loadData]);
 
-  // Resumen de asistencia por asignatura matriculada desglosado por Teoría y Práctica
   const courseSummaries = useMemo(() => {
     return enrollments.map((item) => {
       const sectionId = item.section.id;
       const course = item.section.offering.course;
 
-      // Filtrar registros correspondientes a sesiones de esta sección
       const sectionRecords = records.filter(
         (r) => (r.class_session as any)?.section_id === sectionId
       );
 
-      // Separación estricta por tipo: Teoría y Práctica
       const teoriaRecords = sectionRecords.filter(
         (r) => ((r.class_session as any)?.kind || 'teoria') === 'teoria'
       );
@@ -97,7 +91,6 @@ export const StudentAttendanceScreen: React.FC = () => {
 
       const closedCounts = closedSessionsMap[sectionId] || { teoria: 0, practica: 0, total: 0 };
 
-      // Métricas de Teoría
       const presentesTeoria = teoriaRecords.filter((r) => r.status === 'presente').length;
       const tardanzasTeoria = teoriaRecords.filter((r) => r.status === 'tardanza').length;
       const faltasTeoria = teoriaRecords.filter((r) => r.status === 'falta').length;
@@ -106,7 +99,6 @@ export const StudentAttendanceScreen: React.FC = () => {
       const percentageTeoria =
         closedTeoria > 0 ? Math.round((presentesTeoria / closedTeoria) * 100) : null;
 
-      // Métricas de Práctica
       const presentesPractica = practicaRecords.filter((r) => r.status === 'presente').length;
       const tardanzasPractica = practicaRecords.filter((r) => r.status === 'tardanza').length;
       const faltasPractica = practicaRecords.filter((r) => r.status === 'falta').length;
@@ -120,7 +112,7 @@ export const StudentAttendanceScreen: React.FC = () => {
         courseCode: course.code,
         courseName: course.name,
         sectionName: item.section.name,
-        // Teoría
+
         teoria: {
           presentes: presentesTeoria,
           tardanzas: tardanzasTeoria,
@@ -129,7 +121,7 @@ export const StudentAttendanceScreen: React.FC = () => {
           closedSessions: closedTeoria,
           percentage: percentageTeoria,
         },
-        // Práctica
+
         practica: {
           presentes: presentesPractica,
           tardanzas: tardanzasPractica,
@@ -143,7 +135,6 @@ export const StudentAttendanceScreen: React.FC = () => {
     });
   }, [enrollments, records, closedSessionsMap]);
 
-  // Filtrado de la tabla de registros
   const filteredRecords = useMemo(() => {
     return records.filter((r) => {
       const session = r.class_session as any;
@@ -168,7 +159,7 @@ export const StudentAttendanceScreen: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-      {/* Header */}
+
       <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-[#0B2A5B]">Mi Historial de Asistencia</h1>
@@ -187,7 +178,6 @@ export const StudentAttendanceScreen: React.FC = () => {
         </button>
       </div>
 
-      {/* Alerta de Error */}
       {error && (
         <div className="p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
@@ -198,7 +188,6 @@ export const StudentAttendanceScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Fórmula del Porcentaje en Pantalla (Requerimiento estricto) */}
       <div className="p-4 rounded-xl bg-blue-50/70 border border-blue-200 flex items-start gap-3">
         <Info className="w-5 h-5 text-[#1F5FA8] shrink-0 mt-0.5" />
         <div className="text-xs text-slate-700 space-y-1.5 flex-1">
@@ -225,7 +214,6 @@ export const StudentAttendanceScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Resumen por Asignatura */}
       <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs space-y-4">
         <h2 className="text-xs uppercase font-bold text-slate-400 tracking-wider flex items-center gap-2">
           <PieChart className="w-4 h-4 text-[#1F5FA8]" />
@@ -266,7 +254,6 @@ export const StudentAttendanceScreen: React.FC = () => {
                     </h4>
                   </div>
 
-                  {/* Porcentaje de Teoría */}
                   <div className="p-3 bg-white rounded-lg border border-slate-200 space-y-1.5">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
@@ -309,7 +296,6 @@ export const StudentAttendanceScreen: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Porcentaje de Práctica */}
                   <div className="p-3 bg-white rounded-lg border border-slate-200 space-y-1.5">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-bold text-purple-900 flex items-center gap-1">
@@ -362,14 +348,12 @@ export const StudentAttendanceScreen: React.FC = () => {
         )}
       </div>
 
-      {/* Filtros de la Tabla */}
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mr-2">
           <Filter className="w-4 h-4 text-[#1F5FA8]" />
           <span>Filtros:</span>
         </div>
 
-        {/* Filtro por Asignatura */}
         <div className="flex items-center gap-1.5">
           <span className="text-xs text-slate-500">Asignatura:</span>
           <select
@@ -386,7 +370,6 @@ export const StudentAttendanceScreen: React.FC = () => {
           </select>
         </div>
 
-        {/* Filtro por Estado */}
         <div className="flex items-center gap-1.5">
           <span className="text-xs text-slate-500">Estado:</span>
           <select
@@ -402,7 +385,6 @@ export const StudentAttendanceScreen: React.FC = () => {
           </select>
         </div>
 
-        {/* Filtro por Tipo */}
         <div className="flex items-center gap-1.5">
           <span className="text-xs text-slate-500">Tipo:</span>
           <select
@@ -421,7 +403,6 @@ export const StudentAttendanceScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabla de Registros de Asistencia */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
         <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
           <h3 className="text-xs uppercase font-bold text-slate-700 flex items-center gap-2">

@@ -11,7 +11,6 @@ export const PeriodsScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [archiveSuccess, setArchiveSuccess] = useState<string | null>(null);
 
-  // Form modal state
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPeriod, setEditingPeriod] = useState<Period | null>(null);
   const [formData, setFormData] = useState({
@@ -23,7 +22,6 @@ export const PeriodsScreen: React.FC = () => {
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Archive modal state
   const [archivingPeriod, setArchivingPeriod] = useState<Period | null>(null);
   const [archiveLoading, setArchiveLoading] = useState(false);
 
@@ -111,7 +109,7 @@ export const PeriodsScreen: React.FC = () => {
     try {
       const supabase = getSupabaseClient();
       if (editingPeriod) {
-        // Update
+
         const { error: updError } = await supabase
           .from('periods')
           .update({
@@ -127,7 +125,7 @@ export const PeriodsScreen: React.FC = () => {
           return;
         }
       } else {
-        // Create
+
         const { error: insError } = await supabase
           .from('periods')
           .insert({
@@ -186,7 +184,7 @@ export const PeriodsScreen: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-      {/* Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
@@ -222,7 +220,6 @@ export const PeriodsScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Global Error Banner */}
       {error && (
         <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-900 text-xs flex items-center gap-2.5 animate-in fade-in">
           <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
@@ -230,7 +227,6 @@ export const PeriodsScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Archive Success Banner */}
       {archiveSuccess && (
         <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 flex items-center gap-2 text-xs font-semibold animate-in fade-in">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
@@ -238,7 +234,6 @@ export const PeriodsScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Table Card */}
       <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
         {loading ? (
           <div className="py-16 text-center">
@@ -320,7 +315,6 @@ export const PeriodsScreen: React.FC = () => {
         )}
       </div>
 
-      {/* Form Modal (Create / Edit) */}
       {isFormOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
@@ -428,7 +422,6 @@ export const PeriodsScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Archive Confirmation Modal */}
       <DeleteConfirmModal
         isOpen={Boolean(archivingPeriod)}
         title="Archivar Periodo Académico"

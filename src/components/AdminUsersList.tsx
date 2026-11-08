@@ -23,10 +23,8 @@ export const AdminUsersList: React.FC<AdminUsersListProps> = ({ role }) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Filtros
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Modales y acciones
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
   const roleTitle = role === 'alumno' ? 'Alumnos' : 'Profesores';
@@ -47,7 +45,6 @@ export const AdminUsersList: React.FC<AdminUsersListProps> = ({ role }) => {
     try {
       const supabase = getSupabaseClient();
 
-      // Consulta perfiles del rol seleccionado sin selects anidados
       const { data, error: sbError } = await supabase
         .from('profiles')
         .select('id, code, first_names, last_names, role, active')
@@ -75,7 +72,6 @@ export const AdminUsersList: React.FC<AdminUsersListProps> = ({ role }) => {
     fetchUsers();
   }, [fetchUsers]);
 
-  // Filtrado en memoria de búsqueda por código, nombres o apellidos
   const filteredUsers = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return users;
@@ -91,7 +87,7 @@ export const AdminUsersList: React.FC<AdminUsersListProps> = ({ role }) => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-      {/* Top Header & Action */}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
@@ -128,10 +124,9 @@ export const AdminUsersList: React.FC<AdminUsersListProps> = ({ role }) => {
         </div>
       </div>
 
-      {/* Search Bar & Filtros */}
       <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1 max-w-xl">
-          {/* Buscador de texto */}
+
           <div className="relative flex-1">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
               <Search className="w-4 h-4" />
@@ -151,7 +146,6 @@ export const AdminUsersList: React.FC<AdminUsersListProps> = ({ role }) => {
         </div>
       </div>
 
-      {/* Error Notice */}
       {error && (
         <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-900 text-xs flex items-center gap-2.5 animate-in fade-in">
           <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
@@ -159,7 +153,6 @@ export const AdminUsersList: React.FC<AdminUsersListProps> = ({ role }) => {
         </div>
       )}
 
-      {/* Main Table Card */}
       <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
         {loading ? (
           <div className="py-16 text-center">
@@ -208,31 +201,27 @@ export const AdminUsersList: React.FC<AdminUsersListProps> = ({ role }) => {
               <tbody className="divide-y divide-slate-100 text-slate-700">
                 {filteredUsers.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                    {/* Código */}
+
                     <td className="px-6 py-3.5 font-mono font-bold text-[#0B2A5B]">
                       <span className="bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
                         {item.code}
                       </span>
                     </td>
 
-                    {/* Nombres */}
                     <td className="px-6 py-3.5 font-semibold text-slate-900">
                       {item.first_names}
                     </td>
 
-                    {/* Apellidos */}
                     <td className="px-6 py-3.5 font-semibold text-slate-900">
                       {item.last_names}
                     </td>
 
-                    {/* Rol (Solo para Profesores) */}
                     {role === 'profesor' && (
                       <td className="px-6 py-3.5 capitalize text-slate-600">
                         {item.role}
                       </td>
                     )}
 
-                    {/* Estado con texto e icono */}
                     <td className="px-6 py-3.5">
                       {item.active ? (
                         <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
@@ -254,7 +243,6 @@ export const AdminUsersList: React.FC<AdminUsersListProps> = ({ role }) => {
         )}
       </div>
 
-      {/* Modal de Creación de Perfil */}
       <CreateUserModal
         isOpen={isModalOpen}
         role={role}

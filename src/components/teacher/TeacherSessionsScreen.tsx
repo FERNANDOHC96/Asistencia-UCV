@@ -23,7 +23,6 @@ export const TeacherSessionsScreen: React.FC = () => {
   const [archiveSuccess, setArchiveSuccess] = useState<string | null>(null);
   const [globalClassDayNotice, setGlobalClassDayNotice] = useState<string | null>(null);
 
-  // Modal Crear Día de Clase (automático a partir de franjas de horario)
   const [isClassDayModalOpen, setIsClassDayModalOpen] = useState<boolean>(false);
   const [classDayMode, setClassDayMode] = useState<'single' | 'range'>('single');
   const [classDayDate, setClassDayDate] = useState<string>(getTodayLima());
@@ -34,7 +33,6 @@ export const TeacherSessionsScreen: React.FC = () => {
   const [classDayError, setClassDayError] = useState<string | null>(null);
   const [classDaySuccess, setClassDaySuccess] = useState<string | null>(null);
 
-  // Modal create/edit manual
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingSession, setEditingSession] = useState<ClassSession | null>(null);
   const [formData, setFormData] = useState({
@@ -50,15 +48,12 @@ export const TeacherSessionsScreen: React.FC = () => {
   const [formLoading, setFormLoading] = useState<boolean>(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Archive modal
   const [archivingSession, setArchivingSession] = useState<ClassSession | null>(null);
   const [archiveLoading, setArchiveLoading] = useState<boolean>(false);
 
-  // Cancel Confirmation modal
   const [cancelingSession, setCancelingSession] = useState<ClassSession | null>(null);
   const [cancelLoading, setCancelLoading] = useState<boolean>(false);
 
-  // Fetch teacher sections
   const fetchSections = useCallback(async () => {
     if (!user || !isSupabaseConfigured()) {
       setLoadingSections(false);
@@ -87,7 +82,6 @@ export const TeacherSessionsScreen: React.FC = () => {
 
   const currentSection = sections.find((s) => s.id === selectedSectionId) || null;
 
-  // Fetch sessions, units and weeks for current section
   const fetchSessionsData = useCallback(async () => {
     if (!selectedSectionId || !currentSection || !isSupabaseConfigured()) {
       setSessions([]);
@@ -100,7 +94,6 @@ export const TeacherSessionsScreen: React.FC = () => {
     try {
       const supabase = getSupabaseClient();
 
-      // 1. Sesiones de la sección
       const { data: sData, error: sErr } = await supabase
         .from('class_sessions')
         .select('*')
@@ -112,7 +105,6 @@ export const TeacherSessionsScreen: React.FC = () => {
       if (sErr) throw sErr;
       setSessions(sData || []);
 
-      // 2. Unidades de la oferta para vincular opcionalmente
       const { data: uData } = await supabase
         .from('learning_units')
         .select('*')
@@ -121,7 +113,6 @@ export const TeacherSessionsScreen: React.FC = () => {
         .order('number', { ascending: true });
       setUnits(uData || []);
 
-      // 3. Semanas de la oferta para vincular opcionalmente
       const { data: wData } = await supabase
         .from('academic_weeks')
         .select('*')
@@ -212,7 +203,7 @@ export const TeacherSessionsScreen: React.FC = () => {
         try {
           res = JSON.parse(res);
         } catch {
-          // keep as is
+
         }
       }
 
@@ -281,7 +272,7 @@ export const TeacherSessionsScreen: React.FC = () => {
   };
 
   const handleOpenEdit = (s: ClassSession) => {
-    if (s.status === 'cerrada') return; // Bloqueo: no permitir editar cerradas
+    if (s.status === 'cerrada') return;
 
     setEditingSession(s);
     setFormData({
@@ -292,7 +283,7 @@ export const TeacherSessionsScreen: React.FC = () => {
       unit_id: s.unit_id || '',
       week_id: s.week_id || '',
       kind: s.kind || 'teoria',
-      // Solo 'programada' o 'cancelada' permitidas al profesor
+
       status: s.status === 'cancelada' ? 'cancelada' : 'programada',
     });
     setFormError(null);
@@ -315,7 +306,6 @@ export const TeacherSessionsScreen: React.FC = () => {
       return;
     }
 
-    // Validación obligatoria: hora fin mayor que hora inicio
     if (formData.ends_at <= formData.starts_at) {
       setFormError('La hora de fin debe ser estrictamente mayor que la hora de inicio (ends_at > starts_at).');
       return;
@@ -334,7 +324,7 @@ export const TeacherSessionsScreen: React.FC = () => {
         unit_id: formData.unit_id ? formData.unit_id : null,
         week_id: formData.week_id ? formData.week_id : null,
         kind: formData.kind,
-        // Solo 'programada' o 'cancelada'
+
         status: formData.status,
       };
 
@@ -415,7 +405,7 @@ export const TeacherSessionsScreen: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-      {/* Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
@@ -462,7 +452,6 @@ export const TeacherSessionsScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Section Selector Bar */}
       <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         <div className="flex-1 max-w-xl">
           <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
@@ -493,7 +482,6 @@ export const TeacherSessionsScreen: React.FC = () => {
         )}
       </div>
 
-      {/* Global Error Banner */}
       {error && (
         <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-900 text-xs flex items-center gap-2.5 animate-in fade-in">
           <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
@@ -501,7 +489,6 @@ export const TeacherSessionsScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Class Day Creation Success Notice */}
       {globalClassDayNotice && (
         <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center justify-between animate-in fade-in">
           <div className="flex items-center gap-2">
@@ -514,7 +501,6 @@ export const TeacherSessionsScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Archive Success Notice */}
       {archiveSuccess && (
         <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between animate-in fade-in">
           <div className="flex items-center gap-2">
@@ -527,7 +513,6 @@ export const TeacherSessionsScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Sessions Table Card */}
       <div className="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
         {loadingSessions ? (
           <div className="py-16 text-center text-xs text-slate-500">
@@ -586,12 +571,11 @@ export const TeacherSessionsScreen: React.FC = () => {
 
                   return (
                     <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
-                      {/* Fecha */}
+
                       <td className="px-5 py-3.5 font-mono font-bold text-[#0B2A5B] whitespace-nowrap">
                         {formatDisplayDate(s.session_date)}
                       </td>
 
-                      {/* Tipo con icono y texto (no solo color) */}
                       <td className="px-5 py-3.5 whitespace-nowrap">
                         <span
                           className={`inline-flex items-center gap-1.5 text-[11px] font-bold border px-2.5 py-0.5 rounded-full ${
@@ -609,17 +593,14 @@ export const TeacherSessionsScreen: React.FC = () => {
                         </span>
                       </td>
 
-                      {/* Horario */}
                       <td className="px-5 py-3.5 font-mono font-semibold text-slate-700 whitespace-nowrap">
                         {formatTime(s.starts_at)} - {formatTime(s.ends_at)}
                       </td>
 
-                      {/* Tema */}
                       <td className="px-5 py-3.5 font-medium text-slate-900 max-w-xs">
                         {s.topic || 'Sin tema especificado'}
                       </td>
 
-                      {/* Unidad / Semana */}
                       <td className="px-5 py-3.5 text-slate-500 whitespace-nowrap">
                         {linkedUnit && (
                           <span className="bg-blue-50 text-[#1F5FA8] px-2 py-0.5 rounded font-mono text-[11px] mr-1 font-semibold">
@@ -634,7 +615,6 @@ export const TeacherSessionsScreen: React.FC = () => {
                         {!linkedUnit && !linkedWeek && <span className="text-slate-400 italic">-</span>}
                       </td>
 
-                      {/* Estado visible */}
                       <td className="px-5 py-3.5">
                         <span
                           className={`inline-flex items-center gap-1 text-[11px] font-bold border px-2.5 py-0.5 rounded-full ${badge.class}`}
@@ -643,7 +623,6 @@ export const TeacherSessionsScreen: React.FC = () => {
                         </span>
                       </td>
 
-                      {/* Acciones */}
                       <td className="px-5 py-3.5 text-right space-x-1 whitespace-nowrap">
                         {isClosed ? (
                           <span className="text-slate-400 text-[11px] italic px-2">
@@ -686,11 +665,10 @@ export const TeacherSessionsScreen: React.FC = () => {
         )}
       </div>
 
-      {/* Modal Crear Día de Clase (automático: teoría y práctica) */}
       {isClassDayModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
-            {/* Modal Header */}
+
             <div className="bg-[#0B2A5B] text-white px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-white">
@@ -713,9 +691,8 @@ export const TeacherSessionsScreen: React.FC = () => {
               </button>
             </div>
 
-            {/* Modal Form */}
             <form onSubmit={handleCreateClassDay} className="p-6 space-y-4 text-xs">
-              {/* Error Message */}
+
               {classDayError && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-800 flex items-start gap-2">
                   <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
@@ -723,7 +700,6 @@ export const TeacherSessionsScreen: React.FC = () => {
                 </div>
               )}
 
-              {/* Success Message */}
               {classDaySuccess && (
                 <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
@@ -731,7 +707,6 @@ export const TeacherSessionsScreen: React.FC = () => {
                 </div>
               )}
 
-              {/* Mode Toggle Tabs */}
               <div className="flex rounded-lg bg-slate-100 p-1">
                 <button
                   type="button"
@@ -759,7 +734,6 @@ export const TeacherSessionsScreen: React.FC = () => {
                 </button>
               </div>
 
-              {/* Mode: Single Day */}
               {classDayMode === 'single' ? (
                 <div>
                   <label className="block font-bold text-slate-700 uppercase tracking-wide mb-1">
@@ -778,7 +752,7 @@ export const TeacherSessionsScreen: React.FC = () => {
                   </p>
                 </div>
               ) : (
-                /* Mode: Range */
+
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -814,7 +788,6 @@ export const TeacherSessionsScreen: React.FC = () => {
                 </div>
               )}
 
-              {/* Tema (Opcional) */}
               <div>
                 <label className="block font-bold text-slate-700 uppercase tracking-wide mb-1">
                   Tema <span className="font-normal text-slate-400 lowercase">(opcional)</span>
@@ -829,7 +802,6 @@ export const TeacherSessionsScreen: React.FC = () => {
                 />
               </div>
 
-              {/* Action Buttons */}
               <div className="pt-2 flex items-center justify-end gap-2.5">
                 <button
                   type="button"
@@ -853,7 +825,6 @@ export const TeacherSessionsScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Modal Form (Create / Edit Session Manual) */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
@@ -883,7 +854,6 @@ export const TeacherSessionsScreen: React.FC = () => {
                 </div>
               )}
 
-              {/* Fecha y Tipo de la sesión */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 uppercase tracking-wide mb-1">
@@ -915,7 +885,6 @@ export const TeacherSessionsScreen: React.FC = () => {
                 </div>
               </div>
 
-              {/* Horas */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 uppercase tracking-wide mb-1">
@@ -945,7 +914,6 @@ export const TeacherSessionsScreen: React.FC = () => {
                 </div>
               </div>
 
-              {/* Tema */}
               <div>
                 <label className="block font-bold text-slate-700 uppercase tracking-wide mb-1">
                   Tema de la Clase *
@@ -961,7 +929,6 @@ export const TeacherSessionsScreen: React.FC = () => {
                 />
               </div>
 
-              {/* Unidad y Semana Opcionales */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 uppercase tracking-wide mb-1">
@@ -1001,7 +968,6 @@ export const TeacherSessionsScreen: React.FC = () => {
                 </div>
               </div>
 
-              {/* Estado (solo programada o cancelada) */}
               <div>
                 <label className="block font-bold text-slate-700 uppercase tracking-wide mb-1">
                   Estado de la Sesión
@@ -1040,7 +1006,6 @@ export const TeacherSessionsScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Cancel Session Confirmation Modal */}
       <DeleteConfirmModal
         isOpen={Boolean(cancelingSession)}
         title="Cancelar Sesión de Clase"
@@ -1053,7 +1018,6 @@ export const TeacherSessionsScreen: React.FC = () => {
         onCancel={() => setCancelingSession(null)}
       />
 
-      {/* Archive Session Confirmation Modal */}
       <DeleteConfirmModal
         isOpen={Boolean(archivingSession)}
         title="Archivar Sesión de Clase"

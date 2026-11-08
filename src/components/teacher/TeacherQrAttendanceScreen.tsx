@@ -70,11 +70,8 @@ interface MergedStudentRow {
   justification: string | null;
 }
 
-// ==============================================================
-// CONSTANTES DE ANIMACIÓN DEL MARCADOR VISUAL
-// ==============================================================
-const PIECE_MS = 400; // tiempo que dura cada pieza
-const FADE_MS = 90;   // duración de la transición entre piezas (0 = corte seco)
+const PIECE_MS = 400;
+const FADE_MS = 90;
 
 export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps> = ({
   presetSectionId,
@@ -82,12 +79,10 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
   const { user } = useAuth();
   const todayLima = getTodayLima();
 
-  // Tolerancia de tardanza en minutos (de settings, default 10)
   const [toleranceMinutes, setToleranceMinutes] = useState<number>(10);
 
   const [isOpenAttendanceLoading, setIsOpenAttendanceLoading] = useState<boolean>(false);
 
-  // Secciones y sesiones
   const [sections, setSections] = useState<TeacherSection[]>([]);
   const [selectedSectionId, setSelectedSectionId] = useState<string>(presetSectionId || '');
   const [sessions, setSessions] = useState<ClassSession[]>([]);
@@ -97,22 +92,18 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
   const [loadingSessions, setLoadingSessions] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Sesión activa y cálculo de tolerancia
   const activeSession = sessions.find((s) => s.id === selectedSessionId);
   const sessionTolerance = activeSession
     ? calculateToleranceLimit(activeSession.session_date, activeSession.starts_at, toleranceMinutes)
     : null;
 
-  // Estado del QR y la sesión de asistencia
   const [isAttendanceOpen, setIsAttendanceOpen] = useState<boolean>(false);
   const [attendanceSessionId, setAttendanceSessionId] = useState<string | null>(null);
   const [qrError, setQrError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number>(8);
 
-  // Modo del marcador: 'animated' (Marcador animado v2 en 4 piezas) o 'simple' (QR simple v1)
   const [qrMode, setQrMode] = useState<'animated' | 'simple'>('animated');
 
-  // Marcador Animado v2: contador de generación g (empieza en 1), 4 piezas con cruce dual-canvas
   const generationRef = useRef<number>(0);
   const [pieceIndex, setPieceIndex] = useState<number>(0);
   const pieceIndexRef = useRef<number>(0);
@@ -130,7 +121,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
   const preloadedImagesRef = useRef<HTMLImageElement[]>([]);
   const [hasEscudoImg, setHasEscudoImg] = useState<boolean>(false);
 
-  // Accesibilidad: detección de prefers-reduced-motion para corte seco (FADE_MS = 0)
   const [reducedMotion, setReducedMotion] = useState<boolean>(() => {
     if (typeof window !== 'undefined' && window.matchMedia) {
       return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -153,20 +143,15 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
 
   const effectiveFadeMs = reducedMotion ? 0 : FADE_MS;
 
-  // ==============================================================
-  // ALUMNOS MATRICULADOS Y REGISTROS DE ASISTENCIA
-  // ==============================================================
   const [enrolledStudents, setEnrolledStudents] = useState<ProfileBasicInfo[]>([]);
   const [loadingEnrolled, setLoadingEnrolled] = useState<boolean>(false);
   const enrolledStudentsRef = useRef<ProfileBasicInfo[]>([]);
   enrolledStudentsRef.current = enrolledStudents;
 
-  // URLs firmadas de avatares en caché
   const avatarUrls = useStudentAvatarUrls(enrolledStudents);
 
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
 
-  // Seguimiento de estado previo para detectar cambios y animar
   const previousStatusMapRef = useRef<Record<string, string>>({});
   const isInitialLoadRef = useRef<boolean>(true);
   const [animatedStudentIds, setAnimatedStudentIds] = useState<Record<string, string>>({});
@@ -174,12 +159,10 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
   const [recentScansCount, setRecentScansCount] = useState<number>(0);
 
-  // Filtros del panel derecho
   const [statusFilter, setStatusFilter] = useState<'all' | AttendanceStatus | 'sin_registrar'>('all');
   const [methodFilter, setMethodFilter] = useState<'all' | 'qr' | 'manual'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Modal para justificar falta
   const [justifyingStudent, setJustifyingStudent] = useState<{
     studentId: string;
     studentName: string;
@@ -189,18 +172,15 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
   const [isSavingJustification, setIsSavingJustification] = useState<boolean>(false);
   const [justificationError, setJustificationError] = useState<string | null>(null);
 
-  // Modal confirmación cierre
   const [isCloseModalOpen, setIsCloseModalOpen] = useState<boolean>(false);
   const [isClosing, setIsClosing] = useState<boolean>(false);
   const [closeSummary, setCloseSummary] = useState<CloseAttendanceResult | null>(null);
 
-  // Interval refs
   const qrIntervalRef = useRef<any>(null);
   const countdownIntervalRef = useRef<any>(null);
   const recordsIntervalRef = useRef<any>(null);
   const enrolledIntervalRef = useRef<any>(null);
 
-  // 1. Cargar secciones del docente
   const loadSections = useCallback(async () => {
     if (!user || !isSupabaseConfigured()) {
       setLoadingInitial(false);
@@ -228,14 +208,12 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
     loadSections();
   }, [loadSections]);
 
-  // Cargar tolerancia de tardanza
   useEffect(() => {
     getLateToleranceMinutes().then((mins) => {
       setToleranceMinutes(mins);
     });
   }, []);
 
-  // 2. Cargar sesiones de HOY para la sección seleccionada
   const loadSessions = useCallback(async () => {
     if (!selectedSectionId) {
       setSessions([]);
@@ -286,7 +264,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
     loadSessions();
   }, [loadSessions]);
 
-  // 3. Cargar Alumnos Matriculados de la Sección (se actualiza al abrir y cada 60s)
   const loadEnrolledStudents = useCallback(async () => {
     if (!selectedSectionId) {
       setEnrolledStudents([]);
@@ -296,7 +273,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
     setLoadingEnrolled(true);
     try {
       const supabase = getSupabaseClient();
-      // Consulta enrollments activos sin created_at
+
       const { data: enrData, error: enrErr } = await supabase
         .from('enrollments')
         .select('student_id, section_id, status')
@@ -307,7 +284,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
 
       const ids = (enrData || []).map((e: any) => e.student_id);
       if (ids.length > 0) {
-        // Consulta profiles con .in('id', ids) sin joins anidados
+
         const { data: profs, error: profErr } = await supabase
           .from('profiles')
           .select('id, code, first_names, last_names, avatar_updated_at')
@@ -315,7 +292,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
 
         if (profErr) throw profErr;
 
-        // Orden FIJO por apellidos ASC y luego nombres ASC
         const sorted = (profs || []).sort((a: any, b: any) => {
           const ln = (a.last_names || '').localeCompare(b.last_names || '');
           if (ln !== 0) return ln;
@@ -327,7 +303,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
         setEnrolledStudents([]);
       }
     } catch (err: any) {
-      // Ignorar errores transitorios
+
     } finally {
       setLoadingEnrolled(false);
     }
@@ -335,7 +311,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
 
   useEffect(() => {
     loadEnrolledStudents();
-    // Refresco cada 60 segundos
+
     if (enrolledIntervalRef.current) clearInterval(enrolledIntervalRef.current);
     enrolledIntervalRef.current = setInterval(() => {
       loadEnrolledStudents();
@@ -346,7 +322,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
     };
   }, [loadEnrolledStudents]);
 
-  // 4. Polling Liviano: Consultar attendance_records cada 3 segundos
   const fetchSessionRecords = useCallback(async () => {
     if (!selectedSessionId) {
       setRecords([]);
@@ -364,13 +339,11 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
         const fetchedRecords = data as AttendanceRecord[];
         setRecords(fetchedRecords);
 
-        // Mapear nuevo estado por alumno
         const newRecordMap: Record<string, AttendanceRecord> = {};
         fetchedRecords.forEach((r) => {
           newRecordMap[r.student_id] = r;
         });
 
-        // Comprobar cambios si ya no es la carga inicial
         if (!isInitialLoadRef.current) {
           const changed: Record<string, string> = {};
           const newToasts: ToastNotification[] = [];
@@ -401,11 +374,10 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
           });
 
           if (Object.keys(changed).length > 0) {
-            // Activar animación en las filas correspondientes
+
             setAnimatedStudentIds((prev) => ({ ...prev, ...changed }));
             setRecentScansCount((c) => c + Object.keys(changed).length);
 
-            // Desvanecer animación tras 1.5s
             setTimeout(() => {
               setAnimatedStudentIds((prev) => {
                 const next = { ...prev };
@@ -414,7 +386,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
               });
             }, 1500);
 
-            // Agregar toasts auto-descartables
             if (newToasts.length > 0) {
               setToasts((prev) => [...prev, ...newToasts]);
               newToasts.forEach((nt) => {
@@ -425,11 +396,10 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
             }
           }
         } else {
-          // Primera carga: NO animar nada
+
           isInitialLoadRef.current = false;
         }
 
-        // Actualizar el mapa de estados previos
         const nextMap: Record<string, string> = {};
         enrolledStudentsRef.current.forEach((st) => {
           nextMap[st.id] = newRecordMap[st.id]?.status || 'sin_registrar';
@@ -437,11 +407,10 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
         previousStatusMapRef.current = nextMap;
       }
     } catch {
-      // Ignorar errores transitorios de polling
+
     }
   }, [selectedSessionId]);
 
-  // Reset initial load flag al cambiar de sesión
   useEffect(() => {
     isInitialLoadRef.current = true;
     previousStatusMapRef.current = {};
@@ -450,7 +419,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
     setRecentScansCount(0);
   }, [selectedSessionId]);
 
-  // Polling de 3 segundos para attendance_records
   useEffect(() => {
     if (selectedSessionId) {
       fetchSessionRecords();
@@ -467,7 +435,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
     };
   }, [selectedSessionId, fetchSessionRecords]);
 
-  // 5. Verificar estado de la sesión cada 5 segundos
   const checkCurrentSessionStatus = useCallback(async () => {
     if (!selectedSessionId) {
       setIsAttendanceOpen(false);
@@ -485,7 +452,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
         .eq('id', selectedSessionId)
         .single();
 
-      // Consulta GET attendance_sessions?select=status&class_session_id=eq.<id>
       const { data: attSess } = await supabase
         .from('attendance_sessions')
         .select('id, status')
@@ -503,7 +469,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
         setAttendanceSessionId(null);
       }
     } catch {
-      // Ignorar errores transitorios de polling
+
     }
   }, [selectedSessionId]);
 
@@ -513,7 +479,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
     return () => clearInterval(interval);
   }, [checkCurrentSessionStatus]);
 
-  // Comprobar escudo.png
   useEffect(() => {
     const img = new Image();
     img.onload = () => setHasEscudoImg(true);
@@ -521,7 +486,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
     img.src = '/escudo.png';
   }, []);
 
-  // 6. Generación del Token QR (rotación cada 8s con marcador animado v2 en rojo #9B0D20)
   const fetchNewQrToken = useCallback(async () => {
     if (!selectedSessionId || !isAttendanceOpen) return;
 
@@ -570,7 +534,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
             })
           )
         );
-        // Preload de imágenes para dibujo instantáneo sin latencia
+
         const preloaded = v2Urls.map((url) => {
           const img = new Image();
           img.src = url;
@@ -580,7 +544,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
 
         setAnimatedDataUrls(v2Urls);
 
-        // Nuevo token: reinicio inmediato en pieza 0 con corte seco (sin transición)
         pieceIndexRef.current = 0;
         activeCanvasRef.current = 'A';
         isHardCutRef.current = true;
@@ -588,7 +551,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
         setActiveCanvas('A');
         setIsHardCut(true);
 
-        // Dibujar inmediatamente la pieza 0 en Canvas A
         const canvasA = canvasARef.current;
         if (canvasA && preloaded[0]) {
           const drawP0 = () => {
@@ -605,7 +567,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
           }
         }
 
-        // Limpiar Canvas B para evitar mezcla de piezas
         const canvasB = canvasBRef.current;
         if (canvasB) {
           const ctxB = canvasB.getContext('2d');
@@ -625,7 +586,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
         setSimpleDataUrl(v1Url);
         setCountdown(8);
 
-        // Reiniciar el temporizador de piezas alineado con el nuevo token
         if (pieceTimerRef.current) clearInterval(pieceTimerRef.current);
         if (qrMode === 'animated') {
           startPieceRotationTimer();
@@ -646,7 +606,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
     }
   }, [selectedSessionId, isAttendanceOpen, attendanceSessionId, qrMode]);
 
-  // Temporizador de rotación de piezas dual-canvas gobernado por PIECE_MS
   const startPieceRotationTimer = useCallback(() => {
     if (pieceTimerRef.current) clearInterval(pieceTimerRef.current);
 
@@ -659,7 +618,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
       const nextCanvas = activeCanvasRef.current === 'A' ? 'B' : 'A';
       const targetCanvasEl = nextCanvas === 'B' ? canvasBRef.current : canvasARef.current;
 
-      // Dibujar la siguiente pieza en el canvas actualmente oculto (opacidad 0)
       if (targetCanvasEl && imgs[nextIdx]) {
         const ctx = targetCanvasEl.getContext('2d');
         if (ctx) {
@@ -668,7 +626,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
         }
       }
 
-      // Conmutar canvas para iniciar cruce de opacidad linear de FADE_MS ms
       pieceIndexRef.current = nextIdx;
       activeCanvasRef.current = nextCanvas;
       isHardCutRef.current = false;
@@ -678,7 +635,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
     }, PIECE_MS);
   }, []);
 
-  // Control del ciclo de piezas según estado de apertura y modo
   useEffect(() => {
     if (isAttendanceOpen && qrMode === 'animated' && animatedDataUrls.length === 4) {
       startPieceRotationTimer();
@@ -691,7 +647,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
     };
   }, [isAttendanceOpen, qrMode, animatedDataUrls.length, startPieceRotationTimer]);
 
-  // Dibujo en Canvas del QR simple cuando está en modo 'simple'
   useEffect(() => {
     if (qrMode === 'simple' && simpleDataUrl && canvasSimpleRef.current) {
       const canvas = canvasSimpleRef.current;
@@ -707,7 +662,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
     }
   }, [qrMode, simpleDataUrl]);
 
-  // Asegurar que el canvas activo tenga la pieza dibujada si cambia de modo o monta
   useEffect(() => {
     if (qrMode === 'animated' && preloadedImagesRef.current[pieceIndex]) {
       const currentCanvas = activeCanvas === 'A' ? canvasARef.current : canvasBRef.current;
@@ -729,7 +683,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
     }
   }, [qrMode, animatedDataUrls, pieceIndex, activeCanvas]);
 
-  // Timer de 8s para regenerar token
   useEffect(() => {
     if (isAttendanceOpen) {
       fetchNewQrToken();
@@ -763,7 +716,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
     };
   }, [isAttendanceOpen, fetchNewQrToken]);
 
-  // 7. Abrir Asistencia
   const handleOpenAttendance = async () => {
     if (!selectedSessionId) return;
     setError(null);
@@ -812,7 +764,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
     }
   };
 
-  // 8. Corregir Asistencia (set_attendance)
   const handleDirectSetAttendance = async (
     studentId: string,
     newStatus: AttendanceStatus,
@@ -835,7 +786,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
 
       const code = typeof res === 'string' ? res : res?.code;
       if (code === 'success') {
-        // Animar fila
+
         setAnimatedStudentIds((prev) => ({ ...prev, [studentId]: newStatus }));
         setTimeout(() => {
           setAnimatedStudentIds((prev) => {
@@ -845,7 +796,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
           });
         }, 1500);
 
-        // Recargar registros
         await fetchSessionRecords();
       } else {
         setError(translateAttendanceRpcError(code));
@@ -910,7 +860,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
     }
   };
 
-  // 9. Cerrar Asistencia (close_attendance)
   const handleConfirmCloseAttendance = async () => {
     if (!selectedSessionId) return;
     setIsClosing(true);
@@ -934,10 +883,8 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
           prev.map((s) => (s.id === selectedSessionId ? { ...s, status: 'cerrada' } : s))
         );
 
-        // Detener polling después del cierre
         if (recordsIntervalRef.current) clearInterval(recordsIntervalRef.current);
 
-        // Recargar de inmediato: alumnos sin registro pasarán a falta en rojo con animación
         await fetchSessionRecords();
       } else {
         const errCode = summary?.code || 'error';
@@ -952,9 +899,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
     }
   };
 
-  // ==============================================================
-  // COMBINACIÓN: ENROLLED STUDENTS + ATTENDANCE RECORDS
-  // ==============================================================
   const recordsByStudentId = useMemo(() => {
     const map: Record<string, AttendanceRecord> = {};
     records.forEach((r) => {
@@ -963,7 +907,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
     return map;
   }, [records]);
 
-  // Lista unificada ordenada de manera fija por apellidos y nombres
   const allMergedStudents: MergedStudentRow[] = useMemo(() => {
     return enrolledStudents.map((st) => {
       const rec = recordsByStudentId[st.id];
@@ -988,28 +931,24 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
     });
   }, [enrolledStudents, recordsByStudentId]);
 
-  // Contadores en vivo para la cabecera
   const countMatriculados = enrolledStudents.length;
   const countPresentes = allMergedStudents.filter((s) => s.status === 'presente').length;
   const countTardanzas = allMergedStudents.filter((s) => s.status === 'tardanza').length;
   const countFaltas = allMergedStudents.filter((s) => s.status === 'falta').length;
   const countSinRegistrar = allMergedStudents.filter((s) => s.status === 'sin_registrar').length;
 
-  // Filtrado de la lista para el panel
   const filteredStudents = useMemo(() => {
     return allMergedStudents.filter((row) => {
-      // Filtro por Estado
+
       if (statusFilter !== 'all' && row.status !== statusFilter) {
         return false;
       }
 
-      // Filtro por Método
       if (methodFilter !== 'all') {
         if (!row.method) return false;
         if (row.method.toLowerCase() !== methodFilter) return false;
       }
 
-      // Filtro por Búsqueda (código, nombres, apellidos)
       if (searchQuery.trim()) {
         const q = searchQuery.trim().toLowerCase();
         const code = (row.student.code || '').toLowerCase();
@@ -1023,14 +962,11 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
     });
   }, [allMergedStudents, statusFilter, methodFilter, searchQuery]);
 
-  // ==============================================================
-  // RENDER: PANEL IZQUIERDO MARCADOR / QR
-  // ==============================================================
   const renderQrPanel = () => {
     if (isAttendanceOpen) {
       return (
         <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-xs p-6 flex flex-col items-center justify-between text-center relative overflow-hidden">
-          {/* Cabecera del Marcador con Switch de Modos */}
+
           <div className="w-full space-y-3 pb-3 border-b border-slate-100 mb-2">
             <div className="flex items-center justify-between">
               <span className="text-xs uppercase font-bold text-slate-800 flex items-center gap-1.5 tracking-wide">
@@ -1043,7 +979,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
               </div>
             </div>
 
-            {/* Selector de dos botones */}
             <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 border border-slate-200 rounded-xl">
               <button
                 type="button"
@@ -1070,7 +1005,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
             </div>
           </div>
 
-          {/* Canvas y Escudo Animado */}
           {qrMode === 'animated' ? (
             <div className="w-full flex justify-center my-2">
               <svg
@@ -1078,35 +1012,30 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
                 className="w-full max-w-[480px] sm:max-w-[520px] md:max-w-[560px] h-auto select-none"
               >
                 <defs>
-                  {/* Sombra suave estática del escudo de color #C8102E */}
+
                   <filter id="shieldShadow" x="-15%" y="-10%" width="130%" height="130%">
                     <feDropShadow dx="0" dy="6" stdDeviation="10" floodColor="#C8102E" floodOpacity="0.35" />
                   </filter>
 
-                  {/* 1. Degradado vertical del escudo de #D9213B a #8A0A1C */}
                   <linearGradient id="shieldRedGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#D9213B" />
                     <stop offset="100%" stopColor="#8A0A1C" />
                   </linearGradient>
 
-                  {/* 2. Brillo superior blanco con degradado de opacidad .22 a 0 */}
                   <linearGradient id="shieldGlossGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.22" />
                     <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.22" />
                   </linearGradient>
 
-                  {/* ClipPath con el mismo path del escudo */}
                   <clipPath id="shieldPathClip">
                     <path d="M20 20H380V250C380 360 290 430 200 470C110 430 20 360 20 250Z" />
                   </clipPath>
 
-                  {/* ClipPath para redondear la barra de progreso */}
                   <clipPath id="tokenBarClip">
                     <rect x="90" y="40" width="220" height="16" rx="8" />
                   </clipPath>
                 </defs>
 
-                {/* 1. Escudo: degradado vertical, borde #6E0A17 de 3px y sombra estática */}
                 <path
                   d="M20 20H380V250C380 360 290 430 200 470C110 430 20 360 20 250Z"
                   fill="url(#shieldRedGrad)"
@@ -1115,7 +1044,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
                   filter="url(#shieldShadow)"
                 />
 
-                {/* 2. Brillo superior: rectángulo con degradado recortado por el escudo */}
                 <rect
                   x="20"
                   y="20"
@@ -1126,7 +1054,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
                   pointerEvents="none"
                 />
 
-                {/* 3. Borde interior dorado: trazo #F4C542 con opacidad .55 y 1.5 px */}
                 <path
                   d="M32 32H368V250C368 352 283 418 200 456C117 418 32 352 32 250Z"
                   fill="none"
@@ -1136,7 +1063,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
                   pointerEvents="none"
                 />
 
-                {/* 4. Barra del token (arriba): rect rx=8 fondo #5A0612, progreso #F5A623 y texto */}
                 <g>
                   <rect x="90" y="40" width="220" height="16" rx="8" fill="#5A0612" />
                   <rect
@@ -1162,10 +1088,8 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
                   </text>
                 </g>
 
-                {/* 5. Panel del QR: rect blanco puro rx=18 en x=70, y=72, ancho 260, alto 260 */}
                 <rect x="70" y="72" width="260" height="260" rx="18" fill="#FFFFFF" />
 
-                {/* Dual canvas apilados A y B dentro del panel blanco (área x=82..318, y=84..320) */}
                 <foreignObject x="82" y="84" width="236" height="236">
                   <div
                     style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}
@@ -1203,7 +1127,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
                   </div>
                 </foreignObject>
 
-                {/* 6. Indicadores de pieza (abajo): 4 círculos centrados en x=200, y=362 */}
                 <g>
                   {[0, 1, 2, 3].map((idx) => {
                     const cx = 140 + idx * 40;
@@ -1238,7 +1161,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
                   })}
                 </g>
 
-                {/* 7. Insignia inferior en la punta del escudo: centrado en x=200, y=424 */}
                 <g>
                   <circle
                     cx="200"
@@ -1292,7 +1214,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
       );
     }
 
-    // Cuando la asistencia aún no está abierta
     return (
       <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-xs p-8 flex flex-col items-center justify-center text-center space-y-4">
         <div className="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#1F5FA8]">
@@ -1319,13 +1240,10 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
     );
   };
 
-  // ==============================================================
-  // RENDER: PANEL DERECHO LISTA COMPLETA REUTILIZABLE
-  // ==============================================================
   const renderStudentListPanel = () => {
     return (
       <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-xs p-6 flex flex-col space-y-4">
-        {/* Cabecera del panel con Contadores en Vivo y Franja de Tolerancia */}
+
         <div className="space-y-3 pb-3 border-b border-slate-100">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
@@ -1348,7 +1266,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
             )}
           </div>
 
-          {/* Contadores en vivo */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1">
             <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-center">
               <span className="text-[10px] font-bold text-slate-500 uppercase block">Matriculados</span>
@@ -1373,9 +1290,8 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
           </div>
         </div>
 
-        {/* Filtros y Buscador */}
         <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 text-xs">
-          {/* Buscador */}
+
           <div className="sm:col-span-5 relative">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
@@ -1387,7 +1303,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
             />
           </div>
 
-          {/* Filtro por Estado */}
           <div className="sm:col-span-4">
             <select
               value={statusFilter}
@@ -1403,7 +1318,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
             </select>
           </div>
 
-          {/* Filtro por Método */}
           <div className="sm:col-span-3">
             <select
               value={methodFilter}
@@ -1417,7 +1331,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
           </div>
         </div>
 
-        {/* LISTA COMPLETA DE ALUMNOS (FILAS CON ORDEN FIJO POR APELLIDOS Y NOMBRES) */}
         <div className="flex-1 overflow-y-auto max-h-[520px] space-y-2.5 pr-1">
           {loadingEnrolled ? (
             <div className="py-12 flex flex-col items-center justify-center text-slate-400">
@@ -1449,7 +1362,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
               const isJustificado = row.status === 'justificado';
               const isSinRegistrar = row.status === 'sin_registrar';
 
-              // Clases de resaltado durante la animación de 1.5s
               let flashClass = '';
               if (isAnimated) {
                 if (animatedNewStatus === 'presente') flashClass = 'flash-presente';
@@ -1476,7 +1388,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    {/* Indicador circular: Foto de perfil del alumno con anillo de estado e insignia */}
+
                     <StudentAvatar
                       student={st}
                       status={row.status}
@@ -1484,7 +1396,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
                       isAnimated={isAnimated}
                     />
 
-                    {/* Código y Nombre Completo */}
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-mono text-[11px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
@@ -1495,9 +1406,8 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
                         </strong>
                       </div>
 
-                      {/* Metadatos: Estado en texto, Método, Hora de registro */}
                       <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px]">
-                        {/* Estado en Texto */}
+
                         <span
                           className={`font-bold ${
                             isPresente
@@ -1524,7 +1434,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
 
                         <span className="text-slate-300">•</span>
 
-                        {/* Método */}
                         <span className="text-slate-600 flex items-center gap-1 font-medium">
                           {row.method ? (
                             <>
@@ -1540,7 +1449,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
 
                         <span className="text-slate-300">•</span>
 
-                        {/* Hora de registro en hora de Lima */}
                         <span className="text-slate-500 font-mono">
                           {row.registered_at ? formatLimaTime(row.registered_at) : '—'}
                         </span>
@@ -1548,7 +1456,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
                     </div>
                   </div>
 
-                  {/* Botones de Corrección Rápida (Gris por defecto, activo con color sólido) */}
                   <AttendanceStatusButtonGroup
                     currentStatus={row.status}
                     savingStatus={savingStudentStatus[st.id]}
@@ -1577,7 +1484,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-      {/* Contenedor de Toasts Flotantes */}
+
       <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm pointer-events-none">
         {toasts.map((t) => (
           <div
@@ -1609,7 +1516,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
         ))}
       </div>
 
-      {/* Alerta de Error */}
       {error && (
         <div className="p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
@@ -1620,7 +1526,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
         </div>
       )}
 
-      {/* Selectores de Sesión de HOY (solo visible si no está fija) */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -1646,7 +1551,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Selector de Sesión de HOY */}
+
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
               Sesión programada para hoy:
@@ -1672,7 +1577,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
             </select>
           </div>
 
-          {/* Ficha rápida de estado */}
           {activeSession && (
             <div className="flex flex-col justify-center bg-slate-50 border border-slate-200 p-3.5 rounded-xl text-xs">
               <div className="flex items-center justify-between">
@@ -1698,7 +1602,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
         </div>
       </div>
 
-      {/* Controles de Apertura / Cierre para Marcador / QR */}
       {activeSession && (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -1748,7 +1651,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
         </div>
       )}
 
-      {/* Resumen Post-Cierre */}
       {(closeSummary || activeSession?.status === 'cerrada') && (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -1793,7 +1695,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
         </div>
       )}
 
-      {/* Caso vacío: No hay sesiones de hoy */}
       {sessions.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-10 text-center space-y-3">
           <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 text-[#1F5FA8] flex items-center justify-center mx-auto">
@@ -1807,7 +1708,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
           </p>
         </div>
       ) : activeSession && activeSession.session_date !== todayLima ? (
-        /* Caso vacío: La sesión seleccionada no es de hoy */
+
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-10 text-center space-y-3">
           <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center mx-auto">
             <AlertTriangle className="w-6 h-6" />
@@ -1820,15 +1721,13 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
           </p>
         </div>
       ) : (
-        /* ============================================================== */
-        /* CUERPO PRINCIPAL: QR (IZQ) + LISTA REUTILIZABLE (DER) */
-        /* ============================================================== */
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {renderQrPanel()}
           {renderStudentListPanel()}
         </div>
       )}
-      {/* Modal Justificación de Asistencia */}
+
       {justifyingStudent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-sm w-full p-6 space-y-4">
@@ -1894,7 +1793,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
         </div>
       )}
 
-      {/* Modal Confirmación Cierre de Asistencia */}
       {isCloseModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-sm w-full p-6 space-y-4">
@@ -1928,7 +1826,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
         </div>
       )}
 
-      {/* Estilos CSS de Animación y Respeto a prefers-reduced-motion */}
       <style>{`
         @keyframes popCircle {
           0% { transform: scale(0.8); }
@@ -1942,7 +1839,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
           }
         }
 
-        /* Resaltados de fila durante 1.5s */
         .flash-presente {
           background-color: #ecfdf5 !important;
           border-color: #10b981 !important;

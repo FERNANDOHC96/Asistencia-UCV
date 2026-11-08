@@ -72,7 +72,6 @@ export const AttendanceStatusButton: React.FC<AttendanceStatusButtonProps> = ({
     ? `${config.name.charAt(0).toUpperCase() + config.name.slice(1)} (estado actual)`
     : `Marcar ${config.name}`;
 
-  // Clases condicionales según estado
   let stateClasses = '';
   if (isLoading) {
     stateClasses = 'bg-[#F1F3F6] border-[#D5DCE6] text-[#8A97A8] cursor-wait';

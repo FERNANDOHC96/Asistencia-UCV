@@ -26,18 +26,15 @@ export const StudentAvatar: React.FC<StudentAvatarProps> = ({
 }) => {
   const [imgError, setImgError] = useState(false);
 
-  // Si cambia la URL firmada, resetear el error
   useEffect(() => {
     setImgError(false);
   }, [signedUrl]);
 
-  // Iniciales del alumno: primera letra de nombres y primera letra de apellidos
   const firstLetter = (student.first_names?.trim()?.[0] || '').toUpperCase();
   const lastLetter = (student.last_names?.trim()?.[0] || '').toUpperCase();
   const initials = `${firstLetter}${lastLetter}` || 'AL';
   const fullName = `${student.first_names || ''} ${student.last_names || ''}`.trim();
 
-  // Determinar color de anillo según estado de asistencia
   let ringClasses = 'ring-2 ring-slate-200';
   if (status) {
     switch (status) {
@@ -60,7 +57,6 @@ export const StudentAvatar: React.FC<StudentAvatarProps> = ({
     }
   }
 
-  // Insignia en esquina inferior derecha
   const renderBadge = () => {
     if (!status) return null;
 
@@ -107,7 +103,7 @@ export const StudentAvatar: React.FC<StudentAvatarProps> = ({
     <div
       className={`relative group inline-flex items-center justify-center select-none flex-shrink-0 ${className}`}
     >
-      {/* Contenedor circular principal de ~40px con anillo */}
+
       <div
         className={`w-10 h-10 min-w-[40px] min-h-[40px] max-w-[40px] max-h-[40px] rounded-full overflow-hidden flex items-center justify-center transition-all duration-300 ${ringClasses} ${
           isAnimated ? 'scale-115 ring-offset-2' : ''
@@ -128,15 +124,13 @@ export const StudentAvatar: React.FC<StudentAvatarProps> = ({
         )}
       </div>
 
-      {/* Insignia en esquina inferior derecha */}
       {renderBadge()}
 
-      {/* Globo flotante de vista previa ampliado a ~120px (solo en escritorio al hacer hover) */}
       <div
         className="hidden md:group-hover:flex absolute left-12 top-1/2 -translate-y-1/2 z-50 flex-col items-center p-2.5 bg-white rounded-xl shadow-2xl border border-slate-200/90 pointer-events-none w-[148px] animate-in fade-in zoom-in-95 duration-150"
         style={{ filter: 'drop-shadow(0 10px 15px rgba(0, 0, 0, 0.15))' }}
       >
-        {/* Foto o iniciales ampliadas a ~120px */}
+
         <div className="w-[120px] h-[120px] rounded-full overflow-hidden bg-slate-100 flex items-center justify-center ring-1 ring-slate-200/80 shadow-inner flex-shrink-0">
           {hasPhoto ? (
             <img
@@ -151,7 +145,6 @@ export const StudentAvatar: React.FC<StudentAvatarProps> = ({
           )}
         </div>
 
-        {/* Nombre completo y código */}
         <div className="mt-2 text-center w-full px-1">
           <p className="text-xs font-semibold text-slate-900 leading-snug line-clamp-2">
             {fullName || 'Alumno'}

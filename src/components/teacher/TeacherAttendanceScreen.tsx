@@ -28,28 +28,23 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
   const [sections, setSections] = useState<TeacherSection[]>([]);
   const [selectedSectionId, setSelectedSectionId] = useState<string>(presetSectionId || '');
 
-  // Cascade selectors
   const [units, setUnits] = useState<LearningUnit[]>([]);
   const [selectedUnitId, setSelectedUnitId] = useState<string>('all');
 
   const [weeks, setWeeks] = useState<AcademicWeek[]>([]);
   const [selectedWeekId, setSelectedWeekId] = useState<string>('all');
 
-  // Filter by kind (Todas / Teoría / Práctica)
   const [selectedKind, setSelectedKind] = useState<'all' | 'teoria' | 'practica'>('all');
 
   const [sessions, setSessions] = useState<ClassSession[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string>('');
 
-  // Attendance state
   const [students, setStudents] = useState<Profile[]>([]);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [attendanceRows, setAttendanceRows] = useState<Record<string, StudentAttendanceRow>>({});
 
-  // URLs firmadas de avatares en caché
   const avatarUrls = useStudentAvatarUrls(students);
 
-  // Estados de guardado individual por botón y animación
   const [savingTargetStatus, setSavingTargetStatus] = useState<Record<string, AttendanceStatus>>({});
   const [animatedStudentIds, setAnimatedStudentIds] = useState<Record<string, AttendanceStatus>>({});
 
@@ -61,7 +56,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
   const [actionFeedback, setActionFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // 1. Fetch teacher sections
   const fetchSections = useCallback(async () => {
     if (!user || !isSupabaseConfigured()) {
       setLoadingSections(false);
@@ -92,7 +86,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
 
   const currentSection = sections.find((s) => s.id === selectedSectionId) || null;
 
-  // 2. Cascade Fetch: Units, Weeks, and Sessions for current section
   const fetchCascadeData = useCallback(async () => {
     if (!selectedSectionId || !currentSection || !isSupabaseConfigured()) {
       setUnits([]);
@@ -106,7 +99,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
     try {
       const supabase = getSupabaseClient();
 
-      // Units
       const { data: uData } = await supabase
         .from('learning_units')
         .select('*')
@@ -115,7 +107,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
         .order('number', { ascending: true });
       setUnits(uData || []);
 
-      // Weeks
       const { data: wData } = await supabase
         .from('academic_weeks')
         .select('*')
@@ -124,7 +115,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
         .order('number', { ascending: true });
       setWeeks(wData || []);
 
-      // Sessions
       const { data: sData } = await supabase
         .from('class_sessions')
         .select('*')
@@ -156,7 +146,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
     }
   }, [selectedSectionId, fetchCascadeData]);
 
-  // Filtered Sessions according to selected Unit / Week / Kind
   const filteredSessions = useMemo(() => {
     return sessions.filter((s) => {
       if (selectedUnitId !== 'all' && s.unit_id !== selectedUnitId) return false;
@@ -166,7 +155,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
     });
   }, [sessions, selectedUnitId, selectedWeekId, selectedKind]);
 
-  // Auto-select session if current selection isn't in filtered list
   useEffect(() => {
     if (filteredSessions.length > 0) {
       if (!selectedSessionId || !filteredSessions.some((s) => s.id === selectedSessionId)) {
@@ -179,7 +167,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
 
   const currentSession = sessions.find((s) => s.id === selectedSessionId) || null;
 
-  // 3. Fetch Active Students & Existing Attendance Records for selected Session
   const fetchSessionAttendance = useCallback(async () => {
     if (!selectedSessionId || !selectedSectionId || !isSupabaseConfigured()) {
       setStudents([]);
@@ -194,11 +181,9 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
     try {
       const supabase = getSupabaseClient();
 
-      // A. Active enrolled students (via helper)
       const activeStudents = await getSectionActiveStudents(selectedSectionId);
       setStudents(activeStudents);
 
-      // B. Attendance records for this class_session_id (ONLY READ, NO created_at)
       const { data: aRecords, error: aErr } = await supabase
         .from('attendance_records')
         .select('id, class_session_id, student_id, status, method, justification, registered_at, modified_by, modified_at')
@@ -208,7 +193,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
       const records = (aRecords as AttendanceRecord[]) || [];
       setAttendanceRecords(records);
 
-      // Build rows map
       const recordsMapByStudentId: Record<string, AttendanceRecord> = {};
       records.forEach((r) => {
         recordsMapByStudentId[r.student_id] = r;
@@ -240,7 +224,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
     }
   }, [selectedSessionId, fetchSessionAttendance]);
 
-  // Handle setting attendance via RPC
   const handleSetAttendance = async (studentId: string, targetStatus: AttendanceStatus) => {
     if (!selectedSessionId) return;
 
@@ -250,7 +233,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
     const previousStatus = currentRow.optimisticStatus;
     const justification = currentRow.justificationInput || null;
 
-    // Estado cargando: el botón se muestra en gris con spinner girando
     setSavingTargetStatus((prev) => ({ ...prev, [studentId]: targetStatus }));
     setAttendanceRows((prev) => ({
       ...prev,
@@ -264,7 +246,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
     try {
       const supabase = getSupabaseClient();
 
-      // CRITICAL: Call set_attendance RPC
       const { data: rpcResponse, error: rpcError } = await supabase.rpc('set_attendance', {
         p_class_session: selectedSessionId,
         p_student: studentId,
@@ -276,7 +257,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
         throw new Error(translateSupabaseError(rpcError));
       }
 
-      // Check return string: strictly "success"
       if (rpcResponse !== 'success') {
         const translatedMsg = translateAttendanceRpcError(String(rpcResponse));
         setAttendanceRows((prev) => ({
@@ -290,7 +270,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
         return;
       }
 
-      // Success: Solo ahora pasa al nuevo color y se anima
       setAttendanceRows((prev) => ({
         ...prev,
         [studentId]: {
@@ -309,7 +288,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
         },
       }));
 
-      // Animación pop para el nuevo estado
       setAnimatedStudentIds((prev) => ({ ...prev, [studentId]: targetStatus }));
       setTimeout(() => {
         setAnimatedStudentIds((prev) => {
@@ -324,7 +302,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
         message: `Asistencia actualizada para ${currentRow.student.first_names} ${currentRow.student.last_names} (${targetStatus}).`,
       });
 
-      // Refetch records in background to keep history fresh
       const { data: freshRecords } = await supabase
         .from('attendance_records')
         .select('id, class_session_id, student_id, status, method, justification, registered_at, modified_by, modified_at')
@@ -361,7 +338,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
     }));
   };
 
-  // Summary Metrics
   const summary = useMemo(() => {
     const list = Object.values(attendanceRows);
     const total = list.length;
@@ -383,7 +359,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
     return { total, presentes, tardanzas, faltas, justificados, sinRegistrar };
   }, [attendanceRows]);
 
-  // Filtered rows by search query
   const filteredRows = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     const rows = Object.values(attendanceRows);
@@ -397,7 +372,7 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-      {/* Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-[11px] font-mono font-bold text-[#1F5FA8] uppercase tracking-wider mb-2">
@@ -429,14 +404,13 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
         </button>
       </div>
 
-      {/* Selectors Bar in Cascade */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
         <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-2">
           <span>1. Selección de Sesión de Clase</span>
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 text-xs">
-          {/* 1. Sección */}
+
           <div>
             <label className="block text-slate-700 font-bold uppercase tracking-wider text-[11px] mb-1.5">Sección *</label>
             <select
@@ -457,7 +431,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
             </select>
           </div>
 
-          {/* 2. Tipo (Filtro por Tipo) */}
           <div>
             <label className="block text-slate-700 font-bold uppercase tracking-wider text-[11px] mb-1.5">Tipo de Clase</label>
             <select
@@ -471,7 +444,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
             </select>
           </div>
 
-          {/* 3. Unidad (Opcional) */}
           <div>
             <label className="block text-slate-700 font-bold uppercase tracking-wider text-[11px] mb-1.5">Unidad (Opcional)</label>
             <select
@@ -489,7 +461,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
             </select>
           </div>
 
-          {/* 4. Semana (Opcional) */}
           <div>
             <label className="block text-slate-700 font-bold uppercase tracking-wider text-[11px] mb-1.5">Semana (Opcional)</label>
             <select
@@ -507,7 +478,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
             </select>
           </div>
 
-          {/* 5. Sesión de Clase */}
           <div>
             <label className="block text-slate-700 font-bold uppercase tracking-wider text-[11px] mb-1.5">Sesión de Clase *</label>
             <select
@@ -533,7 +503,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
         </div>
       </div>
 
-      {/* Global Error Banner */}
       {error && (
         <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-900 text-xs flex items-center gap-2.5 animate-in fade-in">
           <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
@@ -541,7 +510,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
         </div>
       )}
 
-      {/* Action feedback */}
       {actionFeedback && (
         <div
           className={`p-3 rounded-xl border text-xs flex items-center gap-2 animate-in fade-in ${
@@ -565,7 +533,7 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Session Banner and Summary Metrics */}
+
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
               <div>
@@ -600,7 +568,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
                 </div>
               </div>
 
-              {/* Status Warning */}
               {currentSession?.status === 'cerrada' && (
                 <span className="bg-slate-100 border border-slate-200 px-3 py-1 text-xs font-bold text-slate-700 rounded-full">
                   Sesión cerrada
@@ -613,7 +580,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
               )}
             </div>
 
-            {/* Real Summary Bar with Total Counts */}
             <div className="grid grid-cols-2 sm:grid-cols-6 gap-2.5 text-center">
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
                 <span className="text-[10px] uppercase font-bold text-slate-500 block">Matriculados</span>
@@ -642,7 +608,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
             </div>
           </div>
 
-          {/* Search Filter */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 flex items-center justify-between gap-3 text-xs">
             <div className="relative flex-1 max-w-sm">
               <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
@@ -659,7 +624,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
             </span>
           </div>
 
-          {/* Student Attendance List with 4 Circular Controls */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 space-y-3">
             {loadingAttendance ? (
               <div className="py-16 text-center text-xs text-slate-500 font-mono">
@@ -682,7 +646,7 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
                       key={student.id}
                       className="p-4 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs rounded-2xl bg-white border border-slate-200 shadow-2xs hover:bg-slate-50/60"
                     >
-                      {/* Left: Student Avatar + Identity and Registered Info */}
+
                       <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
                         <StudentAvatar
                           student={student}
@@ -699,7 +663,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
                             </span>
                           </div>
 
-                        {/* Status, method and time indicator */}
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
                           <span>
                             Estado actual:{' '}
@@ -734,7 +697,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
                           )}
                         </div>
 
-                        {/* Justification input if status is 'justificado' */}
                         {isJustificado && (
                           <div className="mt-2.5 max-w-md animate-in fade-in">
                             <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
@@ -762,7 +724,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
                       </div>
                     </div>
 
-                      {/* Right: 4 Controles Circulares de Estado (Componente Reutilizable) */}
                       <AttendanceStatusButtonGroup
                         currentStatus={optimisticStatus}
                         savingStatus={savingTargetStatus[student.id]}
@@ -778,7 +739,6 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
             )}
           </div>
 
-          {/* Session Attendance History Table */}
           {attendanceRecords.length > 0 && (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
               <div className="flex items-center gap-2">

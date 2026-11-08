@@ -3,14 +3,6 @@ import { Profile } from '../types';
 
 export type ProfileBasicInfo = Pick<Profile, 'id' | 'code' | 'first_names' | 'last_names' | 'avatar_updated_at'>;
 
-/**
- * Helper reutilizable para resolver perfiles a partir de una lista de IDs de usuario
- * sin realizar joins anidados directos con la tabla 'profiles'.
- * 
- * 1. Recibe los IDs (teacher_id o student_id).
- * 2. Consulta profiles con .in('id', [...]) pidiendo id, code, first_names, last_names, avatar_updated_at.
- * 3. Retorna un mapa { [id]: profile } para unir los resultados en memoria.
- */
 export async function fetchProfilesMapByIds(
   ids: string[]
 ): Promise<Record<string, ProfileBasicInfo>> {

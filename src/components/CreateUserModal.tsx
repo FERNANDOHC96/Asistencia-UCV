@@ -29,7 +29,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
   const roleLabel = role === 'alumno' ? 'Alumno' : 'Profesor';
 
   const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Solo permitir hasta 8 dígitos numéricos
+
     const clean = e.target.value.replace(/\D/g, '').slice(0, 8);
     setCode(clean);
   };
@@ -58,7 +58,6 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
     const cleanLastNames = lastNames.trim();
     const cleanEmail = email.trim();
 
-    // Validaciones en pantalla
     if (cleanCode.length !== 8) {
       setErrorMsg('El código universitario debe tener exactamente 8 dígitos numéricos.');
       return;
@@ -115,7 +114,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
-        {/* Header */}
+
         <div className="bg-[#0B2A5B] text-white px-6 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-2.5">
             <UserPlus className="w-5 h-5 text-red-400" />
@@ -131,9 +130,8 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
           </button>
         </div>
 
-        {/* Content */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Important Notice about initial password */}
+
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-900 text-xs flex items-start gap-2.5">
             <KeyRound className="w-4 h-4 text-[#1F5FA8] shrink-0 mt-0.5" />
             <div>
@@ -144,7 +142,6 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
             </div>
           </div>
 
-          {/* Feedback messages */}
           {errorMsg && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-800 text-xs flex items-start gap-2 animate-in fade-in">
               <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
@@ -159,7 +156,6 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
             </div>
           )}
 
-          {/* Código */}
           <div>
             <div className="flex justify-between items-center mb-1">
               <label
@@ -191,7 +187,6 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
             </div>
           </div>
 
-          {/* Nombres */}
           <div>
             <label
               htmlFor="create-first-names"
@@ -216,7 +211,6 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
             </div>
           </div>
 
-          {/* Apellidos */}
           <div>
             <label
               htmlFor="create-last-names"
@@ -241,7 +235,6 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
             </div>
           </div>
 
-          {/* Correo (opcional) */}
           <div>
             <div className="flex justify-between items-center mb-1">
               <label
@@ -268,7 +261,6 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
             </div>
           </div>
 
-          {/* Actions */}
           <div className="pt-2 flex items-center justify-end gap-2.5">
             <button
               type="button"

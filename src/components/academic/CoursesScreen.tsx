@@ -41,13 +41,10 @@ export const CoursesScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
-  // Selected course for detail view
   const [selectedCourse, setSelectedCourse] = useState<CourseOverview | null>(null);
 
-  // Active teachers list for select dropdowns
   const [teachers, setTeachers] = useState<ProfileBasicInfo[]>([]);
 
-  // Modal "Nuevo curso"
   const [isNewCourseModalOpen, setIsNewCourseModalOpen] = useState<boolean>(false);
   const [newCode, setNewCode] = useState<string>('');
   const [newName, setNewName] = useState<string>('');
@@ -55,32 +52,26 @@ export const CoursesScreen: React.FC = () => {
   const [newCourseLoading, setNewCourseLoading] = useState<boolean>(false);
   const [newCourseError, setNewCourseError] = useState<string | null>(null);
 
-  // Detail view states:
   const [detailLoading, setDetailLoading] = useState<boolean>(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [detailSuccess, setDetailSuccess] = useState<string | null>(null);
 
-  // a) Docente
   const [editTeacherId, setEditTeacherId] = useState<string>('');
   const [saveTeacherLoading, setSaveTeacherLoading] = useState<boolean>(false);
 
-  // b) Enrolled students
   const [enrolledStudents, setEnrolledStudents] = useState<EnrolledStudentRecord[]>([]);
   const [unenrollStudentTarget, setUnenrollStudentTarget] = useState<EnrolledStudentRecord | null>(null);
   const [unenrollLoading, setUnenrollLoading] = useState<boolean>(false);
 
-  // c) Available students for enrollment
   const [availableStudents, setAvailableStudents] = useState<ProfileBasicInfo[]>([]);
   const [enrollSearch, setEnrollSearch] = useState<string>('');
   const [selectedToEnroll, setSelectedToEnroll] = useState<Set<string>>(new Set());
   const [enrollLoading, setEnrollLoading] = useState<boolean>(false);
   const [confirmEnrollAllOpen, setConfirmEnrollAllOpen] = useState<boolean>(false);
 
-  // d) Archive course modal
   const [isArchiveModalOpen, setIsArchiveModalOpen] = useState<boolean>(false);
   const [archiveLoading, setArchiveLoading] = useState<boolean>(false);
 
-  // 1. Fetch courses from view course_overview
   const fetchCourses = useCallback(async () => {
     if (!isSupabaseConfigured()) {
       setError('No se pudo conectar con el servicio. Contacta al administrador.');
@@ -117,7 +108,6 @@ export const CoursesScreen: React.FC = () => {
     }
   }, [selectedCourse]);
 
-  // Fetch active teachers
   const fetchTeachers = useCallback(async () => {
     try {
       const supabase = getSupabaseClient();
@@ -129,7 +119,7 @@ export const CoursesScreen: React.FC = () => {
         .order('last_names', { ascending: true });
       setTeachers(data || []);
     } catch {
-      // Ignorar errores menores
+
     }
   }, []);
 
@@ -138,7 +128,6 @@ export const CoursesScreen: React.FC = () => {
     fetchTeachers();
   }, []);
 
-  // Filtered courses
   const filteredCourses = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return courses;
@@ -152,7 +141,6 @@ export const CoursesScreen: React.FC = () => {
     });
   }, [courses, searchQuery]);
 
-  // 2. Fetch Detail Data for selected course
   const fetchCourseDetailData = useCallback(async (course: CourseOverview) => {
     setDetailLoading(true);
     setDetailError(null);
@@ -163,7 +151,6 @@ export const CoursesScreen: React.FC = () => {
     try {
       const supabase = getSupabaseClient();
 
-      // a) Matriculados activos en esta sección (enrollments)
       const { data: enrData, error: enrErr } = await supabase
         .from('enrollments')
         .select('id, student_id, enrolled_at, status')
@@ -184,7 +171,6 @@ export const CoursesScreen: React.FC = () => {
       }));
       setEnrolledStudents(resolvedEnrolled);
 
-      // b) Alumnos disponibles (role='alumno', active=true) que NO estén matriculados
       const { data: allStudents, error: stdsErr } = await supabase
         .from('profiles')
         .select('id, code, first_names, last_names')
@@ -204,14 +190,12 @@ export const CoursesScreen: React.FC = () => {
     }
   }, []);
 
-  // When selectedCourse is set, load detail
   useEffect(() => {
     if (selectedCourse) {
       fetchCourseDetailData(selectedCourse);
     }
   }, [selectedCourse?.section_id]);
 
-  // --- Handlers: Nuevo Curso ---
   const handleOpenNewCourseModal = () => {
     setNewCode('');
     setNewName('');
@@ -268,7 +252,6 @@ export const CoursesScreen: React.FC = () => {
     }
   };
 
-  // --- Handlers: Cambiar Docente ---
   const handleSaveTeacher = async () => {
     if (!selectedCourse) return;
     setSaveTeacherLoading(true);
@@ -290,7 +273,7 @@ export const CoursesScreen: React.FC = () => {
 
       if (codeResponse === 'success') {
         setDetailSuccess('Profesor actualizado correctamente.');
-        // Refresh local courses list and detail
+
         await fetchCourses();
       } else if (codeResponse === 'unauthorized') {
         setDetailError('No tienes permisos de administrador.');
@@ -308,7 +291,6 @@ export const CoursesScreen: React.FC = () => {
     }
   };
 
-  // --- Handlers: Retirar Alumno ---
   const handleUnenrollStudentConfirm = async () => {
     if (!selectedCourse || !unenrollStudentTarget) return;
     setUnenrollLoading(true);
@@ -345,7 +327,6 @@ export const CoursesScreen: React.FC = () => {
     }
   };
 
-  // --- Handlers: Matricular Seleccionados ---
   const handleEnrollSelected = async () => {
     if (!selectedCourse || selectedToEnroll.size === 0) return;
     setEnrollLoading(true);
@@ -387,7 +368,6 @@ export const CoursesScreen: React.FC = () => {
     }
   };
 
-  // --- Handlers: Matricular a Todos los Alumnos ---
   const handleEnrollAll = async () => {
     if (!selectedCourse) return;
     setEnrollLoading(true);
@@ -428,7 +408,6 @@ export const CoursesScreen: React.FC = () => {
     }
   };
 
-  // --- Handlers: Archivar Curso ---
   const handleArchiveCourseConfirm = async () => {
     if (!selectedCourse) return;
     setArchiveLoading(true);
@@ -454,7 +433,6 @@ export const CoursesScreen: React.FC = () => {
     }
   };
 
-  // Filter available students by search query
   const filteredAvailableStudents = useMemo(() => {
     const q = enrollSearch.trim().toLowerCase();
     if (!q) return availableStudents;
@@ -492,9 +470,6 @@ export const CoursesScreen: React.FC = () => {
     });
   };
 
-  // ==========================================
-  // VIEW: DETALLE DEL CURSO
-  // ==========================================
   if (selectedCourse) {
     const teacherFullName = selectedCourse.teacher_id
       ? `${selectedCourse.teacher_first_names || ''} ${selectedCourse.teacher_last_names || ''}`.trim()
@@ -502,7 +477,7 @@ export const CoursesScreen: React.FC = () => {
 
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* Top return bar & Course header */}
+
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-start gap-3">
@@ -534,7 +509,6 @@ export const CoursesScreen: React.FC = () => {
               </div>
             </div>
 
-            {/* Archivar curso */}
             <button
               onClick={() => setIsArchiveModalOpen(true)}
               className="self-start sm:self-auto px-3.5 py-2 border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 rounded-xl text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer"
@@ -544,7 +518,6 @@ export const CoursesScreen: React.FC = () => {
             </button>
           </div>
 
-          {/* Feedback banners */}
           {detailSuccess && (
             <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
@@ -559,7 +532,6 @@ export const CoursesScreen: React.FC = () => {
           )}
         </div>
 
-        {/* Section a) Docente asignado */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5">
           <div className="flex items-center gap-2 mb-3">
             <GraduationCap className="w-5 h-5 text-[#1F5FA8]" />
@@ -614,7 +586,6 @@ export const CoursesScreen: React.FC = () => {
           </div>
         </div>
 
-        {/* Section b) Alumnos matriculados */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-2">
@@ -689,7 +660,6 @@ export const CoursesScreen: React.FC = () => {
           )}
         </div>
 
-        {/* Section c) Matricular alumnos */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
@@ -723,7 +693,6 @@ export const CoursesScreen: React.FC = () => {
             </div>
           </div>
 
-          {/* Search available */}
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
@@ -735,7 +704,6 @@ export const CoursesScreen: React.FC = () => {
             />
           </div>
 
-          {/* Available list */}
           {filteredAvailableStudents.length === 0 ? (
             <p className="text-xs text-slate-400 text-center py-4">
               {availableStudents.length === 0
@@ -789,7 +757,6 @@ export const CoursesScreen: React.FC = () => {
           )}
         </div>
 
-        {/* Modal confirm unenroll student */}
         {unenrollStudentTarget && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
             <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200 space-y-4">
@@ -829,7 +796,6 @@ export const CoursesScreen: React.FC = () => {
           </div>
         )}
 
-        {/* Modal confirm enroll all */}
         {confirmEnrollAllOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
             <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200 space-y-4">
@@ -864,7 +830,6 @@ export const CoursesScreen: React.FC = () => {
           </div>
         )}
 
-        {/* Modal confirm archive course */}
         {isArchiveModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
             <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200 space-y-4">
@@ -901,12 +866,9 @@ export const CoursesScreen: React.FC = () => {
     );
   }
 
-  // ==========================================
-  // VIEW: LISTA PRINCIPAL DE CURSOS
-  // ==========================================
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-      {/* Header institucional */}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-[#0B2A5B] flex items-center gap-2">
@@ -938,7 +900,6 @@ export const CoursesScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Success banner */}
       {actionSuccess && (
         <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center justify-between gap-2.5 animate-in fade-in">
           <div className="flex items-center gap-2">
@@ -954,7 +915,6 @@ export const CoursesScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Error banner */}
       {error && (
         <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-900 text-xs flex items-center gap-2.5 animate-in fade-in">
           <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
@@ -962,7 +922,6 @@ export const CoursesScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Search bar */}
       <div className="relative">
         <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
         <input
@@ -974,7 +933,6 @@ export const CoursesScreen: React.FC = () => {
         />
       </div>
 
-      {/* Courses Table / Cards */}
       <div className="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
         {loading ? (
           <div className="py-16 flex flex-col items-center justify-center text-slate-400">
@@ -1078,7 +1036,6 @@ export const CoursesScreen: React.FC = () => {
         )}
       </div>
 
-      {/* Modal Nuevo Curso */}
       {isNewCourseModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
           <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">

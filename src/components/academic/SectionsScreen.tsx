@@ -30,11 +30,9 @@ export const SectionsScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Filters
   const [filterPeriodId, setFilterPeriodId] = useState<string>('all');
   const [filterCourseId, setFilterCourseId] = useState<string>('all');
 
-  // Create / Edit modal
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingSection, setEditingSection] = useState<SectionExtended | null>(null);
   const [formData, setFormData] = useState({
@@ -46,18 +44,15 @@ export const SectionsScreen: React.FC = () => {
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Teacher assignment modal
   const [assignModalSection, setAssignModalSection] = useState<SectionExtended | null>(null);
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>('');
   const [assignLoading, setAssignLoading] = useState(false);
   const [assignError, setAssignError] = useState<string | null>(null);
 
-  // Archive modal
   const [archivingSection, setArchivingSection] = useState<SectionExtended | null>(null);
   const [archiveLoading, setArchiveLoading] = useState(false);
   const [archiveSuccess, setArchiveSuccess] = useState<string | null>(null);
 
-  // Remove teacher confirmation modal
   const [removingTeacherAssignment, setRemovingTeacherAssignment] = useState<{
     section: SectionExtended;
     assignmentId: string;
@@ -78,7 +73,6 @@ export const SectionsScreen: React.FC = () => {
     try {
       const supabase = getSupabaseClient();
 
-      // 1. Fetch periods (only non-archived)
       const { data: periodsData, error: pErr } = await supabase
         .from('periods')
         .select('id, name, starts_on, ends_on, status')
@@ -87,7 +81,6 @@ export const SectionsScreen: React.FC = () => {
       if (pErr) throw pErr;
       setPeriods(periodsData || []);
 
-      // 2. Fetch courses (only non-archived)
       const { data: coursesData, error: cErr } = await supabase
         .from('courses')
         .select('id, code, name, credits')
@@ -96,7 +89,6 @@ export const SectionsScreen: React.FC = () => {
       if (cErr) throw cErr;
       setCourses(coursesData || []);
 
-      // 3. Fetch teachers (profiles where role = 'profesor')
       const { data: teachersData, error: tErr } = await supabase
         .from('profiles')
         .select('id, code, first_names, last_names, role, active')
@@ -106,7 +98,6 @@ export const SectionsScreen: React.FC = () => {
       if (tErr) throw tErr;
       setTeachersList((teachersData as Profile[]) || []);
 
-      // 4. Fetch sections with offering -> course and period (only non-archived)
       const { data: sectionsData, error: sErr } = await supabase
         .from('sections')
         .select(`
@@ -127,17 +118,14 @@ export const SectionsScreen: React.FC = () => {
         .order('name', { ascending: true });
       if (sErr) throw sErr;
 
-      // 5. Fetch teaching assignments (sin join anidado hacia profiles)
       const { data: assignData, error: aErr } = await supabase
         .from('teaching_assignments')
         .select('id, section_id, teacher_id');
       if (aErr) throw aErr;
 
-      // Reúne los teacher_id y consulta profiles con .in('id', ...)
       const teacherIds = (assignData || []).map((row: any) => row.teacher_id);
       const teacherProfilesMap = await fetchProfilesMapByIds(teacherIds);
 
-      // Une ambos resultados en el código de la web
       const assignmentsBySection: Record<string, SectionExtended['teachers']> = {};
       (assignData || []).forEach((row: any) => {
         if (!assignmentsBySection[row.section_id]) {
@@ -150,7 +138,6 @@ export const SectionsScreen: React.FC = () => {
         });
       });
 
-      // 6. Fetch active enrollments counts
       const { data: enrollData, error: eErr } = await supabase
         .from('enrollments')
         .select('section_id, status')
@@ -162,7 +149,6 @@ export const SectionsScreen: React.FC = () => {
         enrollCountsBySection[row.section_id] = (enrollCountsBySection[row.section_id] || 0) + 1;
       });
 
-      // Filter out sections where parent course or period is archived
       const validSectionsData = (sectionsData || []).filter((sec: any) => {
         const off = Array.isArray(sec.offering) ? sec.offering[0] : sec.offering;
         const crs = off && Array.isArray(off.course) ? off.course[0] : off?.course;
@@ -191,7 +177,6 @@ export const SectionsScreen: React.FC = () => {
     fetchData();
   }, [fetchData]);
 
-  // Filtered sections
   const filteredSections = useMemo(() => {
     return sections.filter((s) => {
       if (filterPeriodId !== 'all' && s.offering?.period_id !== filterPeriodId) {
@@ -257,7 +242,7 @@ export const SectionsScreen: React.FC = () => {
       const supabase = getSupabaseClient();
 
       if (editingSection) {
-        // Edit section name and capacity
+
         const { error: updError } = await supabase
           .from('sections')
           .update({
@@ -271,7 +256,7 @@ export const SectionsScreen: React.FC = () => {
           return;
         }
       } else {
-        // Create: first ensure offering exists for (course_id, period_id)
+
         let offeringId: string | null = null;
 
         const { data: existingOffering, error: offFindErr } = await supabase
@@ -289,7 +274,7 @@ export const SectionsScreen: React.FC = () => {
         if (existingOffering) {
           offeringId = existingOffering.id;
         } else {
-          // Create the course_offerings row automatically as requested
+
           const { data: newOffering, error: offCreateErr } = await supabase
             .from('course_offerings')
             .insert({
@@ -306,7 +291,6 @@ export const SectionsScreen: React.FC = () => {
           offeringId = newOffering.id;
         }
 
-        // Insert section
         const { error: secInsErr } = await supabase
           .from('sections')
           .insert({
@@ -418,7 +402,7 @@ export const SectionsScreen: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-      {/* Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
@@ -455,7 +439,6 @@ export const SectionsScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Warnings if no periods or courses exist */}
       {(!loading && (periods.length === 0 || courses.length === 0)) && (
         <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-2.5">
           <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
@@ -468,7 +451,6 @@ export const SectionsScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Filters Bar */}
       <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 text-xs">
         <div className="flex flex-wrap items-center gap-3 flex-1">
           <div className="flex items-center gap-2">
@@ -514,7 +496,6 @@ export const SectionsScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Archive Success Banner */}
       {archiveSuccess && (
         <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 flex items-center gap-2 text-xs font-semibold animate-in fade-in">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
@@ -522,7 +503,6 @@ export const SectionsScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Global Error Banner */}
       {error && (
         <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-900 text-xs flex items-center gap-2.5 animate-in fade-in">
           <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
@@ -530,7 +510,6 @@ export const SectionsScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Table Card */}
       <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
         {loading ? (
           <div className="py-16 text-center">
@@ -580,14 +559,13 @@ export const SectionsScreen: React.FC = () => {
 
                   return (
                     <tr key={sec.id} className="hover:bg-slate-50/80 transition-colors">
-                      {/* Sección */}
+
                       <td className="px-6 py-3.5 font-bold font-mono text-[#0B2A5B]">
                         <span className="bg-blue-50 text-[#1F5FA8] border border-blue-200 px-2.5 py-0.5 rounded-md">
                           {sec.name}
                         </span>
                       </td>
 
-                      {/* Asignatura */}
                       <td className="px-6 py-3.5">
                         <div className="font-semibold text-slate-900">{courseName}</div>
                         {courseCode && (
@@ -597,12 +575,10 @@ export const SectionsScreen: React.FC = () => {
                         )}
                       </td>
 
-                      {/* Periodo */}
                       <td className="px-6 py-3.5 font-medium text-slate-700 font-mono">
                         {periodName}
                       </td>
 
-                      {/* Capacidad / Matriculados */}
                       <td className="px-6 py-3.5">
                         <div className="flex items-center gap-1.5">
                           <span className="font-bold text-slate-900">
@@ -620,7 +596,6 @@ export const SectionsScreen: React.FC = () => {
                         </div>
                       </td>
 
-                      {/* Docente Asignado */}
                       <td className="px-6 py-3.5">
                         {sec.teachers && sec.teachers.length > 0 ? (
                           <div className="space-y-1">
@@ -659,7 +634,6 @@ export const SectionsScreen: React.FC = () => {
                         )}
                       </td>
 
-                      {/* Acciones */}
                       <td className="px-6 py-3.5 text-right space-x-1 whitespace-nowrap">
                         <button
                           onClick={() => handleOpenAssignTeacher(sec)}
@@ -693,7 +667,6 @@ export const SectionsScreen: React.FC = () => {
         )}
       </div>
 
-      {/* Form Modal (Create / Edit Section) */}
       {isFormOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
@@ -718,14 +691,12 @@ export const SectionsScreen: React.FC = () => {
                 </div>
               )}
 
-              {/* Notice about auto creation of course_offerings */}
               {!editingSection && (
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-900 text-[11px] leading-relaxed">
                   💡 Si el curso no está ofertado en el periodo elegido, el sistema generará automáticamente la oferta correspondiente (<code className="font-mono">course_offerings</code>).
                 </div>
               )}
 
-              {/* Periodo */}
               <div>
                 <label className="block font-bold text-slate-700 uppercase tracking-wide mb-1">
                   Periodo Académico *
@@ -745,7 +716,6 @@ export const SectionsScreen: React.FC = () => {
                 </select>
               </div>
 
-              {/* Curso */}
               <div>
                 <label className="block font-bold text-slate-700 uppercase tracking-wide mb-1">
                   Asignatura / Curso *
@@ -765,7 +735,6 @@ export const SectionsScreen: React.FC = () => {
                 </select>
               </div>
 
-              {/* Nombre de la sección */}
               <div>
                 <label className="block font-bold text-slate-700 uppercase tracking-wide mb-1">
                   Nombre de la sección *
@@ -781,7 +750,6 @@ export const SectionsScreen: React.FC = () => {
                 />
               </div>
 
-              {/* Capacidad */}
               <div>
                 <div className="flex justify-between items-center mb-1">
                   <label className="block font-bold text-slate-700 uppercase tracking-wide">
@@ -823,7 +791,6 @@ export const SectionsScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Teacher Assignment Modal */}
       {assignModalSection && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
@@ -909,7 +876,6 @@ export const SectionsScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Archive Section Modal */}
       <DeleteConfirmModal
         isOpen={Boolean(archivingSection)}
         title="Archivar Sección"
@@ -920,7 +886,6 @@ export const SectionsScreen: React.FC = () => {
         onCancel={() => setArchivingSection(null)}
       />
 
-      {/* Remove Teacher Assignment Modal */}
       <DeleteConfirmModal
         isOpen={Boolean(removingTeacherAssignment)}
         title="Quitar Asignación Docente"

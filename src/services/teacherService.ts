@@ -3,9 +3,9 @@ import { Course, Period, Section, Profile } from '../types';
 import { fetchProfilesMapByIds } from '../lib/profileHelper';
 
 export interface TeacherSection {
-  id: string; // section id
+  id: string;
   assignmentId: string;
-  name: string; // section name
+  name: string;
   capacity: number | null;
   offering_id: string;
   offering: {
@@ -18,14 +18,9 @@ export interface TeacherSection {
   activeEnrollmentsCount: number;
 }
 
-/**
- * Consulta las secciones asignadas exclusivamente al profesor autenticado.
- * Filtra estrictamente por teacher_id = userId en teaching_assignments.
- */
 export async function getTeacherSections(userId: string): Promise<TeacherSection[]> {
   const supabase = getSupabaseClient();
 
-  // 1. Obtener asignaciones del profesor autenticado
   const { data: assignments, error: aErr } = await supabase
     .from('teaching_assignments')
     .select('id, section_id, teacher_id')
@@ -36,7 +31,6 @@ export async function getTeacherSections(userId: string): Promise<TeacherSection
 
   const sectionIds = assignments.map((a) => a.section_id);
 
-  // 2. Obtener detalles de secciones con ofertas, cursos y periodos (no archivadas)
   const { data: sectionsData, error: sErr } = await supabase
     .from('sections')
     .select(`
@@ -60,7 +54,6 @@ export async function getTeacherSections(userId: string): Promise<TeacherSection
   if (sErr) throw sErr;
   if (!sectionsData) return [];
 
-  // Filtrar secciones cuyos cursos o periodos padres estén archivados
   const validSections = sectionsData.filter((sec: any) => {
     const off = Array.isArray(sec.offering) ? sec.offering[0] : sec.offering;
     const crs = off && Array.isArray(off.course) ? off.course[0] : off?.course;
@@ -70,7 +63,6 @@ export async function getTeacherSections(userId: string): Promise<TeacherSection
     return true;
   });
 
-  // 3. Obtener conteo de matriculados activos por sección
   const validSectionIds = validSections.map((s: any) => s.id);
   const { data: enrollData, error: eErr } = await supabase
     .from('enrollments')
@@ -113,9 +105,6 @@ export async function getTeacherSections(userId: string): Promise<TeacherSection
   });
 }
 
-/**
- * Consulta los alumnos matriculados activos en una sección usando el helper de 2 consultas
- */
 export async function getSectionActiveStudents(sectionId: string): Promise<Profile[]> {
   const supabase = getSupabaseClient();
 
@@ -141,11 +130,6 @@ export async function getSectionActiveStudents(sectionId: string): Promise<Profi
     }));
 }
 
-/**
- * Consulta la tolerancia de tardanza configurada en minutos desde la tabla settings.
- * Fila esperada: key = 'late_tolerance_minutes'
- * Si no existe o no es un número válido, retorna 10 por defecto sin mostrar error.
- */
 export async function getLateToleranceMinutes(): Promise<number> {
   try {
     const supabase = getSupabaseClient();

@@ -56,7 +56,7 @@ export const StudentCoursesScreen: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-      {/* Header */}
+
       <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
@@ -80,7 +80,6 @@ export const StudentCoursesScreen: React.FC = () => {
         </button>
       </div>
 
-      {/* Error alert */}
       {error && (
         <div className="p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
@@ -91,7 +90,6 @@ export const StudentCoursesScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Main List */}
       {loading ? (
         <div className="bg-white p-12 rounded-xl border border-slate-200 text-center shadow-2xs">
           <RefreshCw className="w-8 h-8 text-[#1F5FA8] animate-spin mx-auto mb-3" />
@@ -118,7 +116,7 @@ export const StudentCoursesScreen: React.FC = () => {
                 key={item.enrollmentId}
                 className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden flex flex-col justify-between"
               >
-                {/* Cabecera del curso */}
+
                 <div className="p-5 border-b border-slate-100">
                   <div className="flex items-center justify-between gap-2 mb-1.5">
                     <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-blue-50 text-[#1F5FA8] border border-blue-200">
@@ -149,7 +147,6 @@ export const StudentCoursesScreen: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Docente a cargo */}
                 <div className="p-4 bg-slate-50/70 border-b border-slate-100 text-xs">
                   <div className="flex items-center gap-2 text-slate-500 mb-1">
                     <UserCheck className="w-3.5 h-3.5 text-[#1F5FA8]" />
@@ -170,7 +167,6 @@ export const StudentCoursesScreen: React.FC = () => {
                   )}
                 </div>
 
-                {/* Horarios de la sección */}
                 <div className="p-4 text-xs space-y-2">
                   <div className="flex items-center gap-1.5 text-slate-500 font-bold text-[11px] uppercase tracking-wider">
                     <Clock className="w-3.5 h-3.5 text-slate-400" />

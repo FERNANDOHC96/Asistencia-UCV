@@ -34,7 +34,6 @@ export const SchedulesScreen: React.FC = () => {
   const [loadingSchedules, setLoadingSchedules] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Form modal (create/edit)
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
   const [formData, setFormData] = useState({
@@ -47,12 +46,10 @@ export const SchedulesScreen: React.FC = () => {
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Archive modal
   const [archivingSchedule, setArchivingSchedule] = useState<Schedule | null>(null);
   const [archiveLoading, setArchiveLoading] = useState(false);
   const [archiveSuccess, setArchiveSuccess] = useState<string | null>(null);
 
-  // Fetch sections with course and period
   const fetchSections = useCallback(async () => {
     if (!isSupabaseConfigured()) {
       setError('No se pudo conectar con el servicio. Contacta al administrador.');
@@ -124,7 +121,6 @@ export const SchedulesScreen: React.FC = () => {
     fetchSections();
   }, [fetchSections]);
 
-  // Fetch schedules for the selected section
   const fetchSchedules = useCallback(async () => {
     if (!selectedSectionId || !isSupabaseConfigured()) {
       setSchedules([]);
@@ -179,7 +175,7 @@ export const SchedulesScreen: React.FC = () => {
 
   const handleOpenEdit = (sc: Schedule) => {
     setEditingSchedule(sc);
-    // starts_at and ends_at can be "08:00:00" from postgres time format; slice to HH:mm for HTML time input
+
     const cleanStart = sc.starts_at ? sc.starts_at.slice(0, 5) : '08:00';
     const cleanEnd = sc.ends_at ? sc.ends_at.slice(0, 5) : '10:00';
 
@@ -215,7 +211,6 @@ export const SchedulesScreen: React.FC = () => {
       return;
     }
 
-    // Validación obligatoria: hora fin mayor que hora inicio
     if (ends_at <= starts_at) {
       setFormError('La hora de fin debe ser estrictamente mayor que la hora de inicio (ends_at > starts_at).');
       return;
@@ -293,7 +288,7 @@ export const SchedulesScreen: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-      {/* Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
@@ -333,7 +328,6 @@ export const SchedulesScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Section Selector Card */}
       <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         <div className="flex-1 max-w-xl">
           <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
@@ -375,7 +369,6 @@ export const SchedulesScreen: React.FC = () => {
         )}
       </div>
 
-      {/* Archive Success Banner */}
       {archiveSuccess && (
         <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 flex items-center gap-2 text-xs font-semibold animate-in fade-in">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
@@ -383,7 +376,6 @@ export const SchedulesScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Global Error Banner */}
       {error && (
         <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-900 text-xs flex items-center gap-2.5 animate-in fade-in">
           <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
@@ -391,7 +383,6 @@ export const SchedulesScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Schedules Table */}
       <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
         {loadingSchedules ? (
           <div className="py-16 text-center">
@@ -443,7 +434,7 @@ export const SchedulesScreen: React.FC = () => {
 
                   return (
                     <tr key={sc.id} className="hover:bg-slate-50/80 transition-colors">
-                      {/* Día */}
+
                       <td className="px-6 py-3.5 font-bold text-slate-900">
                         <span className="inline-flex items-center gap-1.5 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-full text-[11px]">
                           <Calendar className="w-3 h-3 text-[#1F5FA8]" />
@@ -451,7 +442,6 @@ export const SchedulesScreen: React.FC = () => {
                         </span>
                       </td>
 
-                      {/* Tipo */}
                       <td className="px-6 py-3.5">
                         <span
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border uppercase tracking-wider ${
@@ -464,22 +454,18 @@ export const SchedulesScreen: React.FC = () => {
                         </span>
                       </td>
 
-                      {/* Inicio */}
                       <td className="px-6 py-3.5 font-mono font-semibold text-slate-800">
                         {startClean}
                       </td>
 
-                      {/* Fin */}
                       <td className="px-6 py-3.5 font-mono font-semibold text-slate-800">
                         {endClean}
                       </td>
 
-                      {/* Franja */}
                       <td className="px-6 py-3.5 text-slate-500 font-mono text-[11px]">
                         {startClean} - {endClean}
                       </td>
 
-                      {/* Aula */}
                       <td className="px-6 py-3.5">
                         {sc.room ? (
                           <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
@@ -491,7 +477,6 @@ export const SchedulesScreen: React.FC = () => {
                         )}
                       </td>
 
-                      {/* Acciones */}
                       <td className="px-6 py-3.5 text-right space-x-1">
                         <button
                           onClick={() => handleOpenEdit(sc)}
@@ -518,7 +503,6 @@ export const SchedulesScreen: React.FC = () => {
         )}
       </div>
 
-      {/* Form Modal (Create / Edit Schedule) */}
       {isFormOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
@@ -536,7 +520,7 @@ export const SchedulesScreen: React.FC = () => {
             </div>
 
             <form onSubmit={handleSave} className="p-6 space-y-4 text-xs">
-              {/* Aviso obligatorio para franjas de horarios */}
+
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-900 flex items-start gap-2">
                 <Info className="w-4 h-4 text-[#1F5FA8] shrink-0 mt-0.5" />
                 <div className="leading-relaxed font-medium">
@@ -551,7 +535,6 @@ export const SchedulesScreen: React.FC = () => {
                 </div>
               )}
 
-              {/* Día de la semana */}
               <div>
                 <label className="block font-bold text-slate-700 uppercase tracking-wide mb-1">
                   Día de la semana *
@@ -572,7 +555,6 @@ export const SchedulesScreen: React.FC = () => {
                 </select>
               </div>
 
-              {/* Tipo de horario (Teoría / Práctica) Obligatorio */}
               <div>
                 <label className="block font-bold text-slate-700 uppercase tracking-wide mb-1">
                   Tipo de Horario * <span className="text-[#C8102E] font-bold">(Obligatorio)</span>
@@ -589,7 +571,6 @@ export const SchedulesScreen: React.FC = () => {
                 </select>
               </div>
 
-              {/* Horas */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-slate-700 uppercase tracking-wide mb-1">
@@ -624,7 +605,6 @@ export const SchedulesScreen: React.FC = () => {
                 ⚠️ La hora de fin debe ser estrictamente posterior a la hora de inicio.
               </p>
 
-              {/* Aula */}
               <div>
                 <div className="flex justify-between items-center mb-1">
                   <label className="block font-bold text-slate-700 uppercase tracking-wide">
@@ -665,7 +645,6 @@ export const SchedulesScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Archive Confirmation Modal */}
       <DeleteConfirmModal
         isOpen={Boolean(archivingSchedule)}
         title="Archivar Franja Horaria"

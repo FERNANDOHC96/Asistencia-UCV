@@ -32,7 +32,6 @@ export async function createUserViaEdgeFunction(
   const { url, anonKey } = getSupabaseCredentials();
   const supabase = getSupabaseClient();
 
-  // Obtener el token de acceso de la sesión actual
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
   if (sessionError || !sessionData.session?.access_token) {
     return {

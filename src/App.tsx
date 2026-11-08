@@ -33,12 +33,10 @@ const MainContent: React.FC = () => {
     );
   }
 
-  // Si no hay usuario autenticado o no se tiene perfil válido activo
   if (!user || !profile) {
     return <LoginScreen />;
   }
 
-  // Renderizar vistas según el rol del perfil
   const renderTabContent = () => {
     if (profile.role === 'administrador') {
       switch (currentTab) {
@@ -96,7 +94,6 @@ const MainContent: React.FC = () => {
         {renderTabContent()}
       </main>
 
-      {/* Pie de página */}
       <footer className="py-4 text-center text-xs border-t border-slate-200/60 bg-white/40 text-slate-500">
         UCVGO
       </footer>

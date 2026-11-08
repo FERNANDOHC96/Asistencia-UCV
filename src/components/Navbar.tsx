@@ -21,13 +21,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab }) => {
 
   return (
     <header className="sticky top-0 z-40 w-full shadow-xs">
-      {/* Top red institutional accent line */}
+
       <div className="h-1 bg-[#C8102E] w-full" />
 
-      {/* Top compact bar */}
       <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-2.5">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
-          {/* Brand & Project Info */}
+
           <div className="flex items-center space-x-3">
             <div className="h-10 w-10 rounded-xl bg-white p-0.5 shadow-2xs flex items-center justify-center shrink-0">
               <img
@@ -46,9 +45,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab }) => {
             </div>
           </div>
 
-          {/* Right utilities & User profile */}
           <div className="flex items-center space-x-3 sm:space-x-5">
-            {/* Aviso solo si la conexión falla */}
+
             {!configured && (
               <div
                 title="Sin conexión con el servicio"
@@ -59,7 +57,6 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab }) => {
               </div>
             )}
 
-            {/* User identification */}
             {profile && (
               <div className="flex items-center pl-3 border-l border-slate-200 space-x-3">
                 <div className="text-right hidden sm:block">
@@ -98,7 +95,6 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab }) => {
         </div>
       </div>
 
-      {/* Main horizontal blue navigation bar */}
       <nav className="bg-[#1F5FA8] text-white px-4 sm:px-6">
         <div
           className={`max-w-7xl mx-auto flex items-center space-x-1 sm:space-x-2 py-1 ${
@@ -107,7 +103,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab }) => {
               : 'overflow-x-auto md:overflow-visible'
           }`}
         >
-          {/* Inicio */}
+
           <button
             onClick={() => onSelectTab('inicio')}
             className={`px-3.5 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-semibold tracking-wide transition-all whitespace-nowrap cursor-pointer ${
@@ -119,10 +115,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab }) => {
             Inicio
           </button>
 
-          {/* Navegación del Administrador */}
           {profile?.role === 'administrador' && (
             <>
-              {/* Alumnos */}
+
               <button
                 onClick={() => onSelectTab('alumnos')}
                 className={`px-3.5 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-semibold tracking-wide transition-all whitespace-nowrap cursor-pointer ${
@@ -134,7 +129,6 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab }) => {
                 Alumnos
               </button>
 
-              {/* Profesores */}
               <button
                 onClick={() => onSelectTab('profesores')}
                 className={`px-3.5 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-semibold tracking-wide transition-all whitespace-nowrap cursor-pointer ${
@@ -146,7 +140,6 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab }) => {
                 Profesores
               </button>
 
-              {/* Cursos */}
               <button
                 onClick={() => onSelectTab('cursos')}
                 className={`px-3.5 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-semibold tracking-wide transition-all whitespace-nowrap cursor-pointer ${
@@ -160,10 +153,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab }) => {
             </>
           )}
 
-          {/* Navegación del Docente */}
           {profile?.role === 'profesor' && (
             <>
-              {/* Mis cursos */}
+
               <button
                 onClick={() => onSelectTab('mis_cursos')}
                 className={`px-3.5 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-semibold tracking-wide transition-all whitespace-nowrap cursor-pointer ${
@@ -177,10 +169,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab }) => {
             </>
           )}
 
-          {/* Navegación del Alumno */}
           {profile?.role === 'alumno' && (
             <>
-              {/* Mis asignaturas */}
+
               <button
                 onClick={() => onSelectTab('mis_asignaturas')}
                 className={`px-3.5 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-semibold tracking-wide transition-all whitespace-nowrap cursor-pointer ${
@@ -192,7 +183,6 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab }) => {
                 Mis asignaturas
               </button>
 
-              {/* Mi asistencia */}
               <button
                 onClick={() => onSelectTab('mi_asistencia')}
                 className={`px-3.5 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-semibold tracking-wide transition-all whitespace-nowrap cursor-pointer ${

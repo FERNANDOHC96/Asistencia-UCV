@@ -36,8 +36,6 @@ export interface EdgeFunctionResponse {
   message?: string;
 }
 
-// Estructura Académica
-
 export type PeriodStatus = 'planificado' | 'activo' | 'finalizado';
 
 export interface Period {
@@ -110,15 +108,13 @@ export type SessionKind = 'teoria' | 'practica';
 export interface Schedule {
   id: string;
   section_id: string;
-  weekday: number; // 1 = lunes ... 7 = domingo
+  weekday: number;
   starts_at: string;
   ends_at: string;
   room?: string | null;
   kind?: SessionKind;
   archived_at?: string | null;
 }
-
-// Gestión Docente y Sesiones
 
 export type UnitStatus = 'planificada' | 'en_curso' | 'finalizada';
 
@@ -183,8 +179,6 @@ export interface AttendanceRecord {
   class_session?: ClassSession;
 }
 
-// Asistencia y Códigos QR
-
 export type AttendanceSessionStatus = 'abierta' | 'cerrada';
 
 export interface AttendanceSession {
@@ -233,6 +227,4 @@ export interface TeacherName {
   first_names: string;
   last_names: string;
 }
-
-
 

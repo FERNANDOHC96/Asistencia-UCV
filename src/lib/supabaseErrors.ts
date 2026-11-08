@@ -20,7 +20,6 @@ export function translateSupabaseError(
   const code = err.code || '';
   const message = err.message || '';
 
-  // Error de conexión o red real
   if (
     message.includes('Failed to fetch') ||
     message.includes('NetworkError') ||
@@ -32,7 +31,6 @@ export function translateSupabaseError(
     return 'No se pudo conectar con el servicio. Contacta al administrador.';
   }
 
-  // 1. Error 23505: Unique constraint violation (valor duplicado)
   if (code === '23505') {
     if (context === 'learning_units' || context === 'academic_weeks') {
       return 'Ese número ya existe para este curso.';
@@ -58,12 +56,10 @@ export function translateSupabaseError(
     return 'Ya existe un registro con estos datos únicos (valor duplicado).';
   }
 
-  // 2. Error 23503: Foreign key violation (referencia inexistente o vinculada)
   if (code === '23503') {
     return 'No se puede completar la operación: el registro está vinculado a otros datos existentes o la referencia no existe.';
   }
 
-  // 3. Error 23514: Check constraint violation (restricción no cumplida)
   if (code === '23514') {
     if (context === 'periods' || context === 'learning_units' || context === 'academic_weeks') {
       return 'La fecha de fin debe ser posterior o igual a la fecha de inicio (ends_on >= starts_on).';
@@ -77,7 +73,6 @@ export function translateSupabaseError(
     return 'Los datos ingresados no cumplen con las restricciones de validación del sistema.';
   }
 
-  // 4. Falta de permisos (42501 o mensajes de RLS/Forbidden)
   if (
     code === '42501' ||
     message.toLowerCase().includes('permission') ||
@@ -87,13 +82,9 @@ export function translateSupabaseError(
     return 'No tienes los permisos necesarios para realizar esta acción. Verifica tu sesión institucional.';
   }
 
-  // Para cualquier otro error, mostrar el mensaje real
   return message || JSON.stringify(err);
 }
 
-/**
- * Traduce las respuestas de la función set_attendance de Supabase
- */
 export function translateAttendanceRpcError(rpcResult: string): string {
   switch (rpcResult) {
     case 'unauthorized':
@@ -115,9 +106,6 @@ export function translateAttendanceRpcError(rpcResult: string): string {
   }
 }
 
-/**
- * Traduce las respuestas de open_attendance
- */
 export function translateOpenAttendanceError(rpcResult: string): string {
   switch (rpcResult) {
     case 'unauthorized':
@@ -137,9 +125,6 @@ export function translateOpenAttendanceError(rpcResult: string): string {
   }
 }
 
-/**
- * Traduce las respuestas de resolve_attendance_request
- */
 export function translateResolveAttendanceError(rpcResult: string): string {
   switch (rpcResult) {
     case 'already_resolved':
@@ -157,9 +142,6 @@ export function translateResolveAttendanceError(rpcResult: string): string {
   }
 }
 
-/**
- * Traduce las respuestas de close_attendance
- */
 export function translateCloseAttendanceError(code: string): string {
   switch (code) {
     case 'unauthorized':

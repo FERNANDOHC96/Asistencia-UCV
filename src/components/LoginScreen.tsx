@@ -28,7 +28,7 @@ export const LoginScreen: React.FC = () => {
   };
 
   const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Solo permitir dígitos y longitud máxima de 8
+
     const clean = e.target.value.replace(/\D/g, '').slice(0, 8);
     setCode(clean);
   };
@@ -84,13 +84,12 @@ export const LoginScreen: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col justify-between bg-[#EEF2F7]">
-      {/* Top red border accent */}
+
       <div className="h-1 bg-[#C8102E] w-full" />
 
-      {/* Main Container */}
       <main className="flex-1 flex items-center justify-center p-4 sm:p-6">
         <div className="w-full max-w-xl">
-          {/* Institutional Header Card */}
+
           <div className="text-center mb-6">
             <div className="inline-flex items-center justify-center p-2 rounded-2xl bg-white shadow-xs mb-3">
               <img
@@ -107,7 +106,6 @@ export const LoginScreen: React.FC = () => {
             </p>
           </div>
 
-          {/* Database connection banner if not configured */}
           {!configured && (
             <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-900 shadow-xs flex items-center gap-3">
               <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
@@ -117,7 +115,6 @@ export const LoginScreen: React.FC = () => {
             </div>
           )}
 
-          {/* Error Alert */}
           {authError && (
             <div className="mb-5 p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 shadow-xs flex items-start gap-3 animate-in fade-in">
               <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
@@ -128,7 +125,6 @@ export const LoginScreen: React.FC = () => {
             </div>
           )}
 
-          {/* Step 1: Select Role */}
           {!selectedRole ? (
             <div className="bg-white rounded-2xl shadow-md border border-slate-200 p-6 sm:p-8">
               <div className="text-center mb-6">
@@ -176,9 +172,9 @@ export const LoginScreen: React.FC = () => {
               </div>
             </div>
           ) : (
-            /* Step 2: Login Form */
+
             <div className="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
-              {/* Card top banner for selected role */}
+
               <div className="bg-[#0B2A5B] text-white px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center">
@@ -204,7 +200,7 @@ export const LoginScreen: React.FC = () => {
               </div>
 
               <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-5">
-                {/* Código universitario */}
+
                 <div>
                   <div className="flex justify-between items-center mb-1.5">
                     <label
@@ -241,7 +237,6 @@ export const LoginScreen: React.FC = () => {
                   </p>
                 </div>
 
-                {/* Contraseña */}
                 <div>
                   <div className="flex justify-between items-center mb-1.5">
                     <label
@@ -279,7 +274,6 @@ export const LoginScreen: React.FC = () => {
                   </p>
                 </div>
 
-                {/* Submit button */}
                 <button
                   type="submit"
                   disabled={loading || code.length !== 8 || !password}
@@ -300,7 +294,6 @@ export const LoginScreen: React.FC = () => {
         </div>
       </main>
 
-      {/* Pie de página */}
       <footer className="py-4 text-center text-xs text-slate-500">
         UCVGO
       </footer>

@@ -22,7 +22,6 @@ export const TeacherUnitsWeeksScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [archiveSuccess, setArchiveSuccess] = useState<string | null>(null);
 
-  // Unit Modal
   const [isUnitModalOpen, setIsUnitModalOpen] = useState<boolean>(false);
   const [editingUnit, setEditingUnit] = useState<LearningUnit | null>(null);
   const [unitForm, setUnitForm] = useState({
@@ -36,7 +35,6 @@ export const TeacherUnitsWeeksScreen: React.FC = () => {
   const [unitFormLoading, setUnitFormLoading] = useState<boolean>(false);
   const [unitFormError, setUnitFormError] = useState<string | null>(null);
 
-  // Week Modal
   const [isWeekModalOpen, setIsWeekModalOpen] = useState<boolean>(false);
   const [editingWeek, setEditingWeek] = useState<AcademicWeek | null>(null);
   const [weekForm, setWeekForm] = useState({
@@ -51,14 +49,12 @@ export const TeacherUnitsWeeksScreen: React.FC = () => {
   const [weekFormLoading, setWeekFormLoading] = useState<boolean>(false);
   const [weekFormError, setWeekFormError] = useState<string | null>(null);
 
-  // Delete Modals
   const [deletingUnit, setDeletingUnit] = useState<LearningUnit | null>(null);
   const [deleteUnitLoading, setDeleteUnitLoading] = useState<boolean>(false);
 
   const [deletingWeek, setDeletingWeek] = useState<AcademicWeek | null>(null);
   const [deleteWeekLoading, setDeleteWeekLoading] = useState<boolean>(false);
 
-  // Fetch teacher's sections
   const fetchSections = useCallback(async () => {
     if (!user || !isSupabaseConfigured()) {
       setLoadingSections(false);
@@ -88,7 +84,6 @@ export const TeacherUnitsWeeksScreen: React.FC = () => {
   const currentSection = sections.find((s) => s.id === selectedSectionId) || null;
   const currentOfferingId = currentSection?.offering_id || null;
 
-  // Fetch Units & Weeks for current offering_id
   const fetchUnitsAndWeeks = useCallback(async () => {
     if (!currentOfferingId || !isSupabaseConfigured()) {
       setUnits([]);
@@ -102,7 +97,6 @@ export const TeacherUnitsWeeksScreen: React.FC = () => {
     try {
       const supabase = getSupabaseClient();
 
-      // 1. Unidades
       const { data: uData, error: uErr } = await supabase
         .from('learning_units')
         .select('*')
@@ -112,7 +106,6 @@ export const TeacherUnitsWeeksScreen: React.FC = () => {
       if (uErr) throw uErr;
       setUnits(uData || []);
 
-      // 2. Semanas
       const { data: wData, error: wErr } = await supabase
         .from('academic_weeks')
         .select('*')
@@ -134,7 +127,6 @@ export const TeacherUnitsWeeksScreen: React.FC = () => {
     }
   }, [currentOfferingId, fetchUnitsAndWeeks]);
 
-  // UNIT CRUD
   const handleOpenCreateUnit = () => {
     const nextNumber = units.length > 0 ? Math.max(...units.map((u) => u.number)) + 1 : 1;
     setEditingUnit(null);
@@ -246,7 +238,6 @@ export const TeacherUnitsWeeksScreen: React.FC = () => {
     }
   };
 
-  // WEEK CRUD
   const handleOpenCreateWeek = () => {
     const nextNumber = weeks.length > 0 ? Math.max(...weeks.map((w) => w.number)) + 1 : 1;
     setEditingWeek(null);
@@ -359,7 +350,7 @@ export const TeacherUnitsWeeksScreen: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-      {/* Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
@@ -409,7 +400,6 @@ export const TeacherUnitsWeeksScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Section Selection Bar */}
       <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         <div className="flex-1 max-w-xl">
           <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">
@@ -443,7 +433,6 @@ export const TeacherUnitsWeeksScreen: React.FC = () => {
         )}
       </div>
 
-      {/* Global Error Banner */}
       {error && (
         <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-900 text-xs flex items-center gap-2.5 animate-in fade-in">
           <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
@@ -451,7 +440,6 @@ export const TeacherUnitsWeeksScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Archive Success Notice */}
       {archiveSuccess && (
         <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between animate-in fade-in">
           <div className="flex items-center gap-2">
@@ -464,14 +452,13 @@ export const TeacherUnitsWeeksScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Main Switcher & Content */}
       {!currentOfferingId ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center text-xs text-slate-500">
           Selecciona una sección para gestionar sus unidades y semanas académicas.
         </div>
       ) : (
         <div className="space-y-4">
-          {/* Switcher Tab */}
+
           <div className="flex border-b border-slate-200 gap-6 text-xs sm:text-sm">
             <button
               onClick={() => setActiveTab('units')}
@@ -495,7 +482,6 @@ export const TeacherUnitsWeeksScreen: React.FC = () => {
             </button>
           </div>
 
-          {/* TAB 1: UNIDADES */}
           {activeTab === 'units' && (
             <div className="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
               {loadingData ? (
@@ -576,7 +562,6 @@ export const TeacherUnitsWeeksScreen: React.FC = () => {
             </div>
           )}
 
-          {/* TAB 2: SEMANAS */}
           {activeTab === 'weeks' && (
             <div className="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
               {loadingData ? (
@@ -666,7 +651,6 @@ export const TeacherUnitsWeeksScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Unit Form Modal */}
       {isUnitModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
@@ -804,7 +788,6 @@ export const TeacherUnitsWeeksScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Week Form Modal */}
       {isWeekModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
@@ -959,7 +942,6 @@ export const TeacherUnitsWeeksScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Archive Unit Confirmation */}
       <DeleteConfirmModal
         isOpen={Boolean(deletingUnit)}
         title="Archivar Unidad de Aprendizaje"
@@ -970,7 +952,6 @@ export const TeacherUnitsWeeksScreen: React.FC = () => {
         onCancel={() => setDeletingUnit(null)}
       />
 
-      {/* Archive Week Confirmation */}
       <DeleteConfirmModal
         isOpen={Boolean(deletingWeek)}
         title="Archivar Semana Académica"

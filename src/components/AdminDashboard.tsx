@@ -12,7 +12,6 @@ interface AdminDashboardProps {
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
   const { profile } = useAuth();
 
-  // Metrics
   const [studentCount, setStudentCount] = useState<number | null>(null);
   const [teacherCount, setTeacherCount] = useState<number | null>(null);
   const [courseCount, setCourseCount] = useState<number | null>(null);
@@ -35,27 +34,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     try {
       const supabase = getSupabaseClient();
 
-      // 1. Alumnos: profiles con role = 'alumno'
       const { count: cAlumnos, error: errAlumnos } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
         .eq('role', 'alumno');
       if (errAlumnos) throw errAlumnos;
 
-      // 2. Profesores: profiles con role = 'profesor'
       const { count: cProfesores, error: errProfesores } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
         .eq('role', 'profesor');
       if (errProfesores) throw errProfesores;
 
-      // 3. Cursos: filas de la vista course_overview
       const { count: cCursos, error: errCursos } = await supabase
         .from('course_overview')
         .select('*', { count: 'exact', head: true });
       if (errCursos) throw errCursos;
 
-      // 4. Matrículas activas: enrollments con status = 'activa'
       const { count: cMatriculas, error: errMatriculas } = await supabase
         .from('enrollments')
         .select('*', { count: 'exact', head: true })
@@ -83,7 +78,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-      {/* Top Welcome Section */}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-[#0B2A5B]">
@@ -104,7 +99,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         </button>
       </div>
 
-      {/* Error state */}
       {error && (
         <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-900 text-xs flex items-center gap-2.5 animate-in fade-in">
           <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
@@ -112,9 +106,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         </div>
       )}
 
-      {/* Grid of Real Count Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {/* Card Alumnos */}
+
         <div className="bg-white rounded-2xl shadow-xs border border-slate-200 p-5 flex flex-col justify-between hover:shadow-md transition-shadow">
           <div>
             <div className="flex items-center justify-between mb-3">
@@ -165,7 +158,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
           </div>
         </div>
 
-        {/* Card Profesores */}
         <div className="bg-white rounded-2xl shadow-xs border border-slate-200 p-5 flex flex-col justify-between hover:shadow-md transition-shadow">
           <div>
             <div className="flex items-center justify-between mb-3">
@@ -216,7 +208,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
           </div>
         </div>
 
-        {/* Card Cursos */}
         <div className="bg-white rounded-2xl shadow-xs border border-slate-200 p-5 flex flex-col justify-between hover:shadow-md transition-shadow">
           <div>
             <div className="flex items-center justify-between mb-3">
@@ -260,7 +251,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
           </div>
         </div>
 
-        {/* Card Matrículas Activas */}
         <div className="bg-white rounded-2xl shadow-xs border border-slate-200 p-5 flex flex-col justify-between hover:shadow-md transition-shadow">
           <div>
             <div className="flex items-center justify-between mb-3">
@@ -305,7 +295,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         </div>
       </div>
 
-      {/* Quick Action Modal for users */}
       {modalRole && (
         <CreateUserModal
           isOpen={true}

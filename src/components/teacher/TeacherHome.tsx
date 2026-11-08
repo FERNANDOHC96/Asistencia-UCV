@@ -38,7 +38,6 @@ export const TeacherHome: React.FC<TeacherHomeProps> = ({ onNavigate }) => {
     try {
       const supabase = getSupabaseClient();
 
-      // 1. Obtener cursos del profesor desde course_overview
       const { data: cData, error: cErr } = await supabase
         .from('course_overview')
         .select('*')
@@ -50,11 +49,9 @@ export const TeacherHome: React.FC<TeacherHomeProps> = ({ onNavigate }) => {
       const teacherCourses = cData || [];
       setCourses(teacherCourses);
 
-      // 2. Alumnos matriculados en total (suma de students de course_overview)
       const totalStudents = teacherCourses.reduce((acc, c) => acc + (Number(c.students) || 0), 0);
       setTotalStudentsCount(totalStudents);
 
-      // 3. Sesiones programadas para hoy en las secciones del profesor
       const sectionIds = teacherCourses.map((c) => c.section_id);
       if (sectionIds.length > 0) {
         const { count: sTodayCount, error: sErr } = await supabase
@@ -82,7 +79,7 @@ export const TeacherHome: React.FC<TeacherHomeProps> = ({ onNavigate }) => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-      {/* Header institucional */}
+
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
@@ -111,7 +108,6 @@ export const TeacherHome: React.FC<TeacherHomeProps> = ({ onNavigate }) => {
         </button>
       </div>
 
-      {/* Error state */}
       {error && (
         <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-900 text-xs flex items-center gap-2.5 animate-in fade-in">
           <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
@@ -119,7 +115,6 @@ export const TeacherHome: React.FC<TeacherHomeProps> = ({ onNavigate }) => {
         </div>
       )}
 
-      {/* Sin cursos asignados: estado vacío claro */}
       {!loading && courses.length === 0 && (
         <div className="p-8 bg-white rounded-2xl border border-slate-200 text-center space-y-3 shadow-xs">
           <BookOpen className="w-12 h-12 text-slate-300 mx-auto" />
@@ -132,10 +127,9 @@ export const TeacherHome: React.FC<TeacherHomeProps> = ({ onNavigate }) => {
         </div>
       )}
 
-      {/* Métricas Principales (si tiene cursos o cargando) */}
       {(loading || courses.length > 0) && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-          {/* Card Cursos */}
+
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 flex flex-col justify-between hover:shadow-sm transition-shadow">
             <div>
               <div className="flex items-center justify-between mb-3">
@@ -167,7 +161,6 @@ export const TeacherHome: React.FC<TeacherHomeProps> = ({ onNavigate }) => {
             </div>
           </div>
 
-          {/* Card Sesiones de Hoy */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 flex flex-col justify-between hover:shadow-sm transition-shadow">
             <div>
               <div className="flex items-center justify-between mb-3">
@@ -199,7 +192,6 @@ export const TeacherHome: React.FC<TeacherHomeProps> = ({ onNavigate }) => {
             </div>
           </div>
 
-          {/* Card Alumnos Matriculados */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 flex flex-col justify-between hover:shadow-sm transition-shadow">
             <div>
               <div className="flex items-center justify-between mb-3">
@@ -233,7 +225,6 @@ export const TeacherHome: React.FC<TeacherHomeProps> = ({ onNavigate }) => {
         </div>
       )}
 
-      {/* Lista rápida de cursos asignados */}
       {courses.length > 0 && (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 space-y-4">
           <div className="flex items-center justify-between">

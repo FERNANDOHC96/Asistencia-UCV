@@ -6,12 +6,10 @@ interface CachedAvatar {
   expiresAt: number;
 }
 
-// Caché en memoria para URLs firmadas: clave `${id}:${avatar_updated_at}`
 const memoryCache = new Map<string, CachedAvatar>();
 
-// 3600 segundos (1 hora) de validez
 const SIGNED_URL_EXPIRES_IN = 3600;
-// Renovar 5 minutos antes de que expire (300 segundos = 300,000 ms)
+
 const RENEW_BEFORE_MS = 5 * 60 * 1000;
 
 export interface StudentAvatarInput {
@@ -19,17 +17,12 @@ export interface StudentAvatarInput {
   avatar_updated_at?: string | null;
 }
 
-/**
- * Obtiene URLs firmadas en lote para alumnos que tienen avatar_updated_at no nulo.
- * Si ya están en caché y faltan más de 5 min para expirar, reutiliza la URL.
- */
 export async function getBatchStudentAvatarUrls(
   students: StudentAvatarInput[]
 ): Promise<Record<string, string>> {
   const result: Record<string, string> = {};
   const now = Date.now();
 
-  // Filtrar solo los que tienen avatar_updated_at válido
   const studentsWithPhoto = students.filter(
     (s) => Boolean(s && s.id && s.avatar_updated_at)
   );
@@ -64,7 +57,7 @@ export async function getBatchStudentAvatarUrls(
       .createSignedUrls(paths, SIGNED_URL_EXPIRES_IN);
 
     if (error) {
-      // Si falla, se ignora silenciosamente para mostrar iniciales sin error
+
       console.warn('No se pudieron obtener URLs de avatares:', error.message);
       return result;
     }
@@ -73,7 +66,6 @@ export async function getBatchStudentAvatarUrls(
       data.forEach((item) => {
         if (!item || item.error || !item.signedUrl) return;
 
-        // El path es `${id}/avatar.jpg`
         const studentId = item.path?.split('/')[0];
         if (!studentId) return;
 
@@ -92,23 +84,19 @@ export async function getBatchStudentAvatarUrls(
       });
     }
   } catch (err) {
-    // Si la URL falla o lanza excepción, no mostrar error al usuario
+
     console.warn('Error al solicitar URLs firmadas de avatares:', err);
   }
 
   return result;
 }
 
-/**
- * Hook para cargar y mantener actualizadas las URLs firmadas de avatares de una lista de alumnos.
- */
 export function useStudentAvatarUrls(
   students: (StudentAvatarInput | undefined | null)[]
 ): Record<string, string> {
   const [avatarUrls, setAvatarUrls] = useState<Record<string, string>>({});
   const isMountedRef = useRef(true);
 
-  // Serializar ids y timestamps para evitar re-fetches innecesarios
   const validStudents = (students || []).filter(
     (s): s is StudentAvatarInput => Boolean(s && s.id && s.avatar_updated_at)
   );
@@ -133,7 +121,6 @@ export function useStudentAvatarUrls(
     isMountedRef.current = true;
     loadUrls();
 
-    // Renovar periódicamente cada 5 minutos para refrescar antes de que expiren (3600s)
     const interval = setInterval(() => {
       loadUrls();
     }, 5 * 60 * 1000);

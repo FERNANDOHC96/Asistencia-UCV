@@ -24,14 +24,9 @@ export interface StudentAttendanceStats {
   totalAttendancesCount: number;
 }
 
-/**
- * Consulta las matrículas activas del estudiante autenticado, con datos del curso,
- * periodo, sección, docentes (desde la vista teacher_names en 2 pasos) y horarios.
- */
 export async function getStudentEnrollments(studentId: string): Promise<StudentEnrollmentWithDetails[]> {
   const supabase = getSupabaseClient();
 
-  // 1. Obtener matrículas activas del estudiante
   const { data: enrollments, error: enrollErr } = await supabase
     .from('enrollments')
     .select('id, student_id, section_id, status, enrolled_at')
@@ -44,7 +39,6 @@ export async function getStudentEnrollments(studentId: string): Promise<StudentE
 
   const sectionIds = enrollments.map((e) => e.section_id);
 
-  // 2. Obtener secciones con curso y periodo (no archivadas)
   const { data: sectionsData, error: secErr } = await supabase
     .from('sections')
     .select(`
@@ -67,7 +61,6 @@ export async function getStudentEnrollments(studentId: string): Promise<StudentE
   if (secErr) throw secErr;
   if (!sectionsData || sectionsData.length === 0) return [];
 
-  // Filtrar secciones cuyos cursos o periodos estén archivados
   const validSections = sectionsData.filter((sec: any) => {
     const off = Array.isArray(sec.offering) ? sec.offering[0] : sec.offering;
     const crs = off && Array.isArray(off.course) ? off.course[0] : off?.course;
@@ -80,7 +73,6 @@ export async function getStudentEnrollments(studentId: string): Promise<StudentE
   const validSectionIds = validSections.map((s: any) => s.id);
   if (validSectionIds.length === 0) return [];
 
-  // 3. Obtener asignaciones de docentes para estas secciones
   const { data: assignments, error: assignErr } = await supabase
     .from('teaching_assignments')
     .select('id, section_id, teacher_id')
@@ -88,7 +80,6 @@ export async function getStudentEnrollments(studentId: string): Promise<StudentE
 
   if (assignErr) throw assignErr;
 
-  // 4. Obtener nombres de docentes desde la vista teacher_names
   const teacherIds = Array.from(new Set((assignments || []).map((a) => a.teacher_id)));
   let teacherMap: Record<string, TeacherName> = {};
 
@@ -105,7 +96,6 @@ export async function getStudentEnrollments(studentId: string): Promise<StudentE
     }
   }
 
-  // 5. Obtener horarios de estas secciones (no archivados)
   const { data: schedulesData, error: schedErr } = await supabase
     .from('schedules')
     .select('id, section_id, weekday, starts_at, ends_at, room, kind')
@@ -116,7 +106,6 @@ export async function getStudentEnrollments(studentId: string): Promise<StudentE
 
   if (schedErr) throw schedErr;
 
-  // Mapas por section_id
   const schedulesBySection: Record<string, Schedule[]> = {};
   (schedulesData || []).forEach((sch) => {
     if (!schedulesBySection[sch.section_id]) {
@@ -168,10 +157,6 @@ export async function getStudentEnrollments(studentId: string): Promise<StudentE
     });
 }
 
-/**
- * Consulta el historial personal de asistencia del alumno con class_sessions anidado.
- * Filtra sesiones y secciones archivadas.
- */
 export async function getStudentAttendanceRecords(studentId: string): Promise<AttendanceRecord[]> {
   const supabase = getSupabaseClient();
 
@@ -252,11 +237,6 @@ export interface SectionClosedCounts {
   total: number;
 }
 
-/**
- * Obtiene conteos de sesiones cerradas por sección desglosadas por tipo:
- * Porcentaje Teoría = presentes (teoría) ÷ sesiones cerradas (teoría) * 100
- * Porcentaje Práctica = presentes (práctica) ÷ sesiones cerradas (práctica) * 100
- */
 export async function getClosedSessionsCountBySections(
   sectionIds: string[]
 ): Promise<Record<string, SectionClosedCounts>> {
@@ -289,9 +269,6 @@ export async function getClosedSessionsCountBySections(
   return countMap;
 }
 
-/**
- * Resumen general del alumno para la pantalla de Inicio
- */
 export async function getStudentStats(studentId: string): Promise<StudentAttendanceStats> {
   const enrollments = await getStudentEnrollments(studentId);
   const attendances = await getStudentAttendanceRecords(studentId);

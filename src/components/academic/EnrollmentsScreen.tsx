@@ -26,29 +26,24 @@ export const EnrollmentsScreen: React.FC = () => {
   const [sections, setSections] = useState<SectionOption[]>([]);
   const [allStudents, setAllStudents] = useState<Profile[]>([]);
 
-  // Selection
   const [selectedPeriodId, setSelectedPeriodId] = useState<string>('');
   const [selectedCourseId, setSelectedCourseId] = useState<string>('');
   const [selectedSectionId, setSelectedSectionId] = useState<string>('');
 
-  // Enrollments in current section
   const [enrollments, setEnrollments] = useState<EnrollmentExtended[]>([]);
   const [loadingEnrollments, setLoadingEnrollments] = useState<boolean>(false);
   const [generalLoading, setGeneralLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Search & Multi-select students to enroll
   const [studentSearch, setStudentSearch] = useState<string>('');
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [enrollLoading, setEnrollLoading] = useState<boolean>(false);
   const [enrollError, setEnrollError] = useState<string | null>(null);
   const [enrollSuccess, setEnrollSuccess] = useState<string | null>(null);
 
-  // Withdraw modal
   const [withdrawingEnrollment, setWithdrawingEnrollment] = useState<EnrollmentExtended | null>(null);
   const [withdrawLoading, setWithdrawLoading] = useState<boolean>(false);
 
-  // Initial fetch for selectors and students
   const fetchInitialData = useCallback(async () => {
     if (!isSupabaseConfigured()) {
       setError('No se pudo conectar con el servicio. Contacta al administrador.');
@@ -62,7 +57,6 @@ export const EnrollmentsScreen: React.FC = () => {
     try {
       const supabase = getSupabaseClient();
 
-      // 1. Periods (non-archived)
       const { data: pData, error: pErr } = await supabase
         .from('periods')
         .select('id, name, starts_on, ends_on, status')
@@ -74,7 +68,6 @@ export const EnrollmentsScreen: React.FC = () => {
         setSelectedPeriodId(pData[0].id);
       }
 
-      // 2. Courses (non-archived)
       const { data: cData, error: cErr } = await supabase
         .from('courses')
         .select('id, code, name, credits')
@@ -86,7 +79,6 @@ export const EnrollmentsScreen: React.FC = () => {
         setSelectedCourseId(cData[0].id);
       }
 
-      // 3. Sections with offerings (non-archived)
       const { data: sData, error: sErr } = await supabase
         .from('sections')
         .select(`
@@ -132,7 +124,6 @@ export const EnrollmentsScreen: React.FC = () => {
         });
       setSections(normalizedSections);
 
-      // 4. Students
       const { data: stuData, error: stuErr } = await supabase
         .from('profiles')
         .select('id, code, first_names, last_names, role, active')
@@ -152,7 +143,6 @@ export const EnrollmentsScreen: React.FC = () => {
     fetchInitialData();
   }, [fetchInitialData]);
 
-  // Filter available sections based on selected Period and Course
   const availableSections = useMemo(() => {
     return sections.filter((s) => {
       const pMatch = !selectedPeriodId || s.offering?.period_id === selectedPeriodId;
@@ -161,7 +151,6 @@ export const EnrollmentsScreen: React.FC = () => {
     });
   }, [sections, selectedPeriodId, selectedCourseId]);
 
-  // Automatically select the first available section if current selection is invalid
   useEffect(() => {
     if (availableSections.length > 0) {
       if (!selectedSectionId || !availableSections.some((s) => s.id === selectedSectionId)) {
@@ -173,12 +162,10 @@ export const EnrollmentsScreen: React.FC = () => {
     }
   }, [availableSections, selectedSectionId]);
 
-  // Current active section object
   const currentSection = useMemo(() => {
     return sections.find((s) => s.id === selectedSectionId) || null;
   }, [sections, selectedSectionId]);
 
-  // Fetch enrollments for the selected section
   const fetchEnrollments = useCallback(async () => {
     if (!selectedSectionId || !isSupabaseConfigured()) {
       setEnrollments([]);
@@ -190,7 +177,7 @@ export const EnrollmentsScreen: React.FC = () => {
 
     try {
       const supabase = getSupabaseClient();
-      // 1. Consulta la tabla principal enrollments (sin select anidado a profiles)
+
       const { data: enrollData, error: eErr } = await supabase
         .from('enrollments')
         .select('id, student_id, section_id, offering_id, status, enrolled_at')
@@ -203,11 +190,9 @@ export const EnrollmentsScreen: React.FC = () => {
         return;
       }
 
-      // 2. Reúne los student_id y consulta profiles con .in('id', [...])
       const studentIds = (enrollData || []).map((row: any) => row.student_id);
       const studentProfilesMap = await fetchProfilesMapByIds(studentIds);
 
-      // 3. Une ambos resultados en el código de la web
       const joinedEnrollments: EnrollmentExtended[] = (enrollData || []).map((row: any) => ({
         ...row,
         student: studentProfilesMap[row.student_id]
@@ -235,7 +220,6 @@ export const EnrollmentsScreen: React.FC = () => {
     }
   }, [selectedSectionId, fetchEnrollments]);
 
-  // Active students in current section
   const activeEnrollmentsCount = useMemo(() => {
     return enrollments.filter((e) => e.status === 'activa').length;
   }, [enrollments]);
@@ -245,7 +229,6 @@ export const EnrollmentsScreen: React.FC = () => {
     return activeEnrollmentsCount >= currentSection.capacity;
   }, [currentSection, activeEnrollmentsCount]);
 
-  // Available students to enroll (exclude currently actively enrolled students in this section)
   const candidateStudents = useMemo(() => {
     const activelyEnrolledIds = new Set(
       enrollments.filter((e) => e.status === 'activa').map((e) => e.student_id)
@@ -278,7 +261,6 @@ export const EnrollmentsScreen: React.FC = () => {
     }
   };
 
-  // Perform Enrollments
   const handleEnrollSelected = async () => {
     if (!selectedSectionId || selectedStudentIds.length === 0) return;
 
@@ -292,7 +274,7 @@ export const EnrollmentsScreen: React.FC = () => {
 
     for (const studentId of selectedStudentIds) {
       try {
-        // Checking if student has a previous enrollment in this section (e.g. was 'retirada')
+
         const existing = enrollments.find((e) => e.student_id === studentId);
 
         if (existing) {
@@ -307,7 +289,7 @@ export const EnrollmentsScreen: React.FC = () => {
             successCount++;
           }
         } else {
-          // IMPORTANT: DO NOT SEND offering_id (calculated by database trigger/rules)
+
           const { error: insErr } = await supabase
             .from('enrollments')
             .insert({
@@ -328,7 +310,7 @@ export const EnrollmentsScreen: React.FC = () => {
     }
 
     if (errors.length > 0) {
-      setEnrollError(errors[0]); // Muestra el mensaje traducido o real
+      setEnrollError(errors[0]);
     }
     if (successCount > 0) {
       setEnrollSuccess(`Se matricularon ${successCount} alumno(s) exitosamente.`);
@@ -339,7 +321,6 @@ export const EnrollmentsScreen: React.FC = () => {
     fetchEnrollments();
   };
 
-  // Withdraw student (status = 'retirada', no borrar)
   const handleWithdrawStudent = async () => {
     if (!withdrawingEnrollment) return;
     setWithdrawLoading(true);
@@ -364,7 +345,6 @@ export const EnrollmentsScreen: React.FC = () => {
     }
   };
 
-  // Reactivate student enrollment
   const handleReactivateStudent = async (enrollmentId: string) => {
     try {
       const supabase = getSupabaseClient();
@@ -385,7 +365,7 @@ export const EnrollmentsScreen: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-      {/* Header */}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
@@ -414,14 +394,13 @@ export const EnrollmentsScreen: React.FC = () => {
         </button>
       </div>
 
-      {/* Selectors Bar */}
       <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 space-y-3">
         <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide">
           1. Selecciona la Sección Académica
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-          {/* Period selector */}
+
           <div>
             <label className="block text-slate-500 font-medium mb-1">Periodo:</label>
             <select
@@ -437,7 +416,6 @@ export const EnrollmentsScreen: React.FC = () => {
             </select>
           </div>
 
-          {/* Course selector */}
           <div>
             <label className="block text-slate-500 font-medium mb-1">Curso / Asignatura:</label>
             <select
@@ -453,7 +431,6 @@ export const EnrollmentsScreen: React.FC = () => {
             </select>
           </div>
 
-          {/* Section selector */}
           <div>
             <label className="block text-slate-500 font-medium mb-1">Sección:</label>
             <select
@@ -476,7 +453,6 @@ export const EnrollmentsScreen: React.FC = () => {
         </div>
       </div>
 
-      {/* Global Error Banner */}
       {error && (
         <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-900 text-xs flex items-center gap-2.5 animate-in fade-in">
           <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
@@ -484,7 +460,6 @@ export const EnrollmentsScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Main Content Area */}
       {!selectedSectionId ? (
         <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-12 text-center">
           <Users className="w-10 h-10 text-slate-400 mx-auto mb-2" />
@@ -495,7 +470,7 @@ export const EnrollmentsScreen: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left / Enrolled List (7 cols) */}
+
           <div className="lg:col-span-7 space-y-4">
             <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 flex items-center justify-between">
               <div>
@@ -508,7 +483,6 @@ export const EnrollmentsScreen: React.FC = () => {
                 </p>
               </div>
 
-              {/* Capacity indicator */}
               {currentSection?.capacity && (
                 <div>
                   {isSectionFull ? (
@@ -604,7 +578,6 @@ export const EnrollmentsScreen: React.FC = () => {
             </div>
           </div>
 
-          {/* Right / Enroll New Students (5 cols) */}
           <div className="lg:col-span-5 space-y-4">
             <div className="bg-white rounded-xl shadow-xs border border-slate-200 p-4 space-y-3">
               <div className="flex items-center justify-between">
@@ -618,7 +591,6 @@ export const EnrollmentsScreen: React.FC = () => {
                 </div>
               </div>
 
-              {/* Warning if section is full */}
               {isSectionFull && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-900 text-xs flex items-start gap-2">
                   <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
@@ -628,7 +600,6 @@ export const EnrollmentsScreen: React.FC = () => {
                 </div>
               )}
 
-              {/* Warning if batch will exceed capacity */}
               {!isSectionFull &&
                 currentSection?.capacity &&
                 activeEnrollmentsCount + selectedStudentIds.length > currentSection.capacity && (
@@ -640,7 +611,6 @@ export const EnrollmentsScreen: React.FC = () => {
                   </div>
                 )}
 
-              {/* Success / Error notification */}
               {enrollError && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-900 text-xs flex items-start gap-2">
                   <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
@@ -655,7 +625,6 @@ export const EnrollmentsScreen: React.FC = () => {
                 </div>
               )}
 
-              {/* Search candidate students */}
               <div className="relative">
                 <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
                 <input
@@ -667,7 +636,6 @@ export const EnrollmentsScreen: React.FC = () => {
                 />
               </div>
 
-              {/* Quick toggle all */}
               {candidateStudents.length > 0 && (
                 <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
                   <span>
@@ -684,7 +652,6 @@ export const EnrollmentsScreen: React.FC = () => {
                 </div>
               )}
 
-              {/* Student Candidate List */}
               <div className="max-h-60 overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100">
                 {candidateStudents.length === 0 ? (
                   <div className="p-4 text-center text-xs text-slate-400">
@@ -728,7 +695,6 @@ export const EnrollmentsScreen: React.FC = () => {
                 )}
               </div>
 
-              {/* Submit Enrollment Button */}
               <button
                 type="button"
                 onClick={handleEnrollSelected}
@@ -749,7 +715,6 @@ export const EnrollmentsScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Withdraw confirmation modal */}
       <DeleteConfirmModal
         isOpen={Boolean(withdrawingEnrollment)}
         title="Retirar Matrícula"
