@@ -371,18 +371,18 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
   }, [attendanceRows, searchQuery]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6 ucv-animate-in">
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-[11px] font-mono font-bold text-[#1F5FA8] uppercase tracking-wider mb-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-[11px] font-mono font-bold text-[#C8102E] uppercase tracking-wider mb-2">
             <span>Módulo de Asistencia</span>
           </div>
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 text-[#1F5FA8] flex items-center justify-center">
               <UserCheck className="w-5 h-5" />
             </div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-extrabold text-[#0B2A5B] tracking-tight">
               Registro de Asistencia Manual
             </h1>
           </div>
@@ -397,15 +397,15 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
             fetchSessionAttendance();
           }}
           disabled={loadingSections || loadingAttendance}
-          className="self-start sm:self-auto px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-semibold text-slate-700 shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+          className="self-start sm:self-auto px-3.5 py-2 bg-white border border-slate-200/90 hover:bg-slate-50 rounded-xl text-xs font-semibold text-slate-700 hover:text-[#0B2A5B] shadow-xs transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${loadingAttendance ? 'animate-spin text-[#1F5FA8]' : ''}`} />
+          <RefreshCw className={`w-3.5 h-3.5 ${loadingAttendance ? 'animate-spin text-[#C8102E]' : 'text-[#1F5FA8]'}`} />
           <span>Actualizar</span>
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
-        <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-2">
+      <div className="ucv-card rounded-2xl border-l-4 border-l-[#1F5FA8] p-6 space-y-4">
+        <h3 className="text-xs font-extrabold text-[#0B2A5B] uppercase tracking-wide flex items-center gap-2">
           <span>1. Selección de Sesión de Clase</span>
         </h3>
 
@@ -504,15 +504,15 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
       </div>
 
       {error && (
-        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-900 text-xs flex items-center gap-2.5 animate-in fade-in">
-          <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-900 text-xs flex items-center gap-2.5 ucv-slide-down">
+          <AlertCircle className="w-5 h-5 text-[#C8102E] shrink-0" />
           <div className="font-semibold">{error}</div>
         </div>
       )}
 
       {actionFeedback && (
         <div
-          className={`p-3 rounded-xl border text-xs flex items-center gap-2 animate-in fade-in ${
+          className={`p-3 rounded-xl border text-xs flex items-center gap-2 ucv-slide-down ${
             actionFeedback.type === 'success'
               ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
               : 'bg-red-50 border-red-200 text-red-900'
@@ -521,20 +521,20 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
           {actionFeedback.type === 'success' ? (
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
           ) : (
-            <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+            <AlertCircle className="w-4 h-4 text-[#C8102E] shrink-0" />
           )}
           <span className="font-semibold">{actionFeedback.message}</span>
         </div>
       )}
 
       {!selectedSessionId ? (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-12 text-center text-xs text-slate-500 font-medium">
+        <div className="ucv-card rounded-2xl p-12 text-center text-xs text-slate-500 font-medium">
           Selecciona una sección y una sesión de clase programada para registrar y consultar asistencias.
         </div>
       ) : (
         <div className="space-y-6">
 
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-5">
+          <div className="ucv-card rounded-2xl border-l-4 border-l-[#C8102E] p-6 space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
               <div>
                 <div className="flex items-center gap-2 mb-1.5">
@@ -608,7 +608,7 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 flex items-center justify-between gap-3 text-xs">
+          <div className="ucv-card rounded-2xl p-4 flex items-center justify-between gap-3 text-xs">
             <div className="relative flex-1 max-w-sm">
               <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
               <input
@@ -620,11 +620,11 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
               />
             </div>
             <span className="text-slate-500 font-medium">
-              Alumnos: <strong className="text-slate-800 font-mono">{filteredRows.length}</strong> de {students.length}
+              Alumnos: <strong className="text-[#0B2A5B] font-mono">{filteredRows.length}</strong> de <span className="font-mono">{students.length}</span>
             </span>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 space-y-3">
+          <div className="ucv-card rounded-2xl p-4 space-y-3">
             {loadingAttendance ? (
               <div className="py-16 text-center text-xs text-slate-500 font-mono">
                 <Loader2 className="w-6 h-6 text-[#1F5FA8] animate-spin mx-auto mb-2" />
@@ -740,10 +740,10 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
           </div>
 
           {attendanceRecords.length > 0 && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
+            <div className="ucv-card rounded-2xl p-6 space-y-4">
               <div className="flex items-center gap-2">
-                <History className="w-4 h-4 text-[#1F5FA8]" />
-                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                <History className="w-4 h-4 text-[#C8102E]" />
+                <h4 className="text-xs font-extrabold text-[#0B2A5B] uppercase tracking-wide">
                   Historial de Marcaciones de la Sesión ({attendanceRecords.length})
                 </h4>
               </div>

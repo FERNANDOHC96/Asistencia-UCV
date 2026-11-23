@@ -476,66 +476,69 @@ export const CoursesScreen: React.FC = () => {
       : null;
 
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6 ucv-animate-in">
 
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <button
-                onClick={() => {
-                  setSelectedCourse(null);
-                  setActionSuccess(null);
-                }}
-                className="mt-1 p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
-                title="Volver a Cursos"
-              >
-                <ArrowLeft className="w-5 h-5 text-[#0B2A5B]" />
-              </button>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-[#1F5FA8]">
-                    {selectedCourse.code}
-                  </span>
-                  <span className="text-xs text-slate-500 font-medium">
-                    Sección {selectedCourse.section_name}
-                  </span>
+        <div className="ucv-card rounded-2xl overflow-hidden">
+          <div className="h-1 ucv-topbar-split w-full" />
+          <div className="p-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <button
+                  onClick={() => {
+                    setSelectedCourse(null);
+                    setActionSuccess(null);
+                  }}
+                  className="mt-1 p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all active:scale-95 cursor-pointer"
+                  title="Volver a Cursos"
+                >
+                  <ArrowLeft className="w-5 h-5 text-[#0B2A5B]" />
+                </button>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-[#1F5FA8]">
+                      {selectedCourse.code}
+                    </span>
+                    <span className="text-xs text-slate-500 font-medium">
+                      Sección {selectedCourse.section_name}
+                    </span>
+                  </div>
+                  <h1 className="text-xl sm:text-2xl font-extrabold text-[#0B2A5B] mt-1 tracking-tight">
+                    {selectedCourse.name}
+                  </h1>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    ID de sección: <span className="font-mono text-slate-700">{selectedCourse.section_id}</span>
+                  </p>
                 </div>
-                <h1 className="text-xl sm:text-2xl font-black text-[#0B2A5B] mt-1">
-                  {selectedCourse.name}
-                </h1>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  ID de sección: <span className="font-mono text-slate-700">{selectedCourse.section_id}</span>
-                </p>
               </div>
+
+              <button
+                onClick={() => setIsArchiveModalOpen(true)}
+                className="self-start sm:self-auto px-3.5 py-2 border border-red-200 bg-red-50 hover:bg-[#C8102E] hover:text-white text-[#C8102E] rounded-xl text-xs font-bold flex items-center gap-2 transition-all active:scale-95 cursor-pointer group"
+              >
+                <Archive className="w-4 h-4 text-[#C8102E] group-hover:text-white transition-colors" />
+                <span>Archivar curso</span>
+              </button>
             </div>
 
-            <button
-              onClick={() => setIsArchiveModalOpen(true)}
-              className="self-start sm:self-auto px-3.5 py-2 border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 rounded-xl text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer"
-            >
-              <Archive className="w-4 h-4 text-red-600" />
-              <span>Archivar curso</span>
-            </button>
+            {detailSuccess && (
+              <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center gap-2 ucv-slide-down">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{detailSuccess}</span>
+              </div>
+            )}
+            {detailError && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-800 rounded-xl text-xs font-semibold flex items-center gap-2 ucv-slide-down">
+                <AlertCircle className="w-4 h-4 text-[#C8102E] shrink-0" />
+                <span>{detailError}</span>
+              </div>
+            )}
           </div>
-
-          {detailSuccess && (
-            <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>{detailSuccess}</span>
-            </div>
-          )}
-          {detailError && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-800 rounded-xl text-xs font-semibold flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
-              <span>{detailError}</span>
-            </div>
-          )}
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5">
+        <div className="ucv-card rounded-2xl border-l-4 border-l-[#1F5FA8] p-5">
           <div className="flex items-center gap-2 mb-3">
             <GraduationCap className="w-5 h-5 text-[#1F5FA8]" />
-            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+            <h2 className="text-sm font-bold text-[#0B2A5B] uppercase tracking-wider">
               Docente Asignado
             </h2>
           </div>
@@ -573,7 +576,7 @@ export const CoursesScreen: React.FC = () => {
               <button
                 onClick={handleSaveTeacher}
                 disabled={saveTeacherLoading}
-                className="px-4 py-2 bg-[#1F5FA8] hover:bg-[#0B2A5B] disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                className="px-4 py-2 bg-[#1F5FA8] hover:bg-[#0B2A5B] disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer shrink-0 shadow-xs"
               >
                 {saveTeacherLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -586,11 +589,11 @@ export const CoursesScreen: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5">
+        <div className="ucv-card rounded-2xl border-l-4 border-l-[#C8102E] p-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-2">
-              <UserCheck className="w-5 h-5 text-emerald-600" />
-              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+              <UserCheck className="w-5 h-5 text-[#C8102E]" />
+              <h2 className="text-sm font-bold text-[#0B2A5B] uppercase tracking-wider">
                 Alumnos Matriculados ({enrolledStudents.length})
               </h2>
             </div>
@@ -660,11 +663,11 @@ export const CoursesScreen: React.FC = () => {
           )}
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 space-y-4">
+        <div className="ucv-card rounded-2xl border-l-4 border-l-[#0B2A5B] p-5 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Users className="w-5 h-5 text-[#1F5FA8]" />
-              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+              <h2 className="text-sm font-bold text-[#0B2A5B] uppercase tracking-wider">
                 Matricular Alumnos
               </h2>
             </div>
@@ -758,9 +761,9 @@ export const CoursesScreen: React.FC = () => {
         </div>
 
         {unenrollStudentTarget && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-            <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200 space-y-4">
-              <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+            <div className="ucv-card ucv-scale-in rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-4">
+              <div className="w-12 h-12 rounded-full bg-red-100 text-[#C8102E] flex items-center justify-center mx-auto">
                 <UserMinus className="w-6 h-6" />
               </div>
               <div className="text-center">
@@ -786,7 +789,7 @@ export const CoursesScreen: React.FC = () => {
                 <button
                   onClick={handleUnenrollStudentConfirm}
                   disabled={unenrollLoading}
-                  className="flex-1 py-2 px-3 bg-[#C8102E] hover:bg-red-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="flex-1 py-2 px-3 bg-[#C8102E] hover:bg-[#A50D25] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   {unenrollLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                   <span>Sí, retirar</span>
@@ -797,8 +800,8 @@ export const CoursesScreen: React.FC = () => {
         )}
 
         {confirmEnrollAllOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-            <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200 space-y-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+            <div className="ucv-card ucv-scale-in rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-4">
               <div className="w-12 h-12 rounded-full bg-blue-100 text-[#1F5FA8] flex items-center justify-center mx-auto">
                 <Users className="w-6 h-6" />
               </div>
@@ -831,8 +834,8 @@ export const CoursesScreen: React.FC = () => {
         )}
 
         {isArchiveModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-            <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200 space-y-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+            <div className="ucv-card ucv-scale-in rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-4">
               <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto">
                 <AlertTriangle className="w-6 h-6" />
               </div>
@@ -867,12 +870,12 @@ export const CoursesScreen: React.FC = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6 ucv-animate-in">
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-[#0B2A5B] flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-[#1F5FA8]" />
+          <h1 className="text-xl sm:text-2xl font-extrabold text-[#0B2A5B] flex items-center gap-2 tracking-tight">
+            <BookOpen className="w-6 h-6 text-[#C8102E]" />
             <span>Gestión de Cursos</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
@@ -884,15 +887,15 @@ export const CoursesScreen: React.FC = () => {
           <button
             onClick={fetchCourses}
             disabled={loading}
-            className="px-3 py-2 bg-white border border-slate-200 text-slate-700 hover:text-[#1F5FA8] hover:bg-slate-50 rounded-xl text-xs font-semibold shadow-2xs transition-colors flex items-center gap-1.5 cursor-pointer"
+            className="px-3.5 py-2 bg-white border border-slate-200/90 text-slate-700 hover:text-[#0B2A5B] hover:bg-slate-50 rounded-xl text-xs font-semibold shadow-xs transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-[#1F5FA8]' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-[#C8102E]' : 'text-[#1F5FA8]'}`} />
             <span>Actualizar</span>
           </button>
 
           <button
             onClick={handleOpenNewCourseModal}
-            className="px-4 py-2 bg-[#1F5FA8] hover:bg-[#0B2A5B] text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+            className="px-4 py-2 bg-gradient-to-r from-[#0B2A5B] via-[#1F5FA8] to-[#C8102E] hover:brightness-110 text-white rounded-xl text-xs font-bold shadow-sm transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Nuevo curso</span>
@@ -901,7 +904,7 @@ export const CoursesScreen: React.FC = () => {
       </div>
 
       {actionSuccess && (
-        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center justify-between gap-2.5 animate-in fade-in">
+        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center justify-between gap-2.5 ucv-slide-down">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span className="font-semibold">{actionSuccess}</span>
@@ -916,8 +919,8 @@ export const CoursesScreen: React.FC = () => {
       )}
 
       {error && (
-        <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-900 text-xs flex items-center gap-2.5 animate-in fade-in">
-          <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+        <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-900 text-xs flex items-center gap-2.5 ucv-slide-down">
+          <AlertCircle className="w-4 h-4 text-[#C8102E] shrink-0" />
           <span className="font-semibold">{error}</span>
         </div>
       )}
@@ -929,11 +932,11 @@ export const CoursesScreen: React.FC = () => {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Buscar por código de curso, nombre de asignatura o profesor..."
-          className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-[#1F5FA8] shadow-2xs"
+          className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200/90 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-[#1F5FA8]/30 focus:border-[#1F5FA8] shadow-xs transition-all"
         />
       </div>
 
-      <div className="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+      <div className="ucv-card rounded-2xl overflow-hidden">
         {loading ? (
           <div className="py-16 flex flex-col items-center justify-center text-slate-400">
             <Loader2 className="w-8 h-8 animate-spin text-[#1F5FA8] mb-3" />
@@ -1037,18 +1040,18 @@ export const CoursesScreen: React.FC = () => {
       </div>
 
       {isNewCourseModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
-            <div className="bg-[#0B2A5B] text-white px-5 py-4 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="ucv-card ucv-scale-in rounded-2xl max-w-md w-full shadow-2xl overflow-hidden">
+            <div className="ucv-header-split text-white px-5 py-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-blue-300" />
-                <h3 className="text-sm font-bold">Nuevo Curso</h3>
+                <BookOpen className="w-5 h-5 text-white" />
+                <h3 className="text-sm font-extrabold">Nuevo Curso</h3>
               </div>
               <button
                 onClick={() => setIsNewCourseModalOpen(false)}
-                className="text-slate-300 hover:text-white transition-colors cursor-pointer"
+                className="text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-1 rounded-lg transition-colors cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 

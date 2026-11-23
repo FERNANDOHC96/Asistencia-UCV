@@ -965,7 +965,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
   const renderQrPanel = () => {
     if (isAttendanceOpen) {
       return (
-        <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-xs p-6 flex flex-col items-center justify-between text-center relative overflow-hidden">
+        <div className="lg:col-span-5 ucv-card rounded-2xl border-t-2 border-t-[#C8102E] p-6 flex flex-col items-center justify-between text-center relative overflow-hidden">
 
           <div className="w-full space-y-3 pb-3 border-b border-slate-100 mb-2">
             <div className="flex items-center justify-between">
@@ -1215,12 +1215,12 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
     }
 
     return (
-      <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-xs p-8 flex flex-col items-center justify-center text-center space-y-4">
-        <div className="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#1F5FA8]">
+      <div className="lg:col-span-5 ucv-card rounded-2xl border-t-2 border-t-[#C8102E] p-8 flex flex-col items-center justify-center text-center space-y-4">
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-50 to-red-50 border border-slate-200 flex items-center justify-center text-[#0B2A5B] shadow-xs">
           <QrCode className="w-8 h-8" />
         </div>
         <div>
-          <h3 className="text-base font-bold text-slate-800">Asistencia no iniciada</h3>
+          <h3 className="text-base font-extrabold text-[#0B2A5B]">Asistencia no iniciada</h3>
           <p className="text-xs text-slate-500 mt-1 max-w-xs font-medium">
             Abre la asistencia QR para proyectar el marcador animado a los estudiantes y registrar su asistencia en vivo.
           </p>
@@ -1230,7 +1230,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
             type="button"
             onClick={handleOpenAttendance}
             disabled={isOpenAttendanceLoading}
-            className="px-5 py-2.5 rounded-xl bg-[#1F5FA8] hover:bg-[#0B2A5B] text-white font-bold text-xs flex items-center gap-2 cursor-pointer shadow-xs transition-all"
+            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#0B2A5B] via-[#1F5FA8] to-[#C8102E] hover:brightness-110 active:scale-[0.98] text-white font-bold text-xs flex items-center gap-2 cursor-pointer shadow-sm transition-all"
           >
             {isOpenAttendanceLoading ? <RefreshCw className="w-4 h-4 animate-spin text-white" /> : <Play className="w-4 h-4 fill-white" />}
             <span>{isOpenAttendanceLoading ? 'Iniciando...' : 'Iniciar toma de asistencia'}</span>
@@ -1242,12 +1242,12 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
 
   const renderStudentListPanel = () => {
     return (
-      <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-xs p-6 flex flex-col space-y-4">
+      <div className="lg:col-span-7 ucv-card rounded-2xl border-t-2 border-t-[#1F5FA8] p-6 flex flex-col space-y-4">
 
         <div className="space-y-3 pb-3 border-b border-slate-100">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
-              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+              <h3 className="text-sm font-extrabold text-[#0B2A5B] uppercase tracking-wider flex items-center gap-2">
                 <Users className="w-4 h-4 text-[#1F5FA8]" />
                 <span>Lista Completa de Alumnos ({countMatriculados})</span>
               </h3>
@@ -1483,13 +1483,13 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6 ucv-animate-in">
 
       <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm pointer-events-none">
         {toasts.map((t) => (
           <div
             key={t.id}
-            className="pointer-events-auto bg-white/95 backdrop-blur-md border border-slate-200 shadow-xl rounded-xl p-3 flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-200"
+            className="pointer-events-auto bg-white/95 backdrop-blur-md border border-slate-200 shadow-xl rounded-xl p-3 flex items-center justify-between gap-3 ucv-slide-down"
           >
             <div className="flex items-center gap-2.5">
               <span
@@ -1517,8 +1517,8 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
       </div>
 
       {error && (
-        <div className="p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+        <div className="p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3 ucv-slide-down">
+          <AlertCircle className="w-5 h-5 text-[#C8102E] shrink-0 mt-0.5" />
           <div className="flex-1">
             <h4 className="text-xs font-bold text-red-800">Error en Asistencia</h4>
             <p className="text-xs text-red-700 mt-0.5">{error}</p>
@@ -1526,10 +1526,10 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
         </div>
       )}
 
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
+      <div className="ucv-card rounded-2xl border-l-4 border-l-[#1F5FA8] p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <h2 className="text-xs uppercase font-bold text-slate-700 tracking-wider">
+            <h2 className="text-xs uppercase font-extrabold text-[#0B2A5B] tracking-wider">
               Sesión de Hoy ({formatDisplayDate(todayLima)})
             </h2>
           </div>
@@ -1603,7 +1603,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
       </div>
 
       {activeSession && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 flex flex-wrap items-center justify-between gap-4">
+        <div className="ucv-card rounded-2xl border-l-4 border-l-[#C8102E] p-6 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <span
               className={`w-3.5 h-3.5 rounded-full ${
@@ -1611,7 +1611,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
               }`}
             />
             <div>
-              <h3 className="text-sm font-bold text-slate-800">
+              <h3 className="text-sm font-bold text-[#0B2A5B]">
                 {isAttendanceOpen ? 'Asistencia en Curso (Código QR Activo)' : 'Asistencia Detenida'}
               </h3>
               <p className="text-xs text-slate-500 font-medium mt-0.5">
@@ -1630,7 +1630,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
                 type="button"
                 onClick={handleOpenAttendance}
                 disabled={isOpenAttendanceLoading}
-                className="px-5 py-2.5 rounded-xl bg-[#1F5FA8] hover:bg-[#0B2A5B] text-white font-bold text-xs flex items-center gap-2 cursor-pointer shadow-xs transition-all disabled:opacity-50"
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#0B2A5B] via-[#1F5FA8] to-[#C8102E] hover:brightness-110 active:scale-[0.98] text-white font-bold text-xs flex items-center gap-2 cursor-pointer shadow-sm transition-all disabled:opacity-50"
               >
                 {isOpenAttendanceLoading ? <RefreshCw className="w-4 h-4 animate-spin text-white" /> : <Play className="w-4 h-4 fill-white" />}
                 <span>{isOpenAttendanceLoading ? 'Abriendo...' : 'Abrir Asistencia QR'}</span>
@@ -1641,7 +1641,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
               <button
                 type="button"
                 onClick={() => setIsCloseModalOpen(true)}
-                className="px-5 py-2.5 rounded-xl bg-[#C8102E] hover:bg-red-800 text-white font-bold text-xs flex items-center gap-2 cursor-pointer shadow-xs transition-all"
+                className="px-5 py-2.5 rounded-xl bg-[#C8102E] hover:bg-[#A50D25] active:scale-[0.98] text-white font-bold text-xs flex items-center gap-2 cursor-pointer shadow-sm transition-all"
               >
                 <StopCircle className="w-4 h-4" />
                 <span>Cerrar Asistencia</span>
@@ -1652,7 +1652,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
       )}
 
       {(closeSummary || activeSession?.status === 'cerrada') && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
+        <div className="ucv-card ucv-animate-in rounded-2xl p-6 space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-emerald-600" />
@@ -1729,76 +1729,81 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
       )}
 
       {justifyingStudent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-sm w-full p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-slate-100 border border-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs">
-                  J
-                </span>
-                <h3 className="text-sm font-bold text-slate-900">Justificar Inasistencia</h3>
-              </div>
-              <button
-                onClick={() => setJustifyingStudent(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-600 font-medium">
-              Estudiante: <strong className="text-slate-800">{justifyingStudent.studentName}</strong> ({justifyingStudent.studentCode})
-            </p>
-
-            {justificationError && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-800 text-xs font-semibold">
-                {justificationError}
-              </div>
-            )}
-
-            <form onSubmit={handleSaveJustification} className="space-y-3">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Motivo de la Justificación *
-                </label>
-                <textarea
-                  required
-                  rows={3}
-                  placeholder="Ej. Certificado médico presentado / Licencia académica"
-                  value={justificationInput}
-                  onChange={(e) => setJustificationInput(e.target.value)}
-                  className="w-full px-3 py-2 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] focus:ring-2 focus:ring-[#1F5FA8]/20 transition-all outline-none text-slate-800"
-                />
-              </div>
-
-              <div className="flex gap-2 pt-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="ucv-card ucv-scale-in rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden">
+            <div className="h-1 ucv-topbar-split w-full" />
+            <div className="p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-slate-100 border border-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs">
+                    J
+                  </span>
+                  <h3 className="text-sm font-bold text-[#0B2A5B]">Justificar Inasistencia</h3>
+                </div>
                 <button
-                  type="button"
                   onClick={() => setJustifyingStudent(null)}
-                  className="flex-1 py-2 px-3 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl shadow-xs transition-all cursor-pointer"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer transition-colors"
                 >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSavingJustification}
-                  className="flex-1 py-2 px-3 disabled:opacity-50 text-white text-xs font-bold rounded-xl bg-[#1F5FA8] hover:bg-[#0B2A5B] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-all"
-                >
-                  {isSavingJustification ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : null}
-                  <span>Guardar Justificación</span>
+                  <X className="w-4 h-4" />
                 </button>
               </div>
-            </form>
+
+              <p className="text-xs text-slate-600 font-medium">
+                Estudiante: <strong className="text-slate-800">{justifyingStudent.studentName}</strong> ({justifyingStudent.studentCode})
+              </p>
+
+              {justificationError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-800 text-xs font-semibold">
+                  {justificationError}
+                </div>
+              )}
+
+              <form onSubmit={handleSaveJustification} className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Motivo de la Justificación *
+                  </label>
+                  <textarea
+                    required
+                    rows={3}
+                    placeholder="Ej. Certificado médico presentado / Licencia académica"
+                    value={justificationInput}
+                    onChange={(e) => setJustificationInput(e.target.value)}
+                    className="w-full px-3 py-2 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] focus:ring-2 focus:ring-[#1F5FA8]/20 transition-all outline-none text-slate-800"
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setJustifyingStudent(null)}
+                    className="flex-1 py-2 px-3 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl shadow-xs transition-all cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingJustification}
+                    className="flex-1 py-2 px-3 disabled:opacity-50 text-white text-xs font-bold rounded-xl bg-[#1F5FA8] hover:bg-[#0B2A5B] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-all"
+                  >
+                    {isSavingJustification ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : null}
+                    <span>Guardar Justificación</span>
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}
 
       {isCloseModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-sm w-full p-6 space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-red-50 border border-red-100 text-red-600 flex items-center justify-center mx-auto">
-              <StopCircle className="w-6 h-6" />
-            </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="ucv-card ucv-scale-in rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden">
+            <div className="h-1 ucv-topbar-split w-full" />
+            <div className="p-6 space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-red-50 border border-red-100 text-[#C8102E] flex items-center justify-center mx-auto">
+                <StopCircle className="w-6 h-6" />
+              </div>
             <div className="text-center">
               <h3 className="text-base font-bold text-slate-900">¿Cerrar la Asistencia?</h3>
               <p className="text-xs text-slate-500 mt-1 font-medium">
@@ -1816,11 +1821,12 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
               <button
                 onClick={handleConfirmCloseAttendance}
                 disabled={isClosing}
-                className="flex-1 py-2 px-3 text-white text-xs font-bold rounded-xl bg-[#C8102E] hover:bg-red-800 flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-all"
+                className="flex-1 py-2 px-3 text-white text-xs font-bold rounded-xl bg-[#C8102E] hover:bg-[#A50D25] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-all"
               >
                 {isClosing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : null}
                 <span>Sí, cerrar asistencia</span>
               </button>
+            </div>
             </div>
           </div>
         </div>

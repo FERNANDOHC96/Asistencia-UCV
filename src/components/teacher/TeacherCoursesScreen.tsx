@@ -429,105 +429,108 @@ export const TeacherCoursesScreen: React.FC = () => {
 
   if (selectedCourse) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6 ucv-animate-in">
 
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-start gap-4">
-              <button
-                onClick={() => setSelectedCourse(null)}
-                className="p-2 hover:bg-slate-100 rounded-xl text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
-                title="Volver a Mis Cursos"
-              >
-                <ArrowLeft className="w-5 h-5 text-[#0B2A5B]" />
-              </button>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-mono text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-[#1F5FA8]">
-                    {selectedCourse.code}
-                  </span>
-                  <span className="text-xs text-slate-500 font-semibold">
-                    Sección {selectedCourse.section_name}
-                  </span>
+        <div className="ucv-card rounded-2xl overflow-hidden">
+          <div className="h-1 ucv-topbar-split w-full" />
+          <div className="p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <button
+                  onClick={() => setSelectedCourse(null)}
+                  className="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-600 hover:text-[#0B2A5B] transition-all active:scale-95 cursor-pointer"
+                  title="Volver a Mis Cursos"
+                >
+                  <ArrowLeft className="w-5 h-5 text-[#0B2A5B]" />
+                </button>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-[#1F5FA8]">
+                      {selectedCourse.code}
+                    </span>
+                    <span className="text-xs text-slate-500 font-semibold">
+                      Sección {selectedCourse.section_name}
+                    </span>
+                  </div>
+                  <h1 className="text-xl sm:text-2xl font-extrabold text-[#0B2A5B] mt-1 tracking-tight">
+                    {selectedCourse.name}
+                  </h1>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Estudiantes matriculados: <strong className="text-[#C8102E] font-mono">{selectedCourse.students ?? 0}</strong>
+                  </p>
                 </div>
-                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">
-                  {selectedCourse.name}
-                </h1>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Estudiantes matriculados: <strong className="text-slate-700">{selectedCourse.students ?? 0}</strong>
-                </p>
               </div>
             </div>
-          </div>
 
-          <div className="mt-5 border-t border-slate-100 pt-3 flex flex-wrap items-center gap-2">
+            <div className="mt-5 border-t border-slate-100 pt-3.5 flex flex-wrap items-center gap-2">
 
-            <button
-              onClick={() => setActiveTab('horario')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
-                activeTab === 'horario'
-                  ? 'bg-[#1F5FA8] text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-              }`}
-            >
-              <Clock className="w-3.5 h-3.5" />
-              <span>1. Horario</span>
-            </button>
+              <button
+                onClick={() => setActiveTab('horario')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all duration-200 active:scale-[0.98] cursor-pointer ${
+                  activeTab === 'horario'
+                    ? 'bg-gradient-to-r from-[#0B2A5B] via-[#1F5FA8] to-[#C8102E] text-white shadow-sm'
+                    : 'text-slate-600 hover:text-[#0B2A5B] hover:bg-slate-100'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>1. Horario</span>
+              </button>
 
-            <button
-              onClick={() => setActiveTab('sesiones')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
-                activeTab === 'sesiones'
-                  ? 'bg-[#1F5FA8] text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-              }`}
-            >
-              <Calendar className="w-3.5 h-3.5" />
-              <span>2. Sesiones</span>
-            </button>
+              <button
+                onClick={() => setActiveTab('sesiones')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all duration-200 active:scale-[0.98] cursor-pointer ${
+                  activeTab === 'sesiones'
+                    ? 'bg-gradient-to-r from-[#0B2A5B] via-[#1F5FA8] to-[#C8102E] text-white shadow-sm'
+                    : 'text-slate-600 hover:text-[#0B2A5B] hover:bg-slate-100'
+                }`}
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span>2. Sesiones</span>
+              </button>
 
-            <button
-              onClick={() => setActiveTab('asistencia')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
-                activeTab === 'asistencia'
-                  ? 'bg-[#1F5FA8] text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-              }`}
-            >
-              <QrCode className="w-3.5 h-3.5" />
-              <span>3. Asistencia</span>
-            </button>
+              <button
+                onClick={() => setActiveTab('asistencia')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all duration-200 active:scale-[0.98] cursor-pointer ${
+                  activeTab === 'asistencia'
+                    ? 'bg-gradient-to-r from-[#0B2A5B] via-[#1F5FA8] to-[#C8102E] text-white shadow-sm'
+                    : 'text-slate-600 hover:text-[#0B2A5B] hover:bg-slate-100'
+                }`}
+              >
+                <QrCode className="w-3.5 h-3.5" />
+                <span>3. Asistencia</span>
+              </button>
 
-            <button
-              onClick={() => setActiveTab('asistencia_manual')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
-                activeTab === 'asistencia_manual'
-                  ? 'bg-[#1F5FA8] text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-              }`}
-            >
-              <Edit3 className="w-3.5 h-3.5" />
-              <span>4. Asistencia manual</span>
-            </button>
+              <button
+                onClick={() => setActiveTab('asistencia_manual')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all duration-200 active:scale-[0.98] cursor-pointer ${
+                  activeTab === 'asistencia_manual'
+                    ? 'bg-gradient-to-r from-[#0B2A5B] via-[#1F5FA8] to-[#C8102E] text-white shadow-sm'
+                    : 'text-slate-600 hover:text-[#0B2A5B] hover:bg-slate-100'
+                }`}
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>4. Asistencia manual</span>
+              </button>
 
-            <button
-              onClick={() => setActiveTab('alumnos')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
-                activeTab === 'alumnos'
-                  ? 'bg-[#1F5FA8] text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-              }`}
-            >
-              <Users className="w-3.5 h-3.5" />
-              <span>5. Alumnos</span>
-            </button>
+              <button
+                onClick={() => setActiveTab('alumnos')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all duration-200 active:scale-[0.98] cursor-pointer ${
+                  activeTab === 'alumnos'
+                    ? 'bg-gradient-to-r from-[#0B2A5B] via-[#1F5FA8] to-[#C8102E] text-white shadow-sm'
+                    : 'text-slate-600 hover:text-[#0B2A5B] hover:bg-slate-100'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>5. Alumnos</span>
+              </button>
+            </div>
           </div>
         </div>
 
         {activeTab === 'horario' && (
-          <div className="space-y-5">
+          <div className="space-y-5 ucv-animate-in">
 
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl flex items-start gap-3">
+            <div className="p-4 bg-blue-50/80 border border-blue-200 rounded-2xl flex items-start gap-3">
               <Info className="w-5 h-5 text-[#1F5FA8] shrink-0 mt-0.5" />
               <div className="text-xs text-blue-900">
                 <p className="font-bold">Configuración de Franjas Horarias</p>
@@ -538,7 +541,7 @@ export const TeacherCoursesScreen: React.FC = () => {
             </div>
 
             {scheduleSuccess && (
-              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center justify-between">
+              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center justify-between ucv-slide-down">
                 <span>{scheduleSuccess}</span>
                 <button onClick={() => setScheduleSuccess(null)} className="cursor-pointer">
                   <X className="w-4 h-4" />
@@ -546,7 +549,7 @@ export const TeacherCoursesScreen: React.FC = () => {
               </div>
             )}
             {scheduleError && (
-              <div className="p-3 bg-red-50 border border-red-200 text-red-800 rounded-xl text-xs font-semibold flex items-center justify-between">
+              <div className="p-3 bg-red-50 border border-red-200 text-red-800 rounded-xl text-xs font-semibold flex items-center justify-between ucv-slide-down">
                 <span>{scheduleError}</span>
                 <button onClick={() => setScheduleError(null)} className="cursor-pointer">
                   <X className="w-4 h-4" />
@@ -554,16 +557,16 @@ export const TeacherCoursesScreen: React.FC = () => {
               </div>
             )}
 
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6">
+            <div className="ucv-card rounded-2xl p-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
-                <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-[#1F5FA8]" />
+                <h2 className="text-sm font-bold text-[#0B2A5B] uppercase tracking-wider flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-[#C8102E]" />
                   <span>Franjas Horarias de la Sección ({schedules.length})</span>
                 </h2>
 
                 <button
                   onClick={() => setIsAddingSchedule(!isAddingSchedule)}
-                  className="px-3.5 py-2 bg-[#1F5FA8] hover:bg-[#0B2A5B] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs self-start sm:self-auto"
+                  className="px-3.5 py-2 bg-[#1F5FA8] hover:bg-[#0B2A5B] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs self-start sm:self-auto"
                 >
                   <Plus className="w-4 h-4" />
                   <span>{isAddingSchedule ? 'Cerrar formulario' : 'Añadir franja horaria'}</span>
@@ -745,10 +748,10 @@ export const TeacherCoursesScreen: React.FC = () => {
         )}
 
         {activeTab === 'sesiones' && (
-          <div className="space-y-5">
+          <div className="space-y-5 ucv-animate-in">
 
             {sessionsSuccess && (
-              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center justify-between">
+              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center justify-between ucv-slide-down">
                 <span>{sessionsSuccess}</span>
                 <button onClick={() => setSessionsSuccess(null)}>
                   <X className="w-4 h-4" />
@@ -756,7 +759,7 @@ export const TeacherCoursesScreen: React.FC = () => {
               </div>
             )}
             {sessionsError && (
-              <div className="p-3 bg-red-50 border border-red-200 text-red-800 rounded-xl text-xs font-semibold flex items-center justify-between">
+              <div className="p-3 bg-red-50 border border-red-200 text-red-800 rounded-xl text-xs font-semibold flex items-center justify-between ucv-slide-down">
                 <span>{sessionsError}</span>
                 <button onClick={() => setSessionsError(null)}>
                   <X className="w-4 h-4" />
@@ -764,11 +767,11 @@ export const TeacherCoursesScreen: React.FC = () => {
               </div>
             )}
 
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5">
+            <div className="ucv-card rounded-2xl p-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                 <div>
-                  <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-[#1F5FA8]" />
+                  <h2 className="text-sm font-bold text-[#0B2A5B] uppercase tracking-wider flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-[#C8102E]" />
                     <span>Sesiones del Curso ({sessions.length})</span>
                   </h2>
                   <p className="text-xs text-slate-500 mt-0.5">
@@ -898,17 +901,19 @@ export const TeacherCoursesScreen: React.FC = () => {
             </div>
 
             {isSingleDayModalOpen && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-                <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-5 h-5 text-[#1F5FA8]" />
-                      <h3 className="text-sm font-bold text-slate-900">Crear Día de Clase</h3>
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+                <div className="ucv-card ucv-scale-in rounded-2xl max-w-sm w-full overflow-hidden shadow-2xl">
+                  <div className="h-1 ucv-topbar-split w-full" />
+                  <div className="p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-5 h-5 text-[#1F5FA8]" />
+                        <h3 className="text-sm font-bold text-[#0B2A5B]">Crear Día de Clase</h3>
+                      </div>
+                      <button onClick={() => setIsSingleDayModalOpen(false)} className="cursor-pointer">
+                        <X className="w-4 h-4 text-slate-400 hover:text-slate-700" />
+                      </button>
                     </div>
-                    <button onClick={() => setIsSingleDayModalOpen(false)}>
-                      <X className="w-4 h-4 text-slate-400" />
-                    </button>
-                  </div>
 
                   {singleError && (
                     <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-800 text-xs font-semibold">
@@ -964,22 +969,25 @@ export const TeacherCoursesScreen: React.FC = () => {
                       </button>
                     </div>
                   </form>
+                  </div>
                 </div>
               </div>
             )}
 
             {isMultiDayModalOpen && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-                <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-5 h-5 text-[#1F5FA8]" />
-                      <h3 className="text-sm font-bold text-slate-900">Crear Varios Días</h3>
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+                <div className="ucv-card ucv-scale-in rounded-2xl max-w-sm w-full overflow-hidden shadow-2xl">
+                  <div className="h-1 ucv-topbar-split w-full" />
+                  <div className="p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-5 h-5 text-[#C8102E]" />
+                        <h3 className="text-sm font-bold text-[#0B2A5B]">Crear Varios Días</h3>
+                      </div>
+                      <button onClick={() => setIsMultiDayModalOpen(false)} className="cursor-pointer">
+                        <X className="w-4 h-4 text-slate-400 hover:text-slate-700" />
+                      </button>
                     </div>
-                    <button onClick={() => setIsMultiDayModalOpen(false)}>
-                      <X className="w-4 h-4 text-slate-400" />
-                    </button>
-                  </div>
 
                   {rangeError && (
                     <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-800 text-xs font-semibold">
@@ -1045,22 +1053,25 @@ export const TeacherCoursesScreen: React.FC = () => {
                       </button>
                     </div>
                   </form>
+                  </div>
                 </div>
               </div>
             )}
 
             {isManualSessionModalOpen && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-                <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Edit3 className="w-5 h-5 text-[#1F5FA8]" />
-                      <h3 className="text-sm font-bold text-slate-900">Nueva Sesión Manual</h3>
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+                <div className="ucv-card ucv-scale-in rounded-2xl max-w-sm w-full overflow-hidden shadow-2xl">
+                  <div className="h-1 ucv-topbar-split w-full" />
+                  <div className="p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Edit3 className="w-5 h-5 text-[#1F5FA8]" />
+                        <h3 className="text-sm font-bold text-[#0B2A5B]">Nueva Sesión Manual</h3>
+                      </div>
+                      <button onClick={() => setIsManualSessionModalOpen(false)} className="cursor-pointer">
+                        <X className="w-4 h-4 text-slate-400 hover:text-slate-700" />
+                      </button>
                     </div>
-                    <button onClick={() => setIsManualSessionModalOpen(false)}>
-                      <X className="w-4 h-4 text-slate-400" />
-                    </button>
-                  </div>
 
                   {manualError && (
                     <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-800 text-xs font-semibold">
@@ -1155,6 +1166,7 @@ export const TeacherCoursesScreen: React.FC = () => {
                       </button>
                     </div>
                   </form>
+                  </div>
                 </div>
               </div>
             )}
@@ -1170,11 +1182,11 @@ export const TeacherCoursesScreen: React.FC = () => {
         )}
 
         {activeTab === 'alumnos' && (
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 space-y-4">
+          <div className="ucv-card ucv-animate-in rounded-2xl p-5 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-[#1F5FA8]" />
-                <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                <Users className="w-5 h-5 text-[#C8102E]" />
+                <h2 className="text-sm font-bold text-[#0B2A5B] uppercase tracking-wider">
                   Alumnos Matriculados ({students.length})
                 </h2>
               </div>
@@ -1255,12 +1267,12 @@ export const TeacherCoursesScreen: React.FC = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6 ucv-animate-in">
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-[#0B2A5B] flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-[#1F5FA8]" />
+          <h1 className="text-xl sm:text-2xl font-extrabold text-[#0B2A5B] flex items-center gap-2 tracking-tight">
+            <BookOpen className="w-6 h-6 text-[#C8102E]" />
             <span>Mis Cursos</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
@@ -1271,16 +1283,16 @@ export const TeacherCoursesScreen: React.FC = () => {
         <button
           onClick={fetchTeacherCourses}
           disabled={loading}
-          className="self-start sm:self-auto px-3 py-1.5 bg-white border border-slate-200 text-slate-700 hover:text-[#1F5FA8] hover:bg-slate-50 rounded-lg text-xs font-semibold shadow-2xs transition-colors flex items-center gap-1.5 cursor-pointer"
+          className="self-start sm:self-auto px-3.5 py-2 bg-white border border-slate-200/90 text-slate-700 hover:text-[#0B2A5B] hover:bg-slate-50 rounded-xl text-xs font-semibold shadow-xs transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-[#1F5FA8]' : ''}`} />
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-[#C8102E]' : 'text-[#1F5FA8]'}`} />
           <span>Actualizar</span>
         </button>
       </div>
 
       {error && (
-        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-900 text-xs flex items-center gap-2.5">
-          <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-900 text-xs flex items-center gap-2.5 ucv-slide-down">
+          <AlertCircle className="w-5 h-5 text-[#C8102E] shrink-0" />
           <div className="font-semibold">{error}</div>
         </div>
       )}
@@ -1291,7 +1303,7 @@ export const TeacherCoursesScreen: React.FC = () => {
           <span className="text-xs font-semibold">Cargando tus cursos asignados...</span>
         </div>
       ) : courses.length === 0 ? (
-        <div className="p-8 bg-white rounded-2xl border border-slate-200 text-center shadow-xs">
+        <div className="p-8 ucv-card rounded-2xl text-center ucv-scale-in">
           <BookOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" />
           <h2 className="text-base font-bold text-slate-800">
             Todavía no tienes cursos asignados. Pide al administrador que te asigne uno.
@@ -1302,41 +1314,54 @@ export const TeacherCoursesScreen: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {courses.map((c) => (
-            <div
-              key={c.section_id}
-              onClick={() => {
-                setSelectedCourse(c);
-                setActiveTab('horario');
-              }}
-              className="bg-white rounded-2xl border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all p-5 flex flex-col justify-between cursor-pointer group"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="font-mono text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-[#1F5FA8]">
-                    {c.code}
+          {courses.map((c, idx) => {
+            const isCrimsonAccent = idx % 2 === 1;
+            return (
+              <div
+                key={c.section_id}
+                onClick={() => {
+                  setSelectedCourse(c);
+                  setActiveTab('horario');
+                }}
+                className={`ucv-card ucv-card-interactive ucv-animate-in ucv-delay-${(idx % 4) + 1} rounded-2xl border-t-2 ${
+                  isCrimsonAccent
+                    ? 'border-t-[#C8102E] hover:border-red-300'
+                    : 'border-t-[#1F5FA8] hover:border-blue-300'
+                } p-5 flex flex-col justify-between cursor-pointer group`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className={`font-mono text-xs font-bold px-2.5 py-0.5 rounded-full ${
+                      isCrimsonAccent
+                        ? 'bg-red-50 text-[#C8102E] border border-red-100'
+                        : 'bg-blue-50 text-[#1F5FA8] border border-blue-100'
+                    }`}>
+                      {c.code}
+                    </span>
+                    <span className="text-xs font-bold text-slate-500">
+                      Secc. {c.section_name}
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-slate-900 group-hover:text-[#0B2A5B] transition-colors mb-2">
+                    {c.name}
+                  </h3>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-1.5 text-slate-600 font-medium">
+                    <Users className="w-4 h-4 text-slate-400" />
+                    <span>{c.students ?? 0} estudiantes</span>
                   </span>
-                  <span className="text-xs font-bold text-slate-500">
-                    Secc. {c.section_name}
+                  <span className={`font-bold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform ${
+                    isCrimsonAccent ? 'text-[#C8102E]' : 'text-[#1F5FA8]'
+                  }`}>
+                    <span>Entrar al curso</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
                   </span>
                 </div>
-                <h3 className="text-base font-bold text-slate-900 group-hover:text-[#1F5FA8] transition-colors mb-2">
-                  {c.name}
-                </h3>
               </div>
-
-              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                <span className="flex items-center gap-1.5 text-slate-600 font-medium">
-                  <Users className="w-4 h-4 text-slate-400" />
-                  <span>{c.students ?? 0} estudiantes</span>
-                </span>
-                <span className="font-bold text-[#1F5FA8] flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                  <span>Entrar al curso</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

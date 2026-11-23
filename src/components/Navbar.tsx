@@ -20,15 +20,15 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab }) => {
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full shadow-xs">
+    <header className="sticky top-0 z-40 w-full shadow-sm">
 
-      <div className="h-1 bg-[#C8102E] w-full" />
+      <div className="h-1 ucv-topbar-split w-full" />
 
-      <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-2.5">
+      <div className="bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-6 py-2.5">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
 
           <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-xl bg-white p-0.5 shadow-2xs flex items-center justify-center shrink-0">
+            <div className="h-10 w-10 rounded-xl bg-white p-0.5 shadow-xs border border-slate-100 flex items-center justify-center shrink-0 transition-transform duration-200 hover:scale-105">
               <img
                 src="/logo-ucvgo.png"
                 alt="Logo de UCVGO"
@@ -37,7 +37,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab }) => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-lg font-bold tracking-tight text-[#0B2A5B]">UCVGO</span>
+                <span className="text-lg font-extrabold tracking-tight text-[#0B2A5B]">
+                  UCV<span className="text-[#C8102E]">GO</span>
+                </span>
               </div>
               <p className="text-[11px] text-slate-500 font-medium hidden sm:block">
                 Plataforma de asistencia académica con QR
@@ -77,14 +79,14 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab }) => {
                   </div>
                 </div>
 
-                <div className="w-9 h-9 rounded-full bg-[#EEF2F7] border border-blue-200 flex items-center justify-center text-[#1F5FA8] shrink-0 font-bold text-xs shadow-2xs">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#0B2A5B]/10 via-white to-[#C8102E]/10 border border-slate-200/90 flex items-center justify-center text-[#0B2A5B] shrink-0 font-extrabold text-xs shadow-xs">
                   {profile.first_names ? profile.first_names.charAt(0).toUpperCase() : <UserIcon className="w-4 h-4" />}
                 </div>
 
                 <button
                   onClick={() => logout()}
                   title="Cerrar sesión"
-                  className="p-1.5 rounded-lg text-slate-500 hover:text-red-700 hover:bg-red-50 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-lg text-slate-500 hover:text-[#C8102E] hover:bg-red-50 transition-all duration-150 active:scale-95 cursor-pointer"
                   aria-label="Cerrar sesión"
                 >
                   <LogOut className="w-4 h-4" />
@@ -95,9 +97,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab }) => {
         </div>
       </div>
 
-      <nav className="bg-[#1F5FA8] text-white px-4 sm:px-6">
+      <nav className="ucv-nav-split text-white px-4 sm:px-6 shadow-inner">
         <div
-          className={`max-w-7xl mx-auto flex items-center space-x-1 sm:space-x-2 py-1 ${
+          className={`max-w-7xl mx-auto flex items-center space-x-1 sm:space-x-2 py-1.5 ${
             profile?.role === 'administrador'
               ? 'overflow-visible md:overflow-visible'
               : 'overflow-x-auto md:overflow-visible'
@@ -106,10 +108,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab }) => {
 
           <button
             onClick={() => onSelectTab('inicio')}
-            className={`px-3.5 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-semibold tracking-wide transition-all whitespace-nowrap cursor-pointer ${
+            className={`px-3.5 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold tracking-wide transition-all duration-200 whitespace-nowrap cursor-pointer active:scale-[0.98] ${
               currentTab === 'inicio'
-                ? 'bg-[#0B2A5B] text-white shadow-inner font-bold border-b-2 border-[#C8102E]'
-                : 'text-blue-100 hover:bg-[#174B88] hover:text-white'
+                ? 'bg-white text-[#0B2A5B] shadow-sm font-bold border-b-2 border-[#C8102E]'
+                : 'text-white/85 hover:bg-white/15 hover:text-white'
             }`}
           >
             Inicio
@@ -120,10 +122,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab }) => {
 
               <button
                 onClick={() => onSelectTab('alumnos')}
-                className={`px-3.5 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-semibold tracking-wide transition-all whitespace-nowrap cursor-pointer ${
+                className={`px-3.5 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold tracking-wide transition-all duration-200 whitespace-nowrap cursor-pointer active:scale-[0.98] ${
                   currentTab === 'alumnos'
-                    ? 'bg-[#0B2A5B] text-white shadow-inner font-bold border-b-2 border-[#C8102E]'
-                    : 'text-blue-100 hover:bg-[#174B88] hover:text-white'
+                    ? 'bg-white text-[#0B2A5B] shadow-sm font-bold border-b-2 border-[#C8102E]'
+                    : 'text-white/85 hover:bg-white/15 hover:text-white'
                 }`}
               >
                 Alumnos
@@ -131,10 +133,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab }) => {
 
               <button
                 onClick={() => onSelectTab('profesores')}
-                className={`px-3.5 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-semibold tracking-wide transition-all whitespace-nowrap cursor-pointer ${
+                className={`px-3.5 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold tracking-wide transition-all duration-200 whitespace-nowrap cursor-pointer active:scale-[0.98] ${
                   currentTab === 'profesores'
-                    ? 'bg-[#0B2A5B] text-white shadow-inner font-bold border-b-2 border-[#C8102E]'
-                    : 'text-blue-100 hover:bg-[#174B88] hover:text-white'
+                    ? 'bg-white text-[#0B2A5B] shadow-sm font-bold border-b-2 border-[#C8102E]'
+                    : 'text-white/85 hover:bg-white/15 hover:text-white'
                 }`}
               >
                 Profesores
@@ -142,10 +144,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab }) => {
 
               <button
                 onClick={() => onSelectTab('cursos')}
-                className={`px-3.5 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-semibold tracking-wide transition-all whitespace-nowrap cursor-pointer ${
+                className={`px-3.5 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold tracking-wide transition-all duration-200 whitespace-nowrap cursor-pointer active:scale-[0.98] ${
                   currentTab === 'cursos'
-                    ? 'bg-[#0B2A5B] text-white shadow-inner font-bold border-b-2 border-[#C8102E]'
-                    : 'text-blue-100 hover:bg-[#174B88] hover:text-white'
+                    ? 'bg-white text-[#0B2A5B] shadow-sm font-bold border-b-2 border-[#C8102E]'
+                    : 'text-white/85 hover:bg-white/15 hover:text-white'
                 }`}
               >
                 Cursos
@@ -158,10 +160,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab }) => {
 
               <button
                 onClick={() => onSelectTab('mis_cursos')}
-                className={`px-3.5 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-semibold tracking-wide transition-all whitespace-nowrap cursor-pointer ${
+                className={`px-3.5 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold tracking-wide transition-all duration-200 whitespace-nowrap cursor-pointer active:scale-[0.98] ${
                   currentTab === 'mis_cursos' || currentTab === 'mis_asignaturas'
-                    ? 'bg-[#0B2A5B] text-white shadow-inner font-bold border-b-2 border-[#C8102E]'
-                    : 'text-blue-100 hover:bg-[#174B88] hover:text-white'
+                    ? 'bg-white text-[#0B2A5B] shadow-sm font-bold border-b-2 border-[#C8102E]'
+                    : 'text-white/85 hover:bg-white/15 hover:text-white'
                 }`}
               >
                 Mis cursos
@@ -174,10 +176,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab }) => {
 
               <button
                 onClick={() => onSelectTab('mis_asignaturas')}
-                className={`px-3.5 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-semibold tracking-wide transition-all whitespace-nowrap cursor-pointer ${
+                className={`px-3.5 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold tracking-wide transition-all duration-200 whitespace-nowrap cursor-pointer active:scale-[0.98] ${
                   currentTab === 'mis_asignaturas'
-                    ? 'bg-[#0B2A5B] text-white shadow-inner font-bold border-b-2 border-[#C8102E]'
-                    : 'text-blue-100 hover:bg-[#174B88] hover:text-white'
+                    ? 'bg-white text-[#0B2A5B] shadow-sm font-bold border-b-2 border-[#C8102E]'
+                    : 'text-white/85 hover:bg-white/15 hover:text-white'
                 }`}
               >
                 Mis asignaturas
@@ -185,10 +187,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab }) => {
 
               <button
                 onClick={() => onSelectTab('mi_asistencia')}
-                className={`px-3.5 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-semibold tracking-wide transition-all whitespace-nowrap cursor-pointer ${
+                className={`px-3.5 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold tracking-wide transition-all duration-200 whitespace-nowrap cursor-pointer active:scale-[0.98] ${
                   currentTab === 'mi_asistencia'
-                    ? 'bg-[#0B2A5B] text-white shadow-inner font-bold border-b-2 border-[#C8102E]'
-                    : 'text-blue-100 hover:bg-[#174B88] hover:text-white'
+                    ? 'bg-white text-[#0B2A5B] shadow-sm font-bold border-b-2 border-[#C8102E]'
+                    : 'text-white/85 hover:bg-white/15 hover:text-white'
                 }`}
               >
                 Mi asistencia

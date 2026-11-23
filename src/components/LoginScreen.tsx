@@ -83,15 +83,15 @@ export const LoginScreen: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-between bg-[#EEF2F7]">
+    <div className="min-h-screen flex flex-col justify-between ucv-canvas-bg">
 
-      <div className="h-1 bg-[#C8102E] w-full" />
+      <div className="h-1 ucv-topbar-split w-full" />
 
       <main className="flex-1 flex items-center justify-center p-4 sm:p-6">
-        <div className="w-full max-w-xl">
+        <div className="w-full max-w-xl ucv-animate-in">
 
           <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center p-2 rounded-2xl bg-white shadow-xs mb-3">
+            <div className="inline-flex items-center justify-center p-2.5 rounded-2xl bg-white shadow-sm border border-slate-200/70 mb-3 transition-transform duration-300 hover:scale-[1.03]">
               <img
                 src="/logo-ucvgo.png"
                 alt="Logo de UCVGO"
@@ -99,7 +99,7 @@ export const LoginScreen: React.FC = () => {
               />
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0B2A5B] tracking-tight">
-              UCVGO
+              UCV<span className="text-[#C8102E]">GO</span>
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 font-medium mt-1">
               Plataforma de asistencia académica con QR
@@ -107,7 +107,7 @@ export const LoginScreen: React.FC = () => {
           </div>
 
           {!configured && (
-            <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-900 shadow-xs flex items-center gap-3">
+            <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-900 shadow-xs flex items-center gap-3 ucv-slide-down">
               <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
               <span className="text-xs font-medium">
                 No se pudo conectar con el servicio. Contacta al administrador.
@@ -116,7 +116,7 @@ export const LoginScreen: React.FC = () => {
           )}
 
           {authError && (
-            <div className="mb-5 p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 shadow-xs flex items-start gap-3 animate-in fade-in">
+            <div className="mb-5 p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 shadow-xs flex items-start gap-3 ucv-slide-down">
               <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
               <div className="flex-1 text-xs leading-relaxed">
                 <span className="font-bold block mb-0.5">Atención</span>
@@ -126,65 +126,76 @@ export const LoginScreen: React.FC = () => {
           )}
 
           {!selectedRole ? (
-            <div className="bg-white rounded-2xl shadow-md border border-slate-200 p-6 sm:p-8">
-              <div className="text-center mb-6">
-                <h2 className="text-base sm:text-lg font-bold text-slate-900">
-                  Selecciona tu tipo de perfil
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                  Elige la categoría con la que estás registrado en la universidad
-                </p>
-              </div>
+            <div className="ucv-card ucv-scale-in rounded-2xl overflow-hidden">
+              <div className="h-1 ucv-topbar-split w-full" />
+              <div className="p-6 sm:p-8">
+                <div className="text-center mb-6">
+                  <h2 className="text-base sm:text-lg font-extrabold text-[#0B2A5B]">
+                    Selecciona tu tipo de perfil
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                    Elige la categoría con la que estás registrado en la universidad
+                  </p>
+                </div>
 
-              <div className="grid grid-cols-1 gap-3.5">
-                {(['administrador', 'profesor', 'alumno'] as UserRole[]).map((role) => {
-                  const meta = roleMeta[role];
-                  return (
-                    <button
-                      key={role}
-                      type="button"
-                      onClick={() => handleRoleSelect(role)}
-                      className={`w-full flex items-center p-4 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white text-left transition-all duration-150 shadow-2xs hover:shadow-md group cursor-pointer ${meta.color}`}
-                    >
-                      <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0 mr-4 group-hover:scale-105 transition-transform">
-                        {meta.icon}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-sm font-bold text-slate-900 group-hover:text-[#1F5FA8] transition-colors">
-                            {meta.title}
-                          </h3>
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 group-hover:bg-blue-50 group-hover:text-blue-700">
-                            {meta.badge}
-                          </span>
+                <div className="grid grid-cols-1 gap-3.5">
+                  {(['administrador', 'profesor', 'alumno'] as UserRole[]).map((role, index) => {
+                    const meta = roleMeta[role];
+                    return (
+                      <button
+                        key={role}
+                        type="button"
+                        onClick={() => handleRoleSelect(role)}
+                        className={`w-full flex items-center p-4 rounded-xl border border-slate-200/80 bg-slate-50/60 hover:bg-white text-left ucv-card-interactive group cursor-pointer active:scale-[0.99] ucv-animate-in ucv-delay-${index + 1} ${meta.color}`}
+                      >
+                        <div className="w-12 h-12 rounded-xl bg-white border border-slate-200/80 shadow-2xs flex items-center justify-center shrink-0 mr-4 group-hover:scale-105 transition-transform duration-200">
+                          {meta.icon}
                         </div>
-                        <p className="text-xs text-slate-500 mt-0.5 truncate">
-                          {meta.subtitle}
-                        </p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <h3 className="text-sm font-bold text-slate-900 group-hover:text-[#0B2A5B] transition-colors">
+                              {meta.title}
+                            </h3>
+                            <span
+                              className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full transition-colors ${
+                                role === 'administrador'
+                                  ? 'bg-red-50 text-[#C8102E] group-hover:bg-[#C8102E] group-hover:text-white'
+                                  : role === 'profesor'
+                                  ? 'bg-blue-50 text-[#1F5FA8] group-hover:bg-[#1F5FA8] group-hover:text-white'
+                                  : 'bg-slate-100 text-slate-700 group-hover:bg-[#0B2A5B] group-hover:text-white'
+                              }`}
+                            >
+                              {meta.badge}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-0.5 truncate">
+                            {meta.subtitle}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
 
-              <div className="mt-6 pt-4 border-t border-slate-100 text-center text-xs text-slate-500">
-                <span>¿Problemas de acceso? Contacta al administrador.</span>
+                <div className="mt-6 pt-4 border-t border-slate-100 text-center text-xs text-slate-500">
+                  <span>¿Problemas de acceso? Contacta al administrador.</span>
+                </div>
               </div>
             </div>
           ) : (
 
-            <div className="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
+            <div className="ucv-card ucv-scale-in rounded-2xl overflow-hidden">
 
-              <div className="bg-[#0B2A5B] text-white px-6 py-4 flex items-center justify-between">
+              <div className="ucv-header-split text-white px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-xl bg-white shadow-xs flex items-center justify-center">
                     {roleMeta[selectedRole].icon}
                   </div>
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-200">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-white/80">
                       Iniciar sesión como
                     </span>
-                    <h2 className="text-base font-bold leading-tight">
+                    <h2 className="text-base font-extrabold leading-tight">
                       {roleMeta[selectedRole].title}
                     </h2>
                   </div>
@@ -192,7 +203,7 @@ export const LoginScreen: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleBackToRoleSelection}
-                  className="inline-flex items-center gap-1 text-xs text-blue-100 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg transition-colors"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-white bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg transition-all duration-150 active:scale-95 cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   Cambiar
@@ -229,7 +240,7 @@ export const LoginScreen: React.FC = () => {
                       required
                       autoFocus
                       disabled={loading}
-                      className="w-full pl-9 pr-3 py-2.5 text-sm font-mono tracking-wider border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1F5FA8] focus:border-transparent text-slate-800 disabled:bg-slate-50"
+                      className="w-full pl-9 pr-3 py-2.5 text-sm font-mono tracking-wider border border-slate-300 rounded-xl bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1F5FA8]/30 focus:border-[#1F5FA8] transition-all text-slate-800 disabled:bg-slate-50"
                     />
                   </div>
                   <p className="text-[11px] text-slate-500 mt-1">
@@ -258,12 +269,12 @@ export const LoginScreen: React.FC = () => {
                       onChange={(e) => setPassword(e.target.value)}
                       required
                       disabled={loading}
-                      className="w-full pl-9 pr-11 py-2.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1F5FA8] focus:border-transparent text-slate-800 disabled:bg-slate-50"
+                      className="w-full pl-9 pr-11 py-2.5 text-sm border border-slate-300 rounded-xl bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1F5FA8]/30 focus:border-[#1F5FA8] transition-all text-slate-800 disabled:bg-slate-50"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-[#0B2A5B] transition-colors cursor-pointer"
                       aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -277,7 +288,7 @@ export const LoginScreen: React.FC = () => {
                 <button
                   type="submit"
                   disabled={loading || code.length !== 8 || !password}
-                  className="w-full py-2.5 px-4 rounded-lg bg-[#1F5FA8] hover:bg-[#174B88] text-white text-sm font-bold tracking-wide shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#0B2A5B] via-[#1F5FA8] to-[#C8102E] hover:brightness-110 active:scale-[0.99] text-white text-sm font-bold tracking-wide shadow-md transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {loading ? (
                     <>
@@ -295,7 +306,8 @@ export const LoginScreen: React.FC = () => {
       </main>
 
       <footer className="py-4 text-center text-xs text-slate-500">
-        UCVGO
+        <span className="font-bold tracking-tight text-[#0B2A5B]">UCV</span>
+        <span className="font-bold tracking-tight text-[#C8102E]">GO</span>
       </footer>
     </div>
   );

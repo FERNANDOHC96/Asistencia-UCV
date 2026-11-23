@@ -20,14 +20,17 @@ const MainContent: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#EEF2F7] flex flex-col items-center justify-center p-4">
-        <div className="bg-white p-8 rounded-2xl shadow-md border border-slate-200 text-center max-w-sm w-full">
-          <div className="w-14 h-14 rounded-2xl bg-white p-1.5 shadow-xs flex items-center justify-center mx-auto mb-4">
-            <img src="/logo-ucvgo.png" alt="Logo de UCVGO" className="h-11 w-auto object-contain" />
+      <div className="min-h-screen ucv-canvas-bg flex flex-col items-center justify-center p-4">
+        <div className="ucv-card ucv-scale-in rounded-2xl overflow-hidden text-center max-w-sm w-full">
+          <div className="h-1.5 ucv-topbar-split w-full" />
+          <div className="p-8">
+            <div className="w-14 h-14 rounded-2xl bg-white p-1.5 shadow-sm border border-slate-100 flex items-center justify-center mx-auto mb-4">
+              <img src="/logo-ucvgo.png" alt="Logo de UCVGO" className="h-11 w-auto object-contain" />
+            </div>
+            <Loader2 className="w-8 h-8 text-[#1F5FA8] animate-spin mx-auto mb-3" />
+            <h2 className="text-base font-bold text-[#0B2A5B]">Cargando UCVGO</h2>
+            <p className="text-xs text-slate-500 mt-1">Verificando sesión institucional...</p>
           </div>
-          <Loader2 className="w-8 h-8 text-[#1F5FA8] animate-spin mx-auto mb-3" />
-          <h2 className="text-base font-bold text-slate-800">Cargando UCVGO</h2>
-          <p className="text-xs text-slate-500 mt-1">Verificando sesión institucional...</p>
         </div>
       </div>
     );
@@ -79,7 +82,7 @@ const MainContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#EEF2F7]">
+    <div className="min-h-screen flex flex-col ucv-canvas-bg">
       <Navbar
         currentTab={currentTab}
         onSelectTab={(tab) => setCurrentTab(tab)}
@@ -94,8 +97,9 @@ const MainContent: React.FC = () => {
         {renderTabContent()}
       </main>
 
-      <footer className="py-4 text-center text-xs border-t border-slate-200/60 bg-white/40 text-slate-500">
-        UCVGO
+      <footer className="py-4 text-center text-xs border-t border-slate-200/70 bg-white/75 backdrop-blur-xs text-slate-500">
+        <span className="font-bold tracking-tight text-[#0B2A5B]">UCV</span>
+        <span className="font-bold tracking-tight text-[#C8102E]">GO</span>
       </footer>
     </div>
   );
