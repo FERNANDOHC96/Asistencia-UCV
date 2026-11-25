@@ -12,6 +12,7 @@ import { StudentHome } from './components/student/StudentHome';
 import { StudentCoursesScreen } from './components/student/StudentCoursesScreen';
 import { StudentAttendanceScreen } from './components/student/StudentAttendanceScreen';
 import { StudentTeacherDashboard } from './components/StudentTeacherDashboard';
+import { AttendanceReportScreen } from './components/reports/AttendanceReportScreen';
 import { Loader2 } from 'lucide-react';
 
 const MainContent: React.FC = () => {
@@ -49,6 +50,8 @@ const MainContent: React.FC = () => {
           return <AdminUsersList role="profesor" />;
         case 'cursos':
           return <CoursesScreen />;
+        case 'reportes':
+          return <AttendanceReportScreen />;
         case 'inicio':
         default:
           return <AdminDashboard onNavigate={setCurrentTab} />;
@@ -60,6 +63,8 @@ const MainContent: React.FC = () => {
         case 'mis_cursos':
         case 'mis_asignaturas':
           return <TeacherCoursesScreen />;
+        case 'reportes':
+          return <AttendanceReportScreen />;
         case 'inicio':
         default:
           return <TeacherHome onNavigate={setCurrentTab} />;
@@ -88,16 +93,18 @@ const MainContent: React.FC = () => {
         onSelectTab={(tab) => setCurrentTab(tab)}
       />
 
-      <Breadcrumb
-        currentTab={currentTab}
-        onNavigate={(tab) => setCurrentTab(tab)}
-      />
+      <div className="no-print">
+        <Breadcrumb
+          currentTab={currentTab}
+          onNavigate={(tab) => setCurrentTab(tab)}
+        />
+      </div>
 
       <main className="flex-1 pb-10">
         {renderTabContent()}
       </main>
 
-      <footer className="py-4 text-center text-xs border-t border-slate-200/70 bg-white/75 backdrop-blur-xs text-slate-500">
+      <footer className="no-print py-4 text-center text-xs border-t border-slate-200/70 bg-white/75 backdrop-blur-xs text-slate-500">
         <span className="font-bold tracking-tight text-[#0B2A5B]">UCV</span>
         <span className="font-bold tracking-tight text-[#C8102E]">GO</span>
       </footer>

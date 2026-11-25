@@ -1,5 +1,10 @@
 export type UserRole = 'administrador' | 'profesor' | 'alumno';
 
+export interface Career {
+  id: string;
+  name: string;
+}
+
 export interface Profile {
   id: string;
   code: string;
@@ -9,6 +14,8 @@ export interface Profile {
   active: boolean;
   created_at?: string;
   avatar_updated_at?: string | null;
+  career_id?: string | null;
+  career?: Career | null;
 }
 
 export interface CreateUserPayload {

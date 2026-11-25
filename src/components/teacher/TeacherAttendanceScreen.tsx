@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { UserCheck, Clock, XCircle, FileText, HelpCircle, Search, RefreshCw, AlertCircle, CheckCircle2, Loader2, Check, AlertTriangle, History, BookOpen, FlaskConical } from 'lucide-react';
+import { UserCheck, Search, RefreshCw, AlertCircle, CheckCircle2, Loader2, History, BookOpen, FlaskConical, Lock, Unlock, Save } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getSupabaseClient, isSupabaseConfigured } from '../../lib/supabase';
 import { getTeacherSections, getSectionActiveStudents, TeacherSection } from '../../services/teacherService';
-import { ClassSession, LearningUnit, AcademicWeek, AttendanceRecord, AttendanceStatus, Profile } from '../../types';
+import { ClassSession, LearningUnit, AcademicWeek, AttendanceRecord, AttendanceStatus, CloseAttendanceResult, Profile } from '../../types';
 import { formatDisplayDate, formatTime, formatLimaTime } from '../../lib/dateUtils';
-import { translateSupabaseError, translateAttendanceRpcError } from '../../lib/supabaseErrors';
+import { translateSupabaseError, translateAttendanceRpcError, translateCloseAttendanceError, translateReopenAttendanceError } from '../../lib/supabaseErrors';
 import { getMethodLabel } from '../../lib/attendanceUtils';
 import { StudentAvatar } from '../StudentAvatar';
 import { useStudentAvatarUrls } from '../../lib/avatarCache';
@@ -55,6 +55,9 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
   const [error, setError] = useState<string | null>(null);
   const [actionFeedback, setActionFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isReopening, setIsReopening] = useState<boolean>(false);
+  const [isClosingSession, setIsClosingSession] = useState<boolean>(false);
+  const [isCloseConfirmOpen, setIsCloseConfirmOpen] = useState<boolean>(false);
 
   const fetchSections = useCallback(async () => {
     if (!user || !isSupabaseConfigured()) {
@@ -226,11 +229,24 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
 
   const handleSetAttendance = async (studentId: string, targetStatus: AttendanceStatus) => {
     if (!selectedSessionId) return;
+    if (currentSession?.status === 'cerrada') {
+      setActionFeedback({
+        type: 'error',
+        message: 'La sesión está cerrada. Haz clic en "Volver a abrir sesión" para editar la asistencia.',
+      });
+      return;
+    }
+    if (currentSession?.status === 'cancelada') {
+      setActionFeedback({
+        type: 'error',
+        message: 'La sesión está cancelada y no permite registrar asistencia.',
+      });
+      return;
+    }
 
     const currentRow = attendanceRows[studentId];
     if (!currentRow || currentRow.isSaving) return;
 
-    const previousStatus = currentRow.optimisticStatus;
     const justification = currentRow.justificationInput || null;
 
     setSavingTargetStatus((prev) => ({ ...prev, [studentId]: targetStatus }));
@@ -336,6 +352,164 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
         justificationInput: text,
       },
     }));
+  };
+
+  const handleReopenSession = async () => {
+    if (!selectedSessionId || isReopening) return;
+    setIsReopening(true);
+    setActionFeedback(null);
+
+    try {
+      const supabase = getSupabaseClient();
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc('reopen_attendance', {
+        p_class_session: selectedSessionId,
+      });
+
+      if (!rpcErr) {
+        const code = typeof rpcRes === 'string' ? rpcRes : rpcRes?.code;
+        if (code === 'success') {
+          setSessions((prev) =>
+            prev.map((s) => (s.id === selectedSessionId ? { ...s, status: 'abierta' } : s))
+          );
+          setActionFeedback({
+            type: 'success',
+            message: 'Sesión reabierta. Ya puedes editar la asistencia de los alumnos y guardar los cambios.',
+          });
+          return;
+        }
+        setActionFeedback({
+          type: 'error',
+          message: translateReopenAttendanceError(String(code || 'error')),
+        });
+        return;
+      }
+
+      const rpcMsg = (rpcErr.message || '').toLowerCase();
+      const isMissingRpc =
+        rpcErr.code === 'PGRST202' ||
+        rpcErr.code === '42883' ||
+        rpcMsg.includes('reopen_attendance') ||
+        rpcMsg.includes('could not find the function');
+
+      if (!isMissingRpc) {
+        throw new Error(translateSupabaseError(rpcErr, 'class_sessions'));
+      }
+
+      const { data: updRows, error: updErr } = await supabase
+        .from('class_sessions')
+        .update({ status: 'abierta' })
+        .eq('id', selectedSessionId)
+        .eq('status', 'cerrada')
+        .select('id, status');
+
+      if (!updErr && updRows && updRows.length > 0) {
+        await supabase
+          .from('attendance_sessions')
+          .update({ status: 'abierta', closed_at: null })
+          .eq('class_session_id', selectedSessionId)
+          .eq('status', 'cerrada');
+
+        setSessions((prev) =>
+          prev.map((s) => (s.id === selectedSessionId ? { ...s, status: 'abierta' } : s))
+        );
+        setActionFeedback({
+          type: 'success',
+          message: 'Sesión reabierta. Ya puedes editar la asistencia de los alumnos y guardar los cambios.',
+        });
+        return;
+      }
+
+      setActionFeedback({
+        type: 'error',
+        message: 'No se pudo reabrir la sesión desde la base de datos. Falta habilitar la función reopen_attendance en Supabase.',
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'No se pudo reabrir la sesión.';
+      setActionFeedback({ type: 'error', message: msg });
+    } finally {
+      setIsReopening(false);
+    }
+  };
+
+  const handleConfirmCloseSession = async () => {
+    if (!selectedSessionId || isClosingSession) return;
+    setIsClosingSession(true);
+    setActionFeedback(null);
+
+    try {
+      const supabase = getSupabaseClient();
+      const { data: res, error: rpcErr } = await supabase.rpc('close_attendance', {
+        p_class_session: selectedSessionId,
+      });
+
+      if (rpcErr) {
+        throw new Error(translateSupabaseError(rpcErr, 'class_sessions'));
+      }
+
+      const summaryRes = res as CloseAttendanceResult;
+      if (summaryRes && summaryRes.code === 'success') {
+        setSessions((prev) =>
+          prev.map((s) => (s.id === selectedSessionId ? { ...s, status: 'cerrada' } : s))
+        );
+        setIsCloseConfirmOpen(false);
+        await fetchSessionAttendance();
+        setActionFeedback({
+          type: 'success',
+          message: `Asistencia guardada y sesión cerrada (${summaryRes.presentes} presentes, ${summaryRes.tardanzas} tardanzas, ${summaryRes.faltas} faltas, ${summaryRes.justificados} justificados).`,
+        });
+      } else if (summaryRes?.code === 'session_closed') {
+        const unregisteredIds = Object.values(attendanceRows)
+          .filter((row) => !row.record || row.optimisticStatus === 'sin_registrar')
+          .map((row) => row.student.id);
+
+        for (const studentId of unregisteredIds) {
+          await supabase.rpc('set_attendance', {
+            p_class_session: selectedSessionId,
+            p_student: studentId,
+            p_status: 'falta',
+            p_justification: null,
+          });
+        }
+
+        const { data: closedRows, error: closeUpdErr } = await supabase
+          .from('class_sessions')
+          .update({ status: 'cerrada' })
+          .eq('id', selectedSessionId)
+          .select('id, status');
+
+        if (!closeUpdErr && closedRows && closedRows.length > 0) {
+          setSessions((prev) =>
+            prev.map((s) => (s.id === selectedSessionId ? { ...s, status: 'cerrada' } : s))
+          );
+          setIsCloseConfirmOpen(false);
+          await fetchSessionAttendance();
+          setActionFeedback({
+            type: 'success',
+            message: 'Asistencia guardada y sesión cerrada correctamente.',
+          });
+        } else {
+          setIsCloseConfirmOpen(false);
+          setActionFeedback({
+            type: 'error',
+            message: closeUpdErr
+              ? translateSupabaseError(closeUpdErr, 'class_sessions')
+              : translateCloseAttendanceError('session_closed'),
+          });
+        }
+      } else {
+        setIsCloseConfirmOpen(false);
+        setActionFeedback({
+          type: 'error',
+          message: translateCloseAttendanceError(summaryRes?.code || 'error'),
+        });
+      }
+    } catch (err: unknown) {
+      setIsCloseConfirmOpen(false);
+      const msg = err instanceof Error ? err.message : 'No se pudo cerrar la sesión.';
+      setActionFeedback({ type: 'error', message: msg });
+    } finally {
+      setIsClosingSession(false);
+    }
   };
 
   const summary = useMemo(() => {
@@ -568,17 +742,71 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
                 </div>
               </div>
 
-              {currentSession?.status === 'cerrada' && (
-                <span className="bg-slate-100 border border-slate-200 px-3 py-1 text-xs font-bold text-slate-700 rounded-full">
-                  Sesión cerrada
-                </span>
-              )}
-              {currentSession?.status === 'cancelada' && (
-                <span className="bg-red-50 border border-red-200 px-3 py-1 text-xs font-bold text-red-700 rounded-full">
-                  Sesión cancelada
-                </span>
-              )}
+              <div className="flex flex-wrap items-center gap-2">
+                {currentSession?.status === 'cerrada' && (
+                  <>
+                    <span className="bg-slate-100 border border-slate-200 px-3 py-1 text-xs font-bold text-slate-700 rounded-full inline-flex items-center gap-1.5">
+                      <Lock className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Sesión cerrada</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleReopenSession}
+                      disabled={isReopening}
+                      className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#0B2A5B] via-[#1F5FA8] to-[#C8102E] hover:brightness-110 active:scale-[0.98] text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition-all disabled:opacity-50"
+                    >
+                      {isReopening ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Unlock className="w-3.5 h-3.5" />
+                      )}
+                      <span>{isReopening ? 'Reabriendo...' : 'Volver a abrir sesión'}</span>
+                    </button>
+                  </>
+                )}
+
+                {currentSession?.status === 'abierta' && (
+                  <>
+                    <span className="bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-bold text-emerald-700 rounded-full inline-flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>Sesión abierta</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsCloseConfirmOpen(true)}
+                      disabled={isClosingSession}
+                      className="px-4 py-2 rounded-xl bg-[#C8102E] hover:bg-[#A50D25] active:scale-[0.98] text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition-all disabled:opacity-50"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                      <span>Guardar y cerrar sesión</span>
+                    </button>
+                  </>
+                )}
+
+                {currentSession?.status === 'programada' && (
+                  <span className="bg-blue-50 border border-blue-200 px-3 py-1 text-xs font-bold text-[#1F5FA8] rounded-full">
+                    Sesión programada
+                  </span>
+                )}
+
+                {currentSession?.status === 'cancelada' && (
+                  <span className="bg-red-50 border border-red-200 px-3 py-1 text-xs font-bold text-red-700 rounded-full">
+                    Sesión cancelada
+                  </span>
+                )}
+              </div>
             </div>
+
+            {currentSession?.status === 'cerrada' && (
+              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2 font-medium">
+                  <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>
+                    Esta sesión fue cerrada. Pulsa <strong className="font-bold">Volver a abrir sesión</strong> para editar la asistencia de cualquier alumno y luego guardar.
+                  </span>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 sm:grid-cols-6 gap-2.5 text-center">
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
@@ -640,6 +868,7 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
               <div className="space-y-2.5">
                 {filteredRows.map(({ student, record, optimisticStatus, justificationInput, isSaving }) => {
                   const isJustificado = optimisticStatus === 'justificado';
+                  const isSessionLocked = currentSession?.status === 'cerrada' || currentSession?.status === 'cancelada';
 
                   return (
                     <div
@@ -654,13 +883,18 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
                           signedUrl={avatarUrls[student.id]}
                         />
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-mono font-bold text-[#0B2A5B] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded text-[11px]">
                               {student.code}
                             </span>
                             <span className="font-bold text-slate-900 text-sm">
                               {student.first_names} {student.last_names}
                             </span>
+                            {student.career?.name && (
+                              <span className="inline-block px-2 py-0.5 rounded bg-blue-50 border border-blue-200 text-[#1F5FA8] text-[10px] font-bold uppercase tracking-wide">
+                                {student.career.name}
+                              </span>
+                            )}
                           </div>
 
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
@@ -708,13 +942,14 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
                                 placeholder="Ej: Certificado médico presentado..."
                                 value={justificationInput || ''}
                                 onChange={(e) => handleJustificationChange(student.id, e.target.value)}
-                                className="w-full px-2.5 py-1.5 text-xs text-slate-800 font-medium bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-[#1F5FA8] outline-none"
+                                disabled={isSessionLocked}
+                                className="w-full px-2.5 py-1.5 text-xs text-slate-800 font-medium bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-[#1F5FA8] outline-none disabled:opacity-60"
                               />
                               <button
                                 type="button"
                                 onClick={() => handleSetAttendance(student.id, 'justificado')}
-                                disabled={isSaving}
-                                className="px-3 py-1.5 bg-[#1F5FA8] hover:bg-[#0B2A5B] text-white text-[11px] font-bold rounded-lg shrink-0 cursor-pointer shadow-xs transition-all"
+                                disabled={isSaving || isSessionLocked}
+                                className="px-3 py-1.5 bg-[#1F5FA8] hover:bg-[#0B2A5B] disabled:opacity-50 text-white text-[11px] font-bold rounded-lg shrink-0 cursor-pointer shadow-xs transition-all"
                               >
                                 Guardar
                               </button>
@@ -727,6 +962,7 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
                       <AttendanceStatusButtonGroup
                         currentStatus={optimisticStatus}
                         savingStatus={savingTargetStatus[student.id]}
+                        disabled={isSessionLocked}
                         isAnimated={Boolean(animatedStudentIds[student.id])}
                         size="md"
                         className="self-end sm:self-auto shrink-0"
@@ -789,6 +1025,44 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {isCloseConfirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="ucv-card ucv-scale-in rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden">
+            <div className="h-1 ucv-topbar-split w-full" />
+            <div className="p-6 space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-red-50 border border-red-100 text-[#C8102E] flex items-center justify-center mx-auto">
+                <Save className="w-6 h-6" />
+              </div>
+              <div className="text-center">
+                <h3 className="text-base font-bold text-slate-900">¿Guardar y cerrar asistencia?</h3>
+                <p className="text-xs text-slate-500 mt-1 font-medium">
+                  Los cambios realizados ya están registrados. Al cerrar la sesión, los alumnos que sigan sin registro pasarán a <strong className="text-red-600">Falta</strong>.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsCloseConfirmOpen(false)}
+                  disabled={isClosingSession}
+                  className="flex-1 py-2 px-3 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl shadow-xs transition-all cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmCloseSession}
+                  disabled={isClosingSession}
+                  className="flex-1 py-2 px-3 text-white text-xs font-bold rounded-xl bg-[#C8102E] hover:bg-[#A50D25] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-all disabled:opacity-50"
+                >
+                  {isClosingSession ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                  <span>Sí, guardar y cerrar</span>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

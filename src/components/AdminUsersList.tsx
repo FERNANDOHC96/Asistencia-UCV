@@ -11,7 +11,8 @@ import {
   Loader2,
 } from 'lucide-react';
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabase';
-import { Profile } from '../types';
+import { translateSupabaseError } from '../lib/supabaseErrors';
+import { Career, Profile } from '../types';
 import { CreateUserModal } from './CreateUserModal';
 
 interface AdminUsersListProps {
@@ -20,6 +21,8 @@ interface AdminUsersListProps {
 
 export const AdminUsersList: React.FC<AdminUsersListProps> = ({ role }) => {
   const [users, setUsers] = useState<Profile[]>([]);
+  const [careers, setCareers] = useState<Career[]>([]);
+  const [savingCareerIds, setSavingCareerIds] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,7 +50,7 @@ export const AdminUsersList: React.FC<AdminUsersListProps> = ({ role }) => {
 
       const { data, error: sbError } = await supabase
         .from('profiles')
-        .select('id, code, first_names, last_names, role, active')
+        .select('id, code, first_names, last_names, role, active, career_id, career:careers(id, name)')
         .eq('role', role)
         .order('last_names', { ascending: true });
 
@@ -57,7 +60,10 @@ export const AdminUsersList: React.FC<AdminUsersListProps> = ({ role }) => {
         return;
       }
 
-      const profileList = (data as Profile[]) || [];
+      const profileList = ((data || []) as any[]).map((row) => ({
+        ...row,
+        career: Array.isArray(row.career) ? row.career[0] || null : row.career || null,
+      })) as Profile[];
       setUsers(profileList);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al conectar con la base de datos.';
@@ -68,9 +74,91 @@ export const AdminUsersList: React.FC<AdminUsersListProps> = ({ role }) => {
     }
   }, [role]);
 
+  const fetchCareers = useCallback(async () => {
+    if (role !== 'alumno' || !isSupabaseConfigured()) {
+      setCareers([]);
+      return;
+    }
+
+    try {
+      const supabase = getSupabaseClient();
+      const { data, error: cErr } = await supabase
+        .from('careers')
+        .select('id, name')
+        .order('name', { ascending: true });
+
+      if (cErr) throw cErr;
+      setCareers((data || []) as Career[]);
+    } catch (err: unknown) {
+      setError(`Error al cargar la tabla "careers": ${translateSupabaseError(err)}`);
+    }
+  }, [role]);
+
   useEffect(() => {
     fetchUsers();
-  }, [fetchUsers]);
+    fetchCareers();
+  }, [fetchUsers, fetchCareers]);
+
+  const handleCareerChange = async (studentId: string, nextCareerIdRaw: string) => {
+    const nextCareerId = nextCareerIdRaw || null;
+    const prevStudent = users.find((u) => u.id === studentId);
+    if (!prevStudent) return;
+
+    const prevCareerId = prevStudent.career_id ?? null;
+    const prevCareer = prevStudent.career ?? null;
+    const nextCareer = nextCareerId ? careers.find((c) => c.id === nextCareerId) || null : null;
+
+    setError(null);
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.id === studentId ? { ...u, career_id: nextCareerId, career: nextCareer } : u
+      )
+    );
+    setSavingCareerIds((prev) => ({ ...prev, [studentId]: true }));
+
+    try {
+      const supabase = getSupabaseClient();
+      const { data, error: rpcErr } = await supabase.rpc('admin_set_student_career', {
+        p_student: studentId,
+        p_career: nextCareerId,
+      });
+
+      if (rpcErr) {
+        throw rpcErr;
+      }
+
+      const result = String(data ?? '');
+      if (result !== 'success') {
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === studentId ? { ...u, career_id: prevCareerId, career: prevCareer } : u
+          )
+        );
+        const msg =
+          result === 'unauthorized' || result === 'forbidden'
+            ? 'No tienes permisos para asignar la carrera del alumno.'
+            : result === 'invalid_student'
+            ? 'El alumno seleccionado no es válido.'
+            : result === 'invalid_career'
+            ? 'La carrera seleccionada no es válida.'
+            : `No se pudo asignar la carrera (${result || 'error'}).`;
+        setError(msg);
+      }
+    } catch (err: unknown) {
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === studentId ? { ...u, career_id: prevCareerId, career: prevCareer } : u
+        )
+      );
+      setError(`No se pudo guardar la carrera: ${translateSupabaseError(err)}`);
+    } finally {
+      setSavingCareerIds((prev) => {
+        const next = { ...prev };
+        delete next[studentId];
+        return next;
+      });
+    }
+  };
 
   const filteredUsers = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -81,9 +169,10 @@ export const AdminUsersList: React.FC<AdminUsersListProps> = ({ role }) => {
       const nameMatch = (u.first_names || '').toLowerCase().includes(q);
       const lastMatch = (u.last_names || '').toLowerCase().includes(q);
       const fullMatch = `${u.first_names || ''} ${u.last_names || ''}`.toLowerCase().includes(q);
-      return codeMatch || nameMatch || lastMatch || fullMatch;
+      const careerMatch = role === 'alumno' && (u.career?.name || '').toLowerCase().includes(q);
+      return codeMatch || nameMatch || lastMatch || fullMatch || careerMatch;
     });
-  }, [users, searchQuery]);
+  }, [users, searchQuery, role]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6 ucv-animate-in">
@@ -109,7 +198,10 @@ export const AdminUsersList: React.FC<AdminUsersListProps> = ({ role }) => {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => fetchUsers()}
+            onClick={() => {
+              fetchUsers();
+              fetchCareers();
+            }}
             disabled={loading}
             className="p-2 text-slate-600 hover:text-[#0B2A5B] bg-white border border-slate-200/90 hover:bg-slate-50 rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer"
             title="Recargar lista"
@@ -141,7 +233,11 @@ export const AdminUsersList: React.FC<AdminUsersListProps> = ({ role }) => {
             </div>
             <input
               type="text"
-              placeholder={`Buscar por código, nombres o apellidos...`}
+              placeholder={
+                role === 'alumno'
+                  ? 'Buscar por código, nombres, apellidos o carrera...'
+                  : 'Buscar por código, nombres o apellidos...'
+              }
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm border border-slate-200 bg-slate-50/70 focus:bg-white rounded-xl focus:outline-hidden focus:ring-2 focus:ring-[#1F5FA8]/30 focus:border-[#1F5FA8] transition-all"
@@ -158,6 +254,15 @@ export const AdminUsersList: React.FC<AdminUsersListProps> = ({ role }) => {
         <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-900 text-xs flex items-center gap-2.5 ucv-slide-down">
           <AlertCircle className="w-5 h-5 text-[#C8102E] shrink-0" />
           <div className="font-semibold">{error}</div>
+        </div>
+      )}
+
+      {role === 'alumno' && !loading && !error && careers.length === 0 && (
+        <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-2.5 ucv-slide-down">
+          <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+          <div className="font-semibold">
+            No se encontraron carreras en la base de datos. Verifica que la tabla careers tenga registros y una política RLS de lectura (SELECT) para usuarios autenticados.
+          </div>
         </div>
       )}
 
@@ -200,6 +305,9 @@ export const AdminUsersList: React.FC<AdminUsersListProps> = ({ role }) => {
                   <th scope="col" className="px-6 py-3.5">Código</th>
                   <th scope="col" className="px-6 py-3.5">Nombres</th>
                   <th scope="col" className="px-6 py-3.5">Apellidos</th>
+                  {role === 'alumno' && (
+                    <th scope="col" className="px-6 py-3.5">Carrera</th>
+                  )}
                   {role === 'profesor' && (
                     <th scope="col" className="px-6 py-3.5">Rol</th>
                   )}
@@ -223,6 +331,25 @@ export const AdminUsersList: React.FC<AdminUsersListProps> = ({ role }) => {
                     <td className="px-6 py-3.5 font-semibold text-slate-900">
                       {item.last_names}
                     </td>
+
+                    {role === 'alumno' && (
+                      <td className="px-6 py-2.5">
+                        <select
+                          aria-label={`Carrera de ${item.first_names} ${item.last_names}`}
+                          value={item.career_id || ''}
+                          disabled={Boolean(savingCareerIds[item.id])}
+                          onChange={(e) => handleCareerChange(item.id, e.target.value)}
+                          className="max-w-[210px] px-2.5 py-1.5 text-xs font-medium text-slate-800 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-[#1F5FA8] focus:outline-hidden cursor-pointer disabled:opacity-60"
+                        >
+                          <option value="">— Sin asignar —</option>
+                          {careers.map((career) => (
+                            <option key={career.id} value={career.id}>
+                              {career.name}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                    )}
 
                     {role === 'profesor' && (
                       <td className="px-6 py-3.5 capitalize text-slate-600">

@@ -18,7 +18,9 @@ import {
   CheckSquare,
   Square,
   AlertTriangle,
-  ChevronRight
+  ChevronRight,
+  Clock,
+  Calendar
 } from 'lucide-react';
 import { getSupabaseClient, isSupabaseConfigured } from '../../lib/supabase';
 import { translateSupabaseError } from '../../lib/supabaseErrors';
@@ -26,6 +28,8 @@ import { fetchProfilesMapByIds, ProfileBasicInfo } from '../../lib/profileHelper
 import { CourseOverview, Profile } from '../../types';
 import { formatDisplayDate, formatLimaTime } from '../../lib/dateUtils';
 import { DeleteConfirmModal } from '../DeleteConfirmModal';
+import { CourseScheduleSection } from './CourseScheduleSection';
+import { CourseSessionsSection } from './CourseSessionsSection';
 
 interface EnrolledStudentRecord {
   id: string;
@@ -42,6 +46,7 @@ export const CoursesScreen: React.FC = () => {
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
   const [selectedCourse, setSelectedCourse] = useState<CourseOverview | null>(null);
+  const [courseTab, setCourseTab] = useState<'resumen' | 'horario' | 'sesiones'>('resumen');
 
   const [teachers, setTeachers] = useState<ProfileBasicInfo[]>([]);
 
@@ -425,6 +430,7 @@ export const CoursesScreen: React.FC = () => {
       setIsArchiveModalOpen(false);
       setActionSuccess(`El curso "${selectedCourse.name}" fue archivado exitosamente.`);
       setSelectedCourse(null);
+      setCourseTab('resumen');
       await fetchCourses();
     } catch (err: unknown) {
       setDetailError(translateSupabaseError(err));
@@ -486,6 +492,7 @@ export const CoursesScreen: React.FC = () => {
                 <button
                   onClick={() => {
                     setSelectedCourse(null);
+                    setCourseTab('resumen');
                     setActionSuccess(null);
                   }}
                   className="mt-1 p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all active:scale-95 cursor-pointer"
@@ -532,9 +539,49 @@ export const CoursesScreen: React.FC = () => {
                 <span>{detailError}</span>
               </div>
             )}
+
+            <div className="mt-5 border-t border-slate-100 pt-3.5 flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => setCourseTab('resumen')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all duration-200 active:scale-[0.98] cursor-pointer ${
+                  courseTab === 'resumen'
+                    ? 'bg-gradient-to-r from-[#0B2A5B] via-[#1F5FA8] to-[#C8102E] text-white shadow-sm'
+                    : 'text-slate-600 hover:text-[#0B2A5B] hover:bg-slate-100'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>1. Matrícula y docente</span>
+              </button>
+
+              <button
+                onClick={() => setCourseTab('horario')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all duration-200 active:scale-[0.98] cursor-pointer ${
+                  courseTab === 'horario'
+                    ? 'bg-gradient-to-r from-[#0B2A5B] via-[#1F5FA8] to-[#C8102E] text-white shadow-sm'
+                    : 'text-slate-600 hover:text-[#0B2A5B] hover:bg-slate-100'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>2. Horario</span>
+              </button>
+
+              <button
+                onClick={() => setCourseTab('sesiones')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all duration-200 active:scale-[0.98] cursor-pointer ${
+                  courseTab === 'sesiones'
+                    ? 'bg-gradient-to-r from-[#0B2A5B] via-[#1F5FA8] to-[#C8102E] text-white shadow-sm'
+                    : 'text-slate-600 hover:text-[#0B2A5B] hover:bg-slate-100'
+                }`}
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span>3. Sesiones</span>
+              </button>
+            </div>
           </div>
         </div>
 
+        {courseTab === 'resumen' && (
+          <>
         <div className="ucv-card rounded-2xl border-l-4 border-l-[#1F5FA8] p-5">
           <div className="flex items-center gap-2 mb-3">
             <GraduationCap className="w-5 h-5 text-[#1F5FA8]" />
@@ -759,6 +806,16 @@ export const CoursesScreen: React.FC = () => {
             </div>
           )}
         </div>
+          </>
+        )}
+
+        {courseTab === 'horario' && (
+          <CourseScheduleSection sectionId={selectedCourse.section_id} />
+        )}
+
+        {courseTab === 'sesiones' && (
+          <CourseSessionsSection sectionId={selectedCourse.section_id} />
+        )}
 
         {unenrollStudentTarget && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
@@ -984,7 +1041,10 @@ export const CoursesScreen: React.FC = () => {
                   return (
                     <tr
                       key={c.section_id}
-                      onClick={() => setSelectedCourse(c)}
+                      onClick={() => {
+                        setSelectedCourse(c);
+                        setCourseTab('resumen');
+                      }}
                       className="hover:bg-blue-50/40 transition-colors cursor-pointer group"
                     >
                       <td className="py-3.5 px-4">
@@ -1023,6 +1083,7 @@ export const CoursesScreen: React.FC = () => {
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedCourse(c);
+                            setCourseTab('resumen');
                           }}
                           className="px-3 py-1.5 bg-slate-100 hover:bg-[#1F5FA8] hover:text-white text-slate-700 font-bold rounded-lg text-xs transition-colors inline-flex items-center gap-1 cursor-pointer"
                         >

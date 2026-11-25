@@ -20,7 +20,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab }) => {
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full shadow-sm">
+    <header className="no-print sticky top-0 z-40 w-full shadow-sm">
 
       <div className="h-1 ucv-topbar-split w-full" />
 
@@ -152,6 +152,17 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab }) => {
               >
                 Cursos
               </button>
+
+              <button
+                onClick={() => onSelectTab('reportes')}
+                className={`px-3.5 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold tracking-wide transition-all duration-200 whitespace-nowrap cursor-pointer active:scale-[0.98] ${
+                  currentTab === 'reportes'
+                    ? 'bg-white text-[#0B2A5B] shadow-sm font-bold border-b-2 border-[#C8102E]'
+                    : 'text-white/85 hover:bg-white/15 hover:text-white'
+                }`}
+              >
+                Reportes
+              </button>
             </>
           )}
 
@@ -167,6 +178,17 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onSelectTab }) => {
                 }`}
               >
                 Mis cursos
+              </button>
+
+              <button
+                onClick={() => onSelectTab('reportes')}
+                className={`px-3.5 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold tracking-wide transition-all duration-200 whitespace-nowrap cursor-pointer active:scale-[0.98] ${
+                  currentTab === 'reportes'
+                    ? 'bg-white text-[#0B2A5B] shadow-sm font-bold border-b-2 border-[#C8102E]'
+                    : 'text-white/85 hover:bg-white/15 hover:text-white'
+                }`}
+              >
+                Reportes
               </button>
             </>
           )}

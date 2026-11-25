@@ -157,3 +157,19 @@ export function translateCloseAttendanceError(code: string): string {
   }
 }
 
+export function translateReopenAttendanceError(code: string): string {
+  switch (code) {
+    case 'unauthorized':
+      return 'No tienes permiso sobre esta sesión.';
+    case 'invalid_session':
+      return 'La sesión no existe.';
+    case 'session_cancelled':
+      return 'No se puede reabrir una sesión cancelada.';
+    case 'not_closed':
+      return 'La sesión no se encuentra cerrada.';
+    case 'success':
+      return 'Sesión reabierta exitosamente.';
+    default:
+      return `Error al reabrir sesión: ${code}`;
+  }
+}

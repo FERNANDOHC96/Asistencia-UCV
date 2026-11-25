@@ -113,13 +113,23 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
   const isHardCutRef = useRef<boolean>(true);
 
   const [animatedDataUrls, setAnimatedDataUrls] = useState<string[]>([]);
+  const animatedDataUrlsRef = useRef<string[]>([]);
+  const [slotAUrl, setSlotAUrl] = useState<string | null>(null);
+  const [slotBUrl, setSlotBUrl] = useState<string | null>(null);
   const [simpleDataUrl, setSimpleDataUrl] = useState<string | null>(null);
-  const pieceTimerRef = useRef<any>(null);
-  const canvasARef = useRef<HTMLCanvasElement | null>(null);
-  const canvasBRef = useRef<HTMLCanvasElement | null>(null);
-  const canvasSimpleRef = useRef<HTMLCanvasElement | null>(null);
-  const preloadedImagesRef = useRef<HTMLImageElement[]>([]);
-  const [hasEscudoImg, setHasEscudoImg] = useState<boolean>(false);
+  const pieceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const isAttendanceOpenRef = useRef<boolean>(false);
+  isAttendanceOpenRef.current = isAttendanceOpen;
+  const attendanceSessionIdRef = useRef<string | null>(null);
+  attendanceSessionIdRef.current = attendanceSessionId;
+  const qrModeRef = useRef<'animated' | 'simple'>('animated');
+  qrModeRef.current = qrMode;
+  const selectedSessionIdRef = useRef<string>('');
+  selectedSessionIdRef.current = selectedSessionId;
+  const statusCheckSeqRef = useRef<number>(0);
+  const qrFetchSeqRef = useRef<number>(0);
+  const justOpenedSessionIdRef = useRef<string | null>(null);
 
   const [reducedMotion, setReducedMotion] = useState<boolean>(() => {
     if (typeof window !== 'undefined' && window.matchMedia) {
@@ -248,8 +258,11 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
       setSessions(loaded);
 
       if (loaded.length > 0) {
-        const openOrScheduled = loaded.find((s) => s.status === 'abierta' || s.status === 'programada');
-        setSelectedSessionId(openOrScheduled ? openOrScheduled.id : loaded[0].id);
+        const currentStillExists = loaded.some((s) => s.id === selectedSessionIdRef.current);
+        if (!currentStillExists) {
+          const openOrScheduled = loaded.find((s) => s.status === 'abierta' || s.status === 'programada');
+          setSelectedSessionId(openOrScheduled ? openOrScheduled.id : loaded[0].id);
+        }
       } else {
         setSelectedSessionId('');
       }
@@ -261,6 +274,11 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
   }, [selectedSectionId, todayLima]);
 
   useEffect(() => {
+    justOpenedSessionIdRef.current = null;
+    setIsAttendanceOpen(false);
+    setAttendanceSessionId(null);
+    setQrError(null);
+    setCloseSummary(null);
     loadSessions();
   }, [loadSessions]);
 
@@ -287,12 +305,22 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
 
         const { data: profs, error: profErr } = await supabase
           .from('profiles')
-          .select('id, code, first_names, last_names, avatar_updated_at')
+          .select('id, code, first_names, last_names, avatar_updated_at, career_id, career:careers(id, name)')
           .in('id', ids);
 
         if (profErr) throw profErr;
 
-        const sorted = (profs || []).sort((a: any, b: any) => {
+        const normalized: ProfileBasicInfo[] = (profs || []).map((p: any) => ({
+          id: p.id,
+          code: p.code,
+          first_names: p.first_names,
+          last_names: p.last_names,
+          avatar_updated_at: p.avatar_updated_at,
+          career_id: p.career_id ?? null,
+          career: Array.isArray(p.career) ? p.career[0] || null : p.career || null,
+        }));
+
+        const sorted = normalized.sort((a, b) => {
           const ln = (a.last_names || '').localeCompare(b.last_names || '');
           if (ln !== 0) return ln;
           return (a.first_names || '').localeCompare(b.first_names || '');
@@ -436,37 +464,79 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
   }, [selectedSessionId, fetchSessionRecords]);
 
   const checkCurrentSessionStatus = useCallback(async () => {
-    if (!selectedSessionId) {
+    const targetSessionId = selectedSessionId;
+    if (!targetSessionId) {
       setIsAttendanceOpen(false);
       setAttendanceSessionId(null);
       setAnimatedDataUrls([]);
+      animatedDataUrlsRef.current = [];
+      setSlotAUrl(null);
+      setSlotBUrl(null);
       setSimpleDataUrl(null);
       return;
     }
 
+    const reqSeq = ++statusCheckSeqRef.current;
+
     try {
       const supabase = getSupabaseClient();
-      const { data: classSess } = await supabase
+      const { data: classSess, error: classErr } = await supabase
         .from('class_sessions')
         .select('id, status')
-        .eq('id', selectedSessionId)
+        .eq('id', targetSessionId)
         .single();
 
-      const { data: attSess } = await supabase
+      if (reqSeq !== statusCheckSeqRef.current || targetSessionId !== selectedSessionIdRef.current) {
+        return;
+      }
+      if (classErr || !classSess) return;
+
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === targetSessionId && s.status !== classSess.status
+            ? { ...s, status: classSess.status }
+            : s
+        )
+      );
+
+      if (classSess.status === 'cerrada' || classSess.status === 'cancelada' || classSess.status === 'programada') {
+        justOpenedSessionIdRef.current = null;
+        setIsAttendanceOpen(false);
+        setAttendanceSessionId(null);
+        return;
+      }
+
+      const { data: attSess, error: attErr } = await supabase
         .from('attendance_sessions')
         .select('id, status')
-        .eq('class_session_id', selectedSessionId)
+        .eq('class_session_id', targetSessionId)
         .order('opened_at', { ascending: false })
         .limit(1);
 
-      if (attSess && attSess.length > 0) {
+      if (reqSeq !== statusCheckSeqRef.current || targetSessionId !== selectedSessionIdRef.current) {
+        return;
+      }
+
+      if (!attErr && attSess && attSess.length > 0) {
         const latest = attSess[0];
         setAttendanceSessionId(latest.id);
-        const isOpen = latest.status === 'abierta' && classSess?.status === 'abierta';
-        setIsAttendanceOpen(isOpen);
+        const isOpen = latest.status === 'abierta' && classSess.status === 'abierta';
+        if (isOpen) {
+          justOpenedSessionIdRef.current = targetSessionId;
+          setIsAttendanceOpen(true);
+        } else if (justOpenedSessionIdRef.current !== targetSessionId) {
+          setIsAttendanceOpen(false);
+        }
+      } else if (attErr) {
+        if (!isAttendanceOpenRef.current) {
+          setIsAttendanceOpen(false);
+          setAttendanceSessionId(null);
+        }
       } else {
-        setIsAttendanceOpen(false);
-        setAttendanceSessionId(null);
+        if (justOpenedSessionIdRef.current !== targetSessionId || !isAttendanceOpenRef.current) {
+          setIsAttendanceOpen(false);
+          setAttendanceSessionId(null);
+        }
       }
     } catch {
 
@@ -479,28 +549,58 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
     return () => clearInterval(interval);
   }, [checkCurrentSessionStatus]);
 
-  useEffect(() => {
-    const img = new Image();
-    img.onload = () => setHasEscudoImg(true);
-    img.onerror = () => setHasEscudoImg(false);
-    img.src = '/escudo.png';
+  const startPieceRotationTimer = useCallback(() => {
+    if (pieceTimerRef.current) clearInterval(pieceTimerRef.current);
+
+    pieceTimerRef.current = setInterval(() => {
+      const urls = animatedDataUrlsRef.current;
+      if (!urls || urls.length < 4) return;
+
+      const currentIdx = pieceIndexRef.current;
+      const nextIdx = (currentIdx + 1) % 4;
+      const nextSlot = activeCanvasRef.current === 'A' ? 'B' : 'A';
+
+      if (nextSlot === 'B') {
+        setSlotBUrl(urls[nextIdx]);
+      } else {
+        setSlotAUrl(urls[nextIdx]);
+      }
+
+      pieceIndexRef.current = nextIdx;
+      activeCanvasRef.current = nextSlot;
+      isHardCutRef.current = false;
+      setIsHardCut(false);
+      setActiveCanvas(nextSlot);
+      setPieceIndex(nextIdx);
+    }, PIECE_MS);
   }, []);
 
   const fetchNewQrToken = useCallback(async () => {
-    if (!selectedSessionId || !isAttendanceOpen) return;
+    const targetSessionId = selectedSessionId;
+    if (!targetSessionId || !isAttendanceOpen) return;
+
+    const fetchSeq = ++qrFetchSeqRef.current;
 
     try {
       const supabase = getSupabaseClient();
       const { data, error: rpcErr } = await supabase.rpc('new_qr_token', {
-        p_class_session: selectedSessionId,
+        p_class_session: targetSessionId,
       });
+
+      if (
+        fetchSeq !== qrFetchSeqRef.current ||
+        targetSessionId !== selectedSessionIdRef.current ||
+        !isAttendanceOpenRef.current
+      ) {
+        return;
+      }
 
       if (rpcErr) throw rpcErr;
 
       const payload = data as QrTokenPayload;
 
       if (payload && payload.code === 'success') {
-        if (payload.sid && payload.sid !== attendanceSessionId) {
+        if (payload.sid && payload.sid !== attendanceSessionIdRef.current) {
           setAttendanceSessionId(payload.sid);
         }
 
@@ -535,43 +635,17 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
           )
         );
 
-        const preloaded = v2Urls.map((url) => {
-          const img = new Image();
-          img.src = url;
-          return img;
-        });
-        preloadedImagesRef.current = preloaded;
-
-        setAnimatedDataUrls(v2Urls);
-
-        pieceIndexRef.current = 0;
-        activeCanvasRef.current = 'A';
-        isHardCutRef.current = true;
-        setPieceIndex(0);
-        setActiveCanvas('A');
-        setIsHardCut(true);
-
-        const canvasA = canvasARef.current;
-        if (canvasA && preloaded[0]) {
-          const drawP0 = () => {
-            const ctxA = canvasA.getContext('2d');
-            if (ctxA) {
-              ctxA.clearRect(0, 0, canvasA.width, canvasA.height);
-              ctxA.drawImage(preloaded[0], 0, 0, canvasA.width, canvasA.height);
-            }
-          };
-          if (preloaded[0].complete && preloaded[0].naturalWidth > 0) {
-            drawP0();
-          } else {
-            preloaded[0].onload = drawP0;
-          }
-        }
-
-        const canvasB = canvasBRef.current;
-        if (canvasB) {
-          const ctxB = canvasB.getContext('2d');
-          if (ctxB) ctxB.clearRect(0, 0, canvasB.width, canvasB.height);
-        }
+        await Promise.all(
+          v2Urls.map(
+            (url) =>
+              new Promise<void>((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve();
+                img.onerror = () => resolve();
+                img.src = url;
+              })
+          )
+        );
 
         const v1Text = `{"v":1,"sid":"${sidStr}","tok":"${rawTok}","exp":${payload.exp ?? 0}}`;
         const v1Url = await QRCode.toDataURL(v1Text, {
@@ -583,57 +657,68 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
             light: '#FFFFFF',
           },
         });
+
+        if (
+          fetchSeq !== qrFetchSeqRef.current ||
+          targetSessionId !== selectedSessionIdRef.current ||
+          !isAttendanceOpenRef.current
+        ) {
+          return;
+        }
+
+        animatedDataUrlsRef.current = v2Urls;
+        setAnimatedDataUrls(v2Urls);
         setSimpleDataUrl(v1Url);
+
+        pieceIndexRef.current = 0;
+        activeCanvasRef.current = 'A';
+        isHardCutRef.current = true;
+        setPieceIndex(0);
+        setActiveCanvas('A');
+        setIsHardCut(true);
+        setSlotAUrl(v2Urls[0] || null);
+        setSlotBUrl(v2Urls[1] || null);
         setCountdown(8);
 
         if (pieceTimerRef.current) clearInterval(pieceTimerRef.current);
-        if (qrMode === 'animated') {
+        if (qrModeRef.current === 'animated') {
           startPieceRotationTimer();
         }
       } else {
         const errCode = payload?.code || 'error';
-        setQrError(`El servidor no pudo generar el código QR: ${errCode}`);
+        setQrError(
+          errCode === 'session_closed'
+            ? 'La sesión de asistencia está cerrada.'
+            : errCode === 'session_cancelled'
+            ? 'La sesión fue cancelada.'
+            : errCode === 'unauthorized'
+            ? 'No tienes permiso para generar códigos QR en esta sesión.'
+            : `El servidor no pudo generar el código QR (${errCode}).`
+        );
+        animatedDataUrlsRef.current = [];
         setAnimatedDataUrls([]);
+        setSlotAUrl(null);
+        setSlotBUrl(null);
         setSimpleDataUrl(null);
-        if (qrIntervalRef.current) clearInterval(qrIntervalRef.current);
-        if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
         if (pieceTimerRef.current) clearInterval(pieceTimerRef.current);
       }
     } catch (err: any) {
-      setQrError(err.message || 'Error de conexión al generar el código QR.');
-      setAnimatedDataUrls([]);
-      setSimpleDataUrl(null);
-    }
-  }, [selectedSessionId, isAttendanceOpen, attendanceSessionId, qrMode]);
-
-  const startPieceRotationTimer = useCallback(() => {
-    if (pieceTimerRef.current) clearInterval(pieceTimerRef.current);
-
-    pieceTimerRef.current = setInterval(() => {
-      const imgs = preloadedImagesRef.current;
-      if (!imgs || imgs.length < 4) return;
-
-      const currentIdx = pieceIndexRef.current;
-      const nextIdx = (currentIdx + 1) % 4;
-      const nextCanvas = activeCanvasRef.current === 'A' ? 'B' : 'A';
-      const targetCanvasEl = nextCanvas === 'B' ? canvasBRef.current : canvasARef.current;
-
-      if (targetCanvasEl && imgs[nextIdx]) {
-        const ctx = targetCanvasEl.getContext('2d');
-        if (ctx) {
-          ctx.clearRect(0, 0, targetCanvasEl.width, targetCanvasEl.height);
-          ctx.drawImage(imgs[nextIdx], 0, 0, targetCanvasEl.width, targetCanvasEl.height);
-        }
+      if (
+        fetchSeq !== qrFetchSeqRef.current ||
+        targetSessionId !== selectedSessionIdRef.current ||
+        !isAttendanceOpenRef.current
+      ) {
+        return;
       }
-
-      pieceIndexRef.current = nextIdx;
-      activeCanvasRef.current = nextCanvas;
-      isHardCutRef.current = false;
-      setIsHardCut(false);
-      setActiveCanvas(nextCanvas);
-      setPieceIndex(nextIdx);
-    }, PIECE_MS);
-  }, []);
+      setQrError(err.message || 'Error de conexión al generar el código QR.');
+      animatedDataUrlsRef.current = [];
+      setAnimatedDataUrls([]);
+      setSlotAUrl(null);
+      setSlotBUrl(null);
+      setSimpleDataUrl(null);
+      if (pieceTimerRef.current) clearInterval(pieceTimerRef.current);
+    }
+  }, [selectedSessionId, isAttendanceOpen, startPieceRotationTimer]);
 
   useEffect(() => {
     if (isAttendanceOpen && qrMode === 'animated' && animatedDataUrls.length === 4) {
@@ -648,42 +733,6 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
   }, [isAttendanceOpen, qrMode, animatedDataUrls.length, startPieceRotationTimer]);
 
   useEffect(() => {
-    if (qrMode === 'simple' && simpleDataUrl && canvasSimpleRef.current) {
-      const canvas = canvasSimpleRef.current;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-
-      const img = new Image();
-      img.onload = () => {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      };
-      img.src = simpleDataUrl;
-    }
-  }, [qrMode, simpleDataUrl]);
-
-  useEffect(() => {
-    if (qrMode === 'animated' && preloadedImagesRef.current[pieceIndex]) {
-      const currentCanvas = activeCanvas === 'A' ? canvasARef.current : canvasBRef.current;
-      const img = preloadedImagesRef.current[pieceIndex];
-      if (currentCanvas && img) {
-        const ctx = currentCanvas.getContext('2d');
-        if (ctx) {
-          if (img.complete && img.naturalWidth > 0) {
-            ctx.clearRect(0, 0, currentCanvas.width, currentCanvas.height);
-            ctx.drawImage(img, 0, 0, currentCanvas.width, currentCanvas.height);
-          } else {
-            img.onload = () => {
-              ctx.clearRect(0, 0, currentCanvas.width, currentCanvas.height);
-              ctx.drawImage(img, 0, 0, currentCanvas.width, currentCanvas.height);
-            };
-          }
-        }
-      }
-    }
-  }, [qrMode, animatedDataUrls, pieceIndex, activeCanvas]);
-
-  useEffect(() => {
     if (isAttendanceOpen) {
       fetchNewQrToken();
       qrIntervalRef.current = setInterval(() => {
@@ -694,18 +743,22 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
         setCountdown((prev) => (prev > 1 ? prev - 1 : 8));
       }, 1000);
     } else {
+      qrFetchSeqRef.current += 1;
       if (qrIntervalRef.current) clearInterval(qrIntervalRef.current);
       if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
       if (pieceTimerRef.current) clearInterval(pieceTimerRef.current);
+      animatedDataUrlsRef.current = [];
       setAnimatedDataUrls([]);
+      setSlotAUrl(null);
+      setSlotBUrl(null);
       setSimpleDataUrl(null);
+      setQrError(null);
       setPieceIndex(0);
       pieceIndexRef.current = 0;
       activeCanvasRef.current = 'A';
       setActiveCanvas('A');
       isHardCutRef.current = true;
       setIsHardCut(true);
-      preloadedImagesRef.current = [];
       generationRef.current = 0;
     }
 
@@ -719,14 +772,10 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
   const handleOpenAttendance = async () => {
     if (!selectedSessionId) return;
     setError(null);
+    setQrError(null);
     setCloseSummary(null);
     setIsOpenAttendanceLoading(true);
-
-    if (activeSession?.status === 'abierta') {
-      setIsAttendanceOpen(true);
-      setIsOpenAttendanceLoading(false);
-      return;
-    }
+    statusCheckSeqRef.current += 1;
 
     try {
       const supabase = getSupabaseClient();
@@ -737,7 +786,9 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
       if (rpcErr) throw rpcErr;
 
       const result = String(data);
-      if (result === 'success') {
+      if (result === 'success' || result === 'already_open') {
+        statusCheckSeqRef.current += 1;
+        justOpenedSessionIdRef.current = selectedSessionId;
         setIsAttendanceOpen(true);
         setSessions((prev) =>
           prev.map((s) => (s.id === selectedSessionId ? { ...s, status: 'abierta' } : s))
@@ -876,8 +927,13 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
       const summary = res as CloseAttendanceResult;
 
       if (summary && summary.code === 'success') {
+        statusCheckSeqRef.current += 1;
+        qrFetchSeqRef.current += 1;
+        justOpenedSessionIdRef.current = null;
         setCloseSummary(summary);
         setIsAttendanceOpen(false);
+        setAttendanceSessionId(null);
+        setQrError(null);
         setIsCloseModalOpen(false);
         setSessions((prev) =>
           prev.map((s) => (s.id === selectedSessionId ? { ...s, status: 'cerrada' } : s))
@@ -1005,14 +1061,29 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
             </div>
           </div>
 
+          {qrError && (
+            <div className="w-full mb-2 p-3 rounded-xl bg-red-50 border border-red-200 text-left flex items-center justify-between gap-2">
+              <div className="flex items-start gap-2 min-w-0">
+                <AlertCircle className="w-4 h-4 text-[#C8102E] shrink-0 mt-0.5" />
+                <span className="text-xs font-semibold text-red-800 break-words">{qrError}</span>
+              </div>
+              <button
+                type="button"
+                onClick={fetchNewQrToken}
+                className="px-2.5 py-1 rounded-lg bg-[#C8102E] text-white text-[11px] font-bold hover:bg-[#A50D25] transition-colors shrink-0 cursor-pointer"
+              >
+                Reintentar
+              </button>
+            </div>
+          )}
+
           {qrMode === 'animated' ? (
-            <div className="w-full flex justify-center my-2">
+            <div className="w-full flex justify-center my-2 relative">
               <svg
                 viewBox="0 0 400 500"
                 className="w-full max-w-[480px] sm:max-w-[520px] md:max-w-[560px] h-auto select-none"
               >
                 <defs>
-
                   <filter id="shieldShadow" x="-15%" y="-10%" width="130%" height="130%">
                     <feDropShadow dx="0" dy="6" stdDeviation="10" floodColor="#C8102E" floodOpacity="0.35" />
                   </filter>
@@ -1090,42 +1161,50 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
 
                 <rect x="70" y="72" width="260" height="260" rx="18" fill="#FFFFFF" />
 
-                <foreignObject x="82" y="84" width="236" height="236">
-                  <div
-                    style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}
+                {slotAUrl && (
+                  <image
+                    x="82"
+                    y="84"
+                    width="236"
+                    height="236"
+                    href={slotAUrl}
+                    preserveAspectRatio="xMidYMid meet"
+                    style={{
+                      opacity: activeCanvas === 'A' ? 1 : 0,
+                      transition: isHardCut ? 'none' : `opacity ${effectiveFadeMs}ms linear`,
+                    }}
+                  />
+                )}
+
+                {slotBUrl && (
+                  <image
+                    x="82"
+                    y="84"
+                    width="236"
+                    height="236"
+                    href={slotBUrl}
+                    preserveAspectRatio="xMidYMid meet"
+                    style={{
+                      opacity: activeCanvas === 'B' ? 1 : 0,
+                      transition: isHardCut ? 'none' : `opacity ${effectiveFadeMs}ms linear`,
+                    }}
+                  />
+                )}
+
+                {!slotAUrl && !slotBUrl && (
+                  <text
+                    x="200"
+                    y="202"
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fill="#94A3B8"
+                    fontSize="12"
+                    fontWeight="bold"
+                    fontFamily="ui-sans-serif, system-ui, sans-serif"
                   >
-                    <canvas
-                      ref={canvasARef}
-                      width={320}
-                      height={320}
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'contain',
-                        opacity: activeCanvas === 'A' ? 1 : 0,
-                        transition: isHardCut ? 'none' : `opacity ${effectiveFadeMs}ms linear`,
-                      }}
-                    />
-                    <canvas
-                      ref={canvasBRef}
-                      width={320}
-                      height={320}
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'contain',
-                        opacity: activeCanvas === 'B' ? 1 : 0,
-                        transition: isHardCut ? 'none' : `opacity ${effectiveFadeMs}ms linear`,
-                      }}
-                    />
-                  </div>
-                </foreignObject>
+                    {qrError ? 'Sin QR disponible' : 'Generando QR...'}
+                  </text>
+                )}
 
                 <g>
                   {[0, 1, 2, 3].map((idx) => {
@@ -1189,12 +1268,18 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
           ) : (
             <div className="relative mx-auto my-3 w-[340px] max-w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl flex flex-col items-center">
               <div className="w-[300px] h-[300px] sm:w-[320px] sm:h-[320px] bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center justify-center">
-                <canvas
-                  ref={canvasSimpleRef}
-                  width={320}
-                  height={320}
-                  className="w-full h-full object-contain rounded-lg"
-                />
+                {simpleDataUrl ? (
+                  <img
+                    src={simpleDataUrl}
+                    alt="Código QR de asistencia"
+                    className="w-full h-full object-contain rounded-lg select-none"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-2 text-slate-400">
+                    <RefreshCw className="w-6 h-6 animate-spin text-[#C8102E]" />
+                    <span className="text-xs font-semibold">Generando QR...</span>
+                  </div>
+                )}
               </div>
               <div className="mt-3 text-[11px] font-mono font-bold text-slate-500 uppercase tracking-wide">
                 Código QR Estático · Expira en {countdown}s
@@ -1405,6 +1490,13 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
                           {st.last_names}, {st.first_names}
                         </strong>
                       </div>
+                      {st.career?.name && (
+                        <div className="mt-1">
+                          <span className="inline-block px-2 py-0.5 rounded bg-blue-50 border border-blue-200 text-[#1F5FA8] text-[10px] font-bold uppercase tracking-wide">
+                            {st.career.name}
+                          </span>
+                        </div>
+                      )}
 
                       <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px]">
 
