@@ -13,7 +13,9 @@ import {
   Calendar,
   Layers,
   Info,
-  FlaskConical
+  FlaskConical,
+  ShieldAlert,
+  AlertTriangle
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -23,23 +25,33 @@ import {
   StudentEnrollmentWithDetails,
   SectionClosedCounts
 } from '../../services/studentService';
-import { isSupabaseConfigured } from '../../lib/supabase';
-import { AttendanceRecord, AttendanceStatus } from '../../types';
+import { fetchStudentBlocksBySection } from '../../services/blockService';
+import { getSupabaseClient, isSupabaseConfigured } from '../../lib/supabase';
+import { AttendanceRecord, AttendanceStatus, SectionStudentBlockStatus } from '../../types';
 import { formatDisplayDate, formatTime, formatLimaTime } from '../../lib/dateUtils';
 import { translateSupabaseError } from '../../lib/supabaseErrors';
 import { getMethodLabel } from '../../lib/attendanceUtils';
+import { ActionButton, SectionIconBadge } from '../ui';
 
-export const StudentAttendanceScreen: React.FC = () => {
+interface StudentAttendanceScreenProps {
+  targetSectionOrCourseRequest?: { refId: string; key: number } | null;
+}
+
+export const StudentAttendanceScreen: React.FC<StudentAttendanceScreenProps> = ({
+  targetSectionOrCourseRequest = null,
+}) => {
   const { user } = useAuth();
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [enrollments, setEnrollments] = useState<StudentEnrollmentWithDetails[]>([]);
   const [closedSessionsMap, setClosedSessionsMap] = useState<Record<string, SectionClosedCounts>>({});
+  const [blockStatusMap, setBlockStatusMap] = useState<Record<string, SectionStudentBlockStatus>>({});
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   const [selectedCourseFilter, setSelectedCourseFilter] = useState<string>('all');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('all');
   const [selectedKindFilter, setSelectedKindFilter] = useState<'all' | 'teoria' | 'practica'>('all');
+  const prevTargetKeyRef = React.useRef<number | null>(null);
 
   const loadData = useCallback(async () => {
     if (!user || !isSupabaseConfigured()) {
@@ -59,8 +71,15 @@ export const StudentAttendanceScreen: React.FC = () => {
 
       const sectionIds = enrList.map((e) => e.section.id);
       if (sectionIds.length > 0) {
-        const closedCounts = await getClosedSessionsCountBySections(sectionIds);
+        const [closedCounts, blocks] = await Promise.all([
+          getClosedSessionsCountBySections(sectionIds),
+          fetchStudentBlocksBySection(user.id, sectionIds).catch(() => ({})),
+        ]);
         setClosedSessionsMap(closedCounts);
+        setBlockStatusMap(blocks);
+      } else {
+        setClosedSessionsMap({});
+        setBlockStatusMap({});
       }
     } catch (err: any) {
       setError(translateSupabaseError(err));
@@ -72,6 +91,59 @@ export const StudentAttendanceScreen: React.FC = () => {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    if (!user?.id || !isSupabaseConfigured()) return;
+    const supabase = getSupabaseClient();
+    const channel = supabase
+      .channel(`student-attendance-blocks-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'student_section_blocks',
+          filter: `student_id=eq.${user.id}`,
+        },
+        () => {
+          loadData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, loadData]);
+
+  useEffect(() => {
+    if (!targetSectionOrCourseRequest) {
+      if (prevTargetKeyRef.current !== null) {
+        setSelectedCourseFilter('all');
+      }
+      prevTargetKeyRef.current = null;
+      return;
+    }
+
+    prevTargetKeyRef.current = targetSectionOrCourseRequest.key;
+    if (enrollments.length === 0) return;
+
+    const targetId = targetSectionOrCourseRequest.refId;
+    const matchBySection = enrollments.find(
+      (enr) => enr.section.id === targetId
+    );
+    if (matchBySection) {
+      setSelectedCourseFilter(matchBySection.section.id);
+      return;
+    }
+
+    const matchByCourse = enrollments.find(
+      (enr) => enr.section.offering.course.id === targetId
+    );
+    if (matchByCourse) {
+      setSelectedCourseFilter(matchByCourse.section.id);
+    }
+  }, [targetSectionOrCourseRequest, enrollments]);
 
   const courseSummaries = useMemo(() => {
     return enrollments.map((item) => {
@@ -160,30 +232,36 @@ export const StudentAttendanceScreen: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6 ucv-animate-in">
 
-      <div className="ucv-card rounded-xl overflow-hidden">
-        <div className="h-1 w-full ucv-topbar-split" />
-        <div className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-extrabold text-[#0B2A5B] tracking-tight">Mi Historial de Asistencia</h1>
-            <p className="text-xs text-slate-500 mt-1">
-              Visualización oficial de sus registros de asistencia, porcentajes de cumplimiento y detalle sesión por sesión.
-            </p>
+      <div className="ucv-card-pro rounded-2xl overflow-hidden">
+        <div className="h-[3px] w-full ucv-topbar-split" />
+        <div className="p-5 sm:px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <SectionIconBadge icon={CalendarCheck} variant="blue" size="md" />
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-[#0B2A5B] tracking-[-0.02em]">Mi Historial de Asistencia</h1>
+              <p className="text-xs text-slate-500 mt-1">
+                Visualización oficial de sus registros de asistencia, porcentajes de cumplimiento y detalle sesión por sesión.
+              </p>
+            </div>
           </div>
 
-          <button
-            onClick={loadData}
+          <ActionButton
+            icon={RefreshCw}
+            variant="secondary"
+            size="sm"
+            spinningIcon={loading}
             disabled={loading}
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200/80 text-slate-700 border border-slate-200/80 transition-all active:scale-95 disabled:opacity-50 cursor-pointer self-start sm:self-auto"
+            onClick={loadData}
+            className="self-start sm:self-auto"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-[#1F5FA8]' : ''}`} />
-            <span>Actualizar</span>
-          </button>
+            Actualizar
+          </ActionButton>
         </div>
       </div>
 
       {error && (
         <div className="p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3 ucv-slide-down">
-          <AlertCircle className="w-5 h-5 text-[#C8102E] shrink-0 mt-0.5" />
+          <AlertCircle className="w-5 h-5 text-[#C8102E] shrink-0 mt-0.5" strokeWidth={1.85} />
           <div className="flex-1">
             <h4 className="text-xs font-bold text-red-900">Error al consultar asistencia</h4>
             <p className="text-xs text-red-700 mt-0.5">{error}</p>
@@ -191,22 +269,48 @@ export const StudentAttendanceScreen: React.FC = () => {
         </div>
       )}
 
-      <div className="ucv-card p-4 rounded-xl border-l-4 border-l-[#1F5FA8] flex items-start gap-3">
-        <Info className="w-5 h-5 text-[#1F5FA8] shrink-0 mt-0.5" />
+      {!loading && courseSummaries.some((cs) => blockStatusMap[cs.sectionId]?.isBlocked) && (
+        <div className="ucv-card p-4 rounded-2xl bg-red-50/75 border border-red-200 flex items-start gap-3 ucv-slide-down">
+          <ShieldAlert className="w-5 h-5 text-[#C8102E] shrink-0 mt-0.5" strokeWidth={1.85} />
+          <div className="text-xs text-red-900 space-y-1 flex-1">
+            <h4 className="font-bold text-[#C8102E]">
+              Inhabilitación activa en curso(s) específico(s)
+            </h4>
+            <p className="text-red-800">
+              No podrás registrar asistencia por QR ni Bluetooth en los cursos señalados como <strong>INHABILITADO</strong> hasta que Administración te rehabilite. Tus demás cursos siguen habilitados con normalidad.
+            </p>
+            <div className="flex flex-wrap gap-2 pt-1">
+              {courseSummaries
+                .filter((cs) => blockStatusMap[cs.sectionId]?.isBlocked)
+                .map((cs) => (
+                  <span
+                    key={cs.sectionId}
+                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-white border border-red-200/85 text-[#C8102E] font-semibold text-[11px]"
+                  >
+                    {cs.courseCode} ({cs.courseName}) — Sec. {cs.sectionName}
+                  </span>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="ucv-card p-5 rounded-2xl flex items-start gap-3">
+        <Info className="w-5 h-5 text-[#1F5FA8] shrink-0 mt-0.5" strokeWidth={1.85} />
         <div className="text-xs text-slate-700 space-y-2 flex-1">
           <strong className="text-[#0B2A5B] block font-bold text-xs">
             Fórmula de cálculo de asistencia por tipo (Teoría y Práctica):
           </strong>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-[11px] font-mono">
-            <div className="bg-slate-50/80 p-3 rounded-lg border border-blue-200/80 border-l-4 border-l-[#1F5FA8]">
-              <span className="text-[#0B2A5B] font-bold block mb-0.5">Asistencia de Teoría:</span>
-              <span className="text-[#1F5FA8] font-bold">
+            <div className="bg-slate-50/85 p-3 rounded-xl border border-blue-200/80">
+              <span className="text-[#0B2A5B] font-bold block mb-0.5 font-sans">Asistencia de Teoría:</span>
+              <span className="text-[#1F5FA8] font-semibold">
                 (Presentes Teoría ÷ Sesiones Cerradas Teoría) × 100
               </span>
             </div>
-            <div className="bg-slate-50/80 p-3 rounded-lg border border-red-200/80 border-l-4 border-l-[#C8102E]">
-              <span className="text-[#0B2A5B] font-bold block mb-0.5">Asistencia de Práctica:</span>
-              <span className="text-[#C8102E] font-bold">
+            <div className="bg-slate-50/85 p-3 rounded-xl border border-red-200/80">
+              <span className="text-[#0B2A5B] font-bold block mb-0.5 font-sans">Asistencia de Práctica:</span>
+              <span className="text-[#C8102E] font-semibold">
                 (Presentes Práctica ÷ Sesiones Cerradas Práctica) × 100
               </span>
             </div>
@@ -217,9 +321,9 @@ export const StudentAttendanceScreen: React.FC = () => {
         </div>
       </div>
 
-      <div className="ucv-card p-5 rounded-xl space-y-4">
-        <h2 className="text-xs uppercase font-bold text-slate-500 tracking-wider flex items-center gap-2">
-          <PieChart className="w-4 h-4 text-[#C8102E]" />
+      <div className="ucv-card p-5 rounded-2xl space-y-4">
+        <h2 className="text-[11px] uppercase font-bold text-[#0B2A5B] tracking-[0.06em] flex items-center gap-2">
+          <PieChart className="w-4 h-4 text-[#C8102E]" strokeWidth={1.85} />
           Resumen de Cumplimiento por Asignatura (Teoría y Práctica)
         </h2>
 
@@ -238,16 +342,28 @@ export const StudentAttendanceScreen: React.FC = () => {
               const isLowTeoria = cs.teoria.closedSessions > 0 && (cs.teoria.percentage ?? 0) < 70;
               const isLowPractica = cs.practica.closedSessions > 0 && (cs.practica.percentage ?? 0) < 70;
               const isBlueAccent = idx % 2 === 0;
+              const isSelectedCourse = selectedCourseFilter === cs.sectionId;
+              const blockStatus = blockStatusMap[cs.sectionId];
+              const isCourseBlocked = Boolean(blockStatus?.isBlocked);
+              const cycleAbsences = blockStatus?.cycleAbsences ?? 0;
+              const isWarning = !isCourseBlocked && cycleAbsences === 2;
 
               return (
                 <div
                   key={cs.sectionId}
-                  className={`ucv-card-interactive p-4 rounded-xl border border-slate-200/90 border-t-2 ${
-                    isBlueAccent ? 'border-t-[#1F5FA8]' : 'border-t-[#C8102E]'
-                  } bg-slate-50/40 flex flex-col justify-between space-y-3`}
+                  onClick={() => setSelectedCourseFilter(isSelectedCourse ? 'all' : cs.sectionId)}
+                  className={`ucv-card-interactive p-4 rounded-xl border border-t-2 cursor-pointer transition-all ${
+                    isCourseBlocked
+                      ? 'border-red-300 border-t-[#C8102E] bg-red-50/30 shadow-xs'
+                      : isSelectedCourse
+                      ? 'border-[#C8102E] border-t-[#C8102E] ring-2 ring-[#C8102E]/25 bg-white shadow-sm'
+                      : `border-slate-200/90 ${
+                          isBlueAccent ? 'border-t-[#1F5FA8]' : 'border-t-[#C8102E]'
+                        } bg-slate-50/40`
+                  } flex flex-col justify-between space-y-3`}
                 >
                   <div>
-                    <div className="flex items-center justify-between gap-1 mb-1">
+                    <div className="flex items-center justify-between gap-1 mb-1 flex-wrap">
                       <span
                         className={`font-mono text-[11px] font-bold ${
                           isBlueAccent ? 'text-[#1F5FA8]' : 'text-[#C8102E]'
@@ -255,9 +371,31 @@ export const StudentAttendanceScreen: React.FC = () => {
                       >
                         {cs.courseCode}
                       </span>
-                      <span className="text-[10px] font-mono text-slate-600 bg-white px-1.5 py-0.5 rounded border border-slate-200 font-bold">
-                        Sec. {cs.sectionName}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {isSelectedCourse && (
+                          <span className="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded bg-red-50 text-[#C8102E] border border-red-200">
+                            Filtrado
+                          </span>
+                        )}
+                        {isCourseBlocked ? (
+                          <span className="inline-flex items-center gap-1 text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-red-100 text-[#C8102E] border border-red-300">
+                            <ShieldAlert className="w-2.5 h-2.5" />
+                            INHABILITADO
+                          </span>
+                        ) : isWarning ? (
+                          <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">
+                            <AlertTriangle className="w-2.5 h-2.5" />
+                            2/3 Faltas
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            Habilitado
+                          </span>
+                        )}
+                        <span className="text-[10px] font-mono text-slate-600 bg-white px-1.5 py-0.5 rounded border border-slate-200 font-bold">
+                          Sec. {cs.sectionName}
+                        </span>
+                      </div>
                     </div>
                     <h4 className="text-xs font-bold text-[#0B2A5B] line-clamp-1">
                       {cs.courseName}
@@ -276,7 +414,7 @@ export const StudentAttendanceScreen: React.FC = () => {
                         </span>
                       ) : (
                         <span
-                          className={`text-sm font-black font-mono ${
+                          className={`text-sm font-bold font-mono tabular-nums ${
                             isLowTeoria ? 'text-red-600' : 'text-emerald-700'
                           }`}
                         >
@@ -294,9 +432,9 @@ export const StudentAttendanceScreen: React.FC = () => {
                             style={{ width: `${Math.min(100, Math.max(0, cs.teoria.percentage ?? 0))}%` }}
                           />
                         </div>
-                        <div className="flex justify-between text-[10px] text-slate-500 pt-0.5 font-mono">
+                        <div className="flex justify-between text-[10px] text-slate-500 pt-0.5 font-mono tabular-nums">
                           <span>{cs.teoria.presentes} presentes de {cs.teoria.closedSessions} cerradas</span>
-                          {cs.teoria.faltas > 0 && <span className="text-red-600 font-bold">{cs.teoria.faltas} falta(s)</span>}
+                          {cs.teoria.faltas > 0 && <span className="text-red-600 font-semibold">{cs.teoria.faltas} falta(s)</span>}
                         </div>
                       </>
                     ) : (
@@ -306,19 +444,19 @@ export const StudentAttendanceScreen: React.FC = () => {
                     )}
                   </div>
 
-                  <div className="p-3 bg-white rounded-lg border border-slate-200 space-y-1.5">
+                  <div className="p-3 bg-white rounded-lg border border-slate-200/85 space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-[#0B2A5B] flex items-center gap-1">
-                        <FlaskConical className="w-3.5 h-3.5 text-[#C8102E]" />
+                      <span className="text-[11px] font-semibold text-[#0B2A5B] flex items-center gap-1">
+                        <FlaskConical className="w-3.5 h-3.5 text-[#C8102E]" strokeWidth={1.85} />
                         Práctica:
                       </span>
                       {cs.practica.closedSessions === 0 ? (
-                        <span className="text-[11px] font-bold text-slate-500 italic bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                        <span className="text-[11px] font-medium text-slate-500 italic bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
                           Sin sesiones cerradas
                         </span>
                       ) : (
                         <span
-                          className={`text-sm font-black font-mono ${
+                          className={`text-sm font-bold font-mono tabular-nums ${
                             isLowPractica ? 'text-[#C8102E]' : 'text-emerald-700'
                           }`}
                         >
@@ -336,9 +474,9 @@ export const StudentAttendanceScreen: React.FC = () => {
                             style={{ width: `${Math.min(100, Math.max(0, cs.practica.percentage ?? 0))}%` }}
                           />
                         </div>
-                        <div className="flex justify-between text-[10px] text-slate-500 pt-0.5 font-mono">
+                        <div className="flex justify-between text-[10px] text-slate-500 pt-0.5 font-mono tabular-nums">
                           <span>{cs.practica.presentes} presentes de {cs.practica.closedSessions} cerradas</span>
-                          {cs.practica.faltas > 0 && <span className="text-red-600 font-bold">{cs.practica.faltas} falta(s)</span>}
+                          {cs.practica.faltas > 0 && <span className="text-red-600 font-semibold">{cs.practica.faltas} falta(s)</span>}
                         </div>
                       </>
                     ) : (
@@ -348,8 +486,13 @@ export const StudentAttendanceScreen: React.FC = () => {
                     )}
                   </div>
 
-                  <div className="text-[10px] text-slate-400 text-right pt-1 border-t border-slate-200/60 font-medium">
-                    Total: {cs.totalClosed} sesión(es) concluida(s)
+                  <div className="flex items-center justify-between text-[10px] pt-1 border-t border-slate-200/60 font-medium font-mono tabular-nums">
+                    <span className={isCourseBlocked ? 'text-[#C8102E] font-bold' : isWarning ? 'text-amber-700 font-bold' : 'text-slate-500'}>
+                      Faltas ciclo: {cycleAbsences}/3
+                    </span>
+                    <span className="text-slate-400 font-sans">
+                      Total: {cs.totalClosed} sesión(es) concluida(s)
+                    </span>
                   </div>
                 </div>
               );
@@ -358,9 +501,9 @@ export const StudentAttendanceScreen: React.FC = () => {
         )}
       </div>
 
-      <div className="ucv-card p-4 rounded-xl flex flex-wrap items-center gap-3">
+      <div className="ucv-card p-4 rounded-2xl flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 mr-2">
-          <Filter className="w-4 h-4 text-[#C8102E]" />
+          <Filter className="w-4 h-4 text-[#C8102E]" strokeWidth={1.85} />
           <span>Filtros:</span>
         </div>
 
@@ -369,7 +512,7 @@ export const StudentAttendanceScreen: React.FC = () => {
           <select
             value={selectedCourseFilter}
             onChange={(e) => setSelectedCourseFilter(e.target.value)}
-            className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1F5FA8]/25 focus:border-[#1F5FA8]"
+            className="h-9 text-xs px-3 rounded-xl border border-slate-200 bg-white font-medium text-slate-700 focus:outline-hidden focus:ring-2 focus:ring-[#1F5FA8]/20 focus:border-[#1F5FA8] cursor-pointer"
           >
             <option value="all">Todas las asignaturas ({enrollments.length})</option>
             {enrollments.map((enr) => (
@@ -385,7 +528,7 @@ export const StudentAttendanceScreen: React.FC = () => {
           <select
             value={selectedStatusFilter}
             onChange={(e) => setSelectedStatusFilter(e.target.value)}
-            className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1F5FA8]/25 focus:border-[#1F5FA8]"
+            className="h-9 text-xs px-3 rounded-xl border border-slate-200 bg-white font-medium text-slate-700 focus:outline-hidden focus:ring-2 focus:ring-[#1F5FA8]/20 focus:border-[#1F5FA8] cursor-pointer"
           >
             <option value="all">Todos los estados</option>
             <option value="presente">Presente</option>
@@ -400,7 +543,7 @@ export const StudentAttendanceScreen: React.FC = () => {
           <select
             value={selectedKindFilter}
             onChange={(e) => setSelectedKindFilter(e.target.value as 'all' | 'teoria' | 'practica')}
-            className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1F5FA8]/25 focus:border-[#1F5FA8]"
+            className="h-9 text-xs px-3 rounded-xl border border-slate-200 bg-white font-medium text-slate-700 focus:outline-hidden focus:ring-2 focus:ring-[#1F5FA8]/20 focus:border-[#1F5FA8] cursor-pointer"
           >
             <option value="all">Todos los tipos</option>
             <option value="teoria">Teoría</option>
@@ -408,18 +551,30 @@ export const StudentAttendanceScreen: React.FC = () => {
           </select>
         </div>
 
-        <div className="ml-auto text-xs text-slate-500 font-medium">
-          Mostrando <strong className="text-[#0B2A5B]">{filteredRecords.length}</strong> registro(s)
+        <div className="ml-auto flex items-center gap-3 text-xs text-slate-500 font-medium">
+          {selectedCourseFilter !== 'all' && (
+            <ActionButton
+              variant="ghost"
+              size="xs"
+              onClick={() => setSelectedCourseFilter('all')}
+              className="text-[#1F5FA8] hover:text-[#0B2A5B]"
+            >
+              Ver todas
+            </ActionButton>
+          )}
+          <span>
+            Mostrando <strong className="text-[#0B2A5B] font-mono tabular-nums">{filteredRecords.length}</strong> registro(s)
+          </span>
         </div>
       </div>
 
-      <div className="ucv-card rounded-xl overflow-hidden">
+      <div className="ucv-card rounded-2xl overflow-hidden">
         <div className="p-4 bg-slate-50/90 border-b border-slate-200 flex items-center justify-between">
-          <h3 className="text-xs uppercase font-bold text-[#0B2A5B] flex items-center gap-2">
-            <CalendarCheck className="w-4 h-4 text-[#1F5FA8]" />
+          <h3 className="text-[11px] uppercase tracking-[0.06em] font-bold text-[#0B2A5B] flex items-center gap-2">
+            <CalendarCheck className="w-4 h-4 text-[#1F5FA8]" strokeWidth={1.85} />
             Detalle Sesión por Sesión
           </h3>
-          <span className="text-xs font-bold text-[#C8102E] bg-red-50 border border-red-200/80 px-2.5 py-0.5 rounded-md">
+          <span className="text-xs font-semibold text-[#C8102E] bg-red-50 border border-red-200/85 px-2.5 py-0.5 rounded-md font-mono tabular-nums">
             {filteredRecords.length} registro(s) encontrados
           </span>
         </div>
@@ -427,15 +582,15 @@ export const StudentAttendanceScreen: React.FC = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/70 text-[11px] font-bold text-slate-600 border-b border-slate-200 uppercase tracking-wider">
-                <th className="py-2.5 px-4">Asignatura</th>
-                <th className="py-2.5 px-4 text-center">Tipo</th>
-                <th className="py-2.5 px-4">Fecha</th>
-                <th className="py-2.5 px-4">Horario</th>
-                <th className="py-2.5 px-4">Tema de Clase</th>
-                <th className="py-2.5 px-4 text-center">Estado</th>
-                <th className="py-2.5 px-4 text-center">Método</th>
-                <th className="py-2.5 px-4">Hora Registro</th>
+              <tr className="bg-slate-50/90 text-[11px] font-semibold text-slate-500 border-b border-slate-200 uppercase tracking-[0.06em]">
+                <th className="py-3 px-4">Asignatura</th>
+                <th className="py-3 px-4 text-center">Tipo</th>
+                <th className="py-3 px-4">Fecha</th>
+                <th className="py-3 px-4">Horario</th>
+                <th className="py-3 px-4">Tema de Clase</th>
+                <th className="py-3 px-4 text-center">Estado</th>
+                <th className="py-3 px-4 text-center">Método</th>
+                <th className="py-3 px-4">Hora Registro</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs text-slate-700">

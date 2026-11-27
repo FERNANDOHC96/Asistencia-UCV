@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { X, UserPlus, Hash, User, Mail, AlertCircle, CheckCircle2, Loader2, KeyRound } from 'lucide-react';
+import { X, UserPlus, Hash, User, Mail, AlertCircle, CheckCircle2, KeyRound } from 'lucide-react';
 import { createUserViaEdgeFunction, getErrorMessageForCode } from '../services/userService';
 import { CreateUserPayload } from '../types';
+import { IconActionButton, ActionButton } from './ui';
 
 interface CreateUserModalProps {
   isOpen: boolean;
@@ -29,7 +30,6 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
   const roleLabel = role === 'alumno' ? 'Alumno' : 'Profesor';
 
   const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-
     const clean = e.target.value.replace(/\D/g, '').slice(0, 8);
     setCode(clean);
   };
@@ -56,7 +56,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
     const cleanCode = code.trim();
     const cleanFirstNames = firstNames.trim();
     const cleanLastNames = lastNames.trim();
-    const cleanEmail = email.trim();
+    const cleanEmail = role === 'alumno' ? '' : email.trim();
 
     if (cleanCode.length !== 8) {
       setErrorMsg('El código universitario debe tener exactamente 8 dígitos numéricos.');
@@ -86,7 +86,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
         first_names: cleanFirstNames,
         last_names: cleanLastNames,
         role,
-        email: cleanEmail || undefined,
+        ...(cleanEmail ? { email: cleanEmail } : {}),
       };
 
       const result = await createUserViaEdgeFunction(payload);
@@ -114,26 +114,26 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
       <div className="ucv-card ucv-scale-in rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
-
         <div className="ucv-header-split text-white px-6 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-2.5">
-            <UserPlus className="w-5 h-5 text-white" />
+            <div className="w-9 h-9 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center">
+              <UserPlus className="w-[18px] h-[18px] text-white" strokeWidth={1.9} />
+            </div>
             <h3 className="text-base font-extrabold">Nuevo {roleLabel}</h3>
           </div>
-          <button
-            onClick={handleClose}
+          <IconActionButton
+            icon={X}
+            label="Cerrar modal"
+            variant="ghost-light"
+            size="sm"
             disabled={loading}
-            className="text-white/80 hover:text-white bg-white/10 hover:bg-white/20 transition-colors p-1.5 rounded-lg cursor-pointer"
-            aria-label="Cerrar modal"
-          >
-            <X className="w-4 h-4" />
-          </button>
+            onClick={handleClose}
+          />
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-900 text-xs flex items-start gap-2.5">
-            <KeyRound className="w-4 h-4 text-[#1F5FA8] shrink-0 mt-0.5" />
+            <KeyRound className="w-4 h-4 text-[#1F5FA8] shrink-0 mt-0.5" strokeWidth={1.9} />
             <div>
               <span className="font-bold">Contraseña inicial:</span>
               <p className="mt-0.5 text-blue-800">
@@ -144,23 +144,23 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
 
           {errorMsg && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-800 text-xs flex items-start gap-2 animate-in fade-in">
-              <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+              <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" strokeWidth={1.9} />
               <div className="leading-relaxed">{errorMsg}</div>
             </div>
           )}
 
           {successMsg && (
             <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs flex items-start gap-2 animate-in fade-in">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" strokeWidth={1.9} />
               <div className="font-semibold leading-relaxed">{successMsg}</div>
             </div>
           )}
 
           <div>
-            <div className="flex justify-between items-center mb-1">
+            <div className="flex justify-between items-center mb-1.5">
               <label
                 htmlFor="create-code"
-                className="block text-xs font-bold text-slate-700 uppercase tracking-wide"
+                className="block text-[11px] font-semibold text-slate-600 uppercase tracking-[0.06em]"
               >
                 Código Universitario *
               </label>
@@ -169,8 +169,8 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
               </span>
             </div>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                <Hash className="w-4 h-4" />
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <Hash className="w-4 h-4" strokeWidth={1.85} />
               </div>
               <input
                 id="create-code"
@@ -182,7 +182,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
                 onChange={handleCodeChange}
                 required
                 disabled={loading}
-                className="w-full pl-9 pr-3 py-2 text-sm font-mono tracking-wider border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1F5FA8] focus:border-transparent"
+                className="w-full h-10 pl-10 pr-3.5 text-sm font-mono tracking-wider bg-slate-50/60 focus:bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1F5FA8]/20 focus:border-[#1F5FA8] transition-all"
               />
             </div>
           </div>
@@ -190,13 +190,13 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
           <div>
             <label
               htmlFor="create-first-names"
-              className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1"
+              className="block text-[11px] font-semibold text-slate-600 uppercase tracking-[0.06em] mb-1.5"
             >
               Nombres *
             </label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                <User className="w-4 h-4" />
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <User className="w-4 h-4" strokeWidth={1.85} />
               </div>
               <input
                 id="create-first-names"
@@ -206,7 +206,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
                 onChange={(e) => setFirstNames(e.target.value)}
                 required
                 disabled={loading}
-                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1F5FA8] focus:border-transparent"
+                className="w-full h-10 pl-10 pr-3.5 text-sm bg-slate-50/60 focus:bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1F5FA8]/20 focus:border-[#1F5FA8] transition-all"
               />
             </div>
           </div>
@@ -214,13 +214,13 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
           <div>
             <label
               htmlFor="create-last-names"
-              className="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1"
+              className="block text-[11px] font-semibold text-slate-600 uppercase tracking-[0.06em] mb-1.5"
             >
               Apellidos *
             </label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                <User className="w-4 h-4" />
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <User className="w-4 h-4" strokeWidth={1.85} />
               </div>
               <input
                 id="create-last-names"
@@ -230,60 +230,58 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
                 onChange={(e) => setLastNames(e.target.value)}
                 required
                 disabled={loading}
-                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1F5FA8] focus:border-transparent"
+                className="w-full h-10 pl-10 pr-3.5 text-sm bg-slate-50/60 focus:bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1F5FA8]/20 focus:border-[#1F5FA8] transition-all"
               />
             </div>
           </div>
 
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <label
-                htmlFor="create-email"
-                className="block text-xs font-bold text-slate-700 uppercase tracking-wide"
-              >
-                Correo Electrónico
-              </label>
-              <span className="text-[11px] text-slate-400">Opcional</span>
-            </div>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                <Mail className="w-4 h-4" />
+          {role !== 'alumno' && (
+            <div>
+              <div className="flex justify-between items-center mb-1.5">
+                <label
+                  htmlFor="create-email"
+                  className="block text-[11px] font-semibold text-slate-600 uppercase tracking-[0.06em]"
+                >
+                  Correo Electrónico
+                </label>
+                <span className="text-[11px] text-slate-400">Opcional</span>
               </div>
-              <input
-                id="create-email"
-                type="email"
-                placeholder="usuario@ucvvirtual.edu.pe"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={loading}
-                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1F5FA8] focus:border-transparent"
-              />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <Mail className="w-4 h-4" strokeWidth={1.85} />
+                </div>
+                <input
+                  id="create-email"
+                  type="email"
+                  placeholder="usuario@ucvvirtual.edu.pe"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
+                  className="w-full h-10 pl-10 pr-3.5 text-sm bg-slate-50/60 focus:bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1F5FA8]/20 focus:border-[#1F5FA8] transition-all"
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="pt-2 flex items-center justify-end gap-2.5">
-            <button
-              type="button"
+            <ActionButton
+              variant="secondary"
+              size="sm"
               onClick={handleClose}
               disabled={loading}
-              className="px-4 py-2 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
             >
               Cancelar
-            </button>
-            <button
+            </ActionButton>
+            <ActionButton
               type="submit"
-              disabled={loading || code.length !== 8 || !firstNames.trim() || !lastNames.trim()}
-              className="px-4 py-2 text-xs font-bold text-white bg-[#1F5FA8] hover:bg-[#174B88] rounded-lg transition-colors shadow-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              icon={UserPlus}
+              variant="primary"
+              size="sm"
+              loading={loading}
+              disabled={code.length !== 8 || !firstNames.trim() || !lastNames.trim()}
             >
-              {loading ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Registrando...</span>
-                </>
-              ) : (
-                <span>Crear {roleLabel}</span>
-              )}
-            </button>
+              {loading ? 'Registrando...' : `Crear ${roleLabel}`}
+            </ActionButton>
           </div>
         </form>
       </div>

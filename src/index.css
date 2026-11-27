@@ -2,11 +2,12 @@
 
 :root {
   --ucv-navy: #0B2A5B;
+  --ucv-navy-deep: #082047;
   --ucv-blue: #1F5FA8;
   --ucv-blue-dark: #174B88;
   --ucv-red: #C8102E;
   --ucv-red-dark: #A50D25;
-  --ucv-bg: #F6F7FB;
+  --ucv-bg: #F5F7FA;
   --ucv-card: #FFFFFF;
   --ucv-border: #E2E8F0;
 }
@@ -15,11 +16,17 @@ body {
   background-color: var(--ucv-bg);
   color: #0F172A;
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   margin: 0;
   padding: 0;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, .ucv-heading {
+  text-wrap: balance;
 }
 
 .font-mono {
@@ -27,90 +34,94 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
 .ucv-canvas-bg {
-  background-color: #F6F7FB;
+  background-color: #F4F7FC;
   background-image:
-    radial-gradient(64rem 42rem at -6% -8%, rgba(31, 95, 168, 0.075), transparent 62%),
-    radial-gradient(64rem 42rem at 106% -8%, rgba(200, 16, 46, 0.075), transparent 62%),
-    radial-gradient(52rem 36rem at 100% 100%, rgba(11, 42, 91, 0.045), transparent 60%),
-    radial-gradient(52rem 36rem at 0% 100%, rgba(200, 16, 46, 0.045), transparent 60%);
+    radial-gradient(62rem 30rem at 0% 100%, rgba(31, 95, 168, 0.085), transparent 62%),
+    radial-gradient(54rem 28rem at 100% 100%, rgba(200, 16, 46, 0.065), transparent 60%),
+    radial-gradient(70rem 36rem at 50% -10%, rgba(11, 42, 91, 0.045), transparent 65%);
 }
 
 .ucv-topbar-split {
-  background: linear-gradient(90deg, #0B2A5B 0%, #1F5FA8 48%, #C8102E 52%, #A50D25 100%);
+  background: linear-gradient(90deg, #082047 0%, #0B2A5B 58%, #C8102E 58%, #A50D25 100%);
 }
 
 .ucv-nav-split {
-  background: linear-gradient(90deg, #0B2A5B 0%, #174B88 46%, #A50D25 78%, #C8102E 100%);
+  background: linear-gradient(95deg, #082047 0%, #0B2A5B 60%, #143A78 100%);
+  border-bottom: 2px solid rgba(200, 16, 46, 0.85);
 }
 
 .ucv-header-split {
-  background: linear-gradient(125deg, #0B2A5B 0%, #1F5FA8 48%, #C8102E 100%);
+  background: linear-gradient(125deg, #082047 0%, #0B2A5B 62%, #164488 100%);
+  border-bottom: 2px solid #C8102E;
 }
 
 .ucv-card {
   background-color: #FFFFFF;
-  border: 1px solid rgba(203, 213, 225, 0.72);
+  border: 1px solid rgba(203, 213, 225, 0.85);
   box-shadow:
-    0 1px 2px rgba(11, 42, 91, 0.04),
-    0 10px 26px -14px rgba(15, 23, 42, 0.09);
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 6px 18px -8px rgba(11, 42, 91, 0.06);
 }
 
 .ucv-card-pro {
   position: relative;
   background-color: #FFFFFF;
-  border: 1px solid rgba(148, 163, 184, 0.28);
+  border: 1px solid rgba(203, 213, 225, 0.85);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 1px 2px rgba(11, 42, 91, 0.04),
-    0 12px 30px -14px rgba(11, 42, 91, 0.1),
-    0 4px 12px -6px rgba(15, 23, 42, 0.04);
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 8px 22px -10px rgba(11, 42, 91, 0.08);
   transition:
-    transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 260ms cubic-bezier(0.22, 1, 0.36, 1),
-    border-color 220ms ease;
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 180ms ease;
 }
 
 .ucv-card-pro:hover {
-  transform: translateY(-3px);
+  transform: translateY(-2px);
+  border-color: rgba(31, 95, 168, 0.35);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 1),
-    0 8px 20px -6px rgba(11, 42, 91, 0.11),
-    0 22px 42px -18px rgba(200, 16, 46, 0.14);
+    0 4px 12px -4px rgba(11, 42, 91, 0.08),
+    0 16px 30px -14px rgba(11, 42, 91, 0.12);
 }
 
 .ucv-card-interactive {
   transition:
-    transform 240ms cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 240ms cubic-bezier(0.16, 1, 0.3, 1),
-    border-color 200ms ease;
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 180ms ease;
 }
 
 .ucv-card-interactive:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1.5px);
+  border-color: rgba(31, 95, 168, 0.32);
   box-shadow:
-    0 4px 12px -2px rgba(11, 42, 91, 0.08),
-    0 18px 32px -16px rgba(200, 16, 46, 0.12);
+    0 4px 12px -4px rgba(11, 42, 91, 0.08),
+    0 14px 26px -14px rgba(15, 23, 42, 0.1);
 }
 
 .ucv-sheen-blue {
-  background: radial-gradient(280px circle at 100% 0%, rgba(31, 95, 168, 0.09), transparent 70%);
+  background: radial-gradient(240px circle at 100% 0%, rgba(31, 95, 168, 0.055), transparent 70%);
 }
 
 .ucv-sheen-red {
-  background: radial-gradient(280px circle at 100% 0%, rgba(200, 16, 46, 0.09), transparent 70%);
+  background: radial-gradient(240px circle at 100% 0%, rgba(200, 16, 46, 0.055), transparent 70%);
 }
 
 .ucv-sheen-split {
   background:
-    radial-gradient(260px circle at 0% 0%, rgba(31, 95, 168, 0.08), transparent 68%),
-    radial-gradient(260px circle at 100% 0%, rgba(200, 16, 46, 0.08), transparent 68%);
+    radial-gradient(220px circle at 0% 0%, rgba(31, 95, 168, 0.045), transparent 68%),
+    radial-gradient(220px circle at 100% 0%, rgba(200, 16, 46, 0.045), transparent 68%);
 }
 
 @keyframes ucvFadeUp {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -121,7 +132,7 @@ body {
 @keyframes ucvHeroReveal {
   from {
     opacity: 0;
-    transform: translateY(12px) scale(0.992);
+    transform: translateY(10px) scale(0.994);
   }
   to {
     opacity: 1;
@@ -132,7 +143,7 @@ body {
 @keyframes ucvCardReveal {
   from {
     opacity: 0;
-    transform: translateY(16px) scale(0.978);
+    transform: translateY(12px) scale(0.985);
   }
   to {
     opacity: 1;
@@ -143,7 +154,7 @@ body {
 @keyframes ucvScaleIn {
   from {
     opacity: 0;
-    transform: scale(0.965) translateY(6px);
+    transform: scale(0.97) translateY(4px);
   }
   to {
     opacity: 1;
@@ -154,7 +165,7 @@ body {
 @keyframes ucvSlideDown {
   from {
     opacity: 0;
-    transform: translateY(-8px);
+    transform: translateY(-6px);
   }
   to {
     opacity: 1;
@@ -163,39 +174,52 @@ body {
 }
 
 .ucv-animate-in {
-  animation: ucvFadeUp 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: ucvFadeUp 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .ucv-hero-reveal {
-  animation: ucvHeroReveal 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: ucvHeroReveal 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .ucv-card-reveal {
-  animation: ucvCardReveal 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: ucvCardReveal 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .ucv-scale-in {
-  animation: ucvScaleIn 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: ucvScaleIn 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .ucv-slide-down {
-  animation: ucvSlideDown 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: ucvSlideDown 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes ucvTooltipFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.ucv-tooltip-in {
+  animation: ucvTooltipFade 110ms ease-out both;
 }
 
 .ucv-delay-1 {
-  animation-delay: 50ms;
+  animation-delay: 40ms;
 }
 
 .ucv-delay-2 {
-  animation-delay: 100ms;
+  animation-delay: 80ms;
 }
 
 .ucv-delay-3 {
-  animation-delay: 150ms;
+  animation-delay: 120ms;
 }
 
 .ucv-delay-4 {
-  animation-delay: 200ms;
+  animation-delay: 160ms;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -203,7 +227,8 @@ body {
   .ucv-hero-reveal,
   .ucv-card-reveal,
   .ucv-scale-in,
-  .ucv-slide-down {
+  .ucv-slide-down,
+  .ucv-tooltip-in {
     animation: none !important;
   }
   .ucv-card-interactive,
@@ -312,4 +337,3 @@ body {
     page-break-inside: avoid !important;
   }
 }
-

@@ -9,31 +9,23 @@ import {
   CheckCircle2,
   Clock,
   Users,
-  UserCheck,
-  UserX,
   AlertTriangle,
-  Check,
-  XCircle,
-  HelpCircle,
   Calendar,
-  Layers,
-  BookOpen,
-  FlaskConical,
-  Edit3,
   X,
   Shield,
   Search,
-  Filter,
-  Info
+  ShieldAlert
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getSupabaseClient, isSupabaseConfigured } from '../../lib/supabase';
 import { getTeacherSections, getLateToleranceMinutes, TeacherSection } from '../../services/teacherService';
-import { fetchProfilesMapByIds, ProfileBasicInfo } from '../../lib/profileHelper';
+import { fetchSectionStudentsBlockStatus } from '../../services/blockService';
+import { ProfileBasicInfo } from '../../lib/profileHelper';
 import { StudentAvatar } from '../StudentAvatar';
 import { useStudentAvatarUrls } from '../../lib/avatarCache';
 import { AttendanceStatusButtonGroup } from './AttendanceStatusButton';
-import { ClassSession, AttendanceRecord, QrTokenPayload, CloseAttendanceResult, AttendanceStatus } from '../../types';
+import { ClassSession, AttendanceRecord, QrTokenPayload, CloseAttendanceResult, AttendanceStatus, SectionStudentBlockStatus } from '../../types';
+import { ActionButton, IconActionButton, SectionIconBadge } from '../ui';
 import {
   getTodayLima,
   formatDisplayDate,
@@ -161,6 +153,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
   const avatarUrls = useStudentAvatarUrls(enrolledStudents);
 
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
+  const [blockStatusMap, setBlockStatusMap] = useState<Record<string, SectionStudentBlockStatus>>({});
 
   const previousStatusMapRef = useRef<Record<string, string>>({});
   const isInitialLoadRef = useRef<boolean>(true);
@@ -327,13 +320,29 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
         });
 
         setEnrolledStudents(sorted);
+
+        const statusMap = await fetchSectionStudentsBlockStatus(selectedSectionId, ids).catch(() => ({}));
+        setBlockStatusMap(statusMap);
       } else {
         setEnrolledStudents([]);
+        setBlockStatusMap({});
       }
     } catch (err: any) {
 
     } finally {
       setLoadingEnrolled(false);
+    }
+  }, [selectedSectionId]);
+
+  const refreshBlockStatuses = useCallback(async () => {
+    if (!selectedSectionId || enrolledStudentsRef.current.length === 0 || !isSupabaseConfigured()) return;
+    try {
+      const statusMap = await fetchSectionStudentsBlockStatus(
+        selectedSectionId,
+        enrolledStudentsRef.current.map((s) => s.id)
+      );
+      setBlockStatusMap(statusMap);
+    } catch {
     }
   }, [selectedSectionId]);
 
@@ -349,6 +358,30 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
       if (enrolledIntervalRef.current) clearInterval(enrolledIntervalRef.current);
     };
   }, [loadEnrolledStudents]);
+
+  useEffect(() => {
+    if (!selectedSectionId || !isSupabaseConfigured()) return;
+    const supabase = getSupabaseClient();
+    const channel = supabase
+      .channel(`teacher-qr-blocks-${selectedSectionId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'student_section_blocks',
+          filter: `section_id=eq.${selectedSectionId}`,
+        },
+        () => {
+          refreshBlockStatuses();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedSectionId, refreshBlockStatuses]);
 
   const fetchSessionRecords = useCallback(async () => {
     if (!selectedSessionId) {
@@ -433,11 +466,12 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
           nextMap[st.id] = newRecordMap[st.id]?.status || 'sin_registrar';
         });
         previousStatusMapRef.current = nextMap;
+        refreshBlockStatuses();
       }
     } catch {
 
     }
-  }, [selectedSessionId]);
+  }, [selectedSessionId, refreshBlockStatuses]);
 
   useEffect(() => {
     isInitialLoadRef.current = true;
@@ -1067,13 +1101,14 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
                 <AlertCircle className="w-4 h-4 text-[#C8102E] shrink-0 mt-0.5" />
                 <span className="text-xs font-semibold text-red-800 break-words">{qrError}</span>
               </div>
-              <button
-                type="button"
+              <ActionButton
+                icon={RefreshCw}
+                variant="brand"
+                size="xs"
                 onClick={fetchNewQrToken}
-                className="px-2.5 py-1 rounded-lg bg-[#C8102E] text-white text-[11px] font-bold hover:bg-[#A50D25] transition-colors shrink-0 cursor-pointer"
               >
                 Reintentar
-              </button>
+              </ActionButton>
             </div>
           )}
 
@@ -1301,25 +1336,23 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
 
     return (
       <div className="lg:col-span-5 ucv-card rounded-2xl border-t-2 border-t-[#C8102E] p-8 flex flex-col items-center justify-center text-center space-y-4">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-50 to-red-50 border border-slate-200 flex items-center justify-center text-[#0B2A5B] shadow-xs">
-          <QrCode className="w-8 h-8" />
-        </div>
+        <SectionIconBadge icon={QrCode} variant="navy" size="lg" />
         <div>
-          <h3 className="text-base font-extrabold text-[#0B2A5B]">Asistencia no iniciada</h3>
+          <h3 className="text-base font-bold text-[#0B2A5B] tracking-[-0.015em]">Asistencia no iniciada</h3>
           <p className="text-xs text-slate-500 mt-1 max-w-xs font-medium">
             Abre la asistencia QR para proyectar el marcador animado a los estudiantes y registrar su asistencia en vivo.
           </p>
         </div>
         {activeSession && activeSession.status !== 'cerrada' && activeSession.status !== 'cancelada' && (
-          <button
-            type="button"
+          <ActionButton
+            icon={Play}
+            variant="primary"
+            size="md"
+            loading={isOpenAttendanceLoading}
             onClick={handleOpenAttendance}
-            disabled={isOpenAttendanceLoading}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#0B2A5B] via-[#1F5FA8] to-[#C8102E] hover:brightness-110 active:scale-[0.98] text-white font-bold text-xs flex items-center gap-2 cursor-pointer shadow-sm transition-all"
           >
-            {isOpenAttendanceLoading ? <RefreshCw className="w-4 h-4 animate-spin text-white" /> : <Play className="w-4 h-4 fill-white" />}
-            <span>{isOpenAttendanceLoading ? 'Iniciando...' : 'Iniciar toma de asistencia'}</span>
-          </button>
+            {isOpenAttendanceLoading ? 'Iniciando...' : 'Iniciar toma de asistencia'}
+          </ActionButton>
         )}
       </div>
     );
@@ -1332,45 +1365,45 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
         <div className="space-y-3 pb-3 border-b border-slate-100">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
-              <h3 className="text-sm font-extrabold text-[#0B2A5B] uppercase tracking-wider flex items-center gap-2">
-                <Users className="w-4 h-4 text-[#1F5FA8]" />
+              <h3 className="text-[11px] font-bold text-[#0B2A5B] uppercase tracking-[0.06em] flex items-center gap-2">
+                <Users className="w-4 h-4 text-[#1F5FA8]" strokeWidth={1.85} />
                 <span>Lista Completa de Alumnos ({countMatriculados})</span>
               </h3>
               {sessionTolerance && (
-                <div className="text-[11px] text-amber-900 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full font-bold inline-flex items-center gap-1.5 mt-1.5">
-                  <Clock className="w-3 h-3 text-amber-600 shrink-0" />
+                <div className="text-[11px] text-amber-900 bg-amber-50 border border-amber-200/85 px-2.5 py-0.5 rounded-md font-semibold inline-flex items-center gap-1.5 mt-1.5">
+                  <Clock className="w-3 h-3 text-amber-600 shrink-0" strokeWidth={1.85} />
                   <span>Inicio {sessionTolerance.startTimeStr} · tolerancia hasta {sessionTolerance.limitTimeStr}</span>
                 </div>
               )}
             </div>
 
             {recentScansCount > 0 && (
-              <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full animate-pulse self-start sm:self-auto">
+              <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200/85 px-2.5 py-1 rounded-md animate-pulse self-start sm:self-auto">
                 +{recentScansCount} nuevo(s) escaneo(s)
               </span>
             )}
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1">
-            <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-center">
-              <span className="text-[10px] font-bold text-slate-500 uppercase block">Matriculados</span>
-              <span className="text-base font-black text-slate-800 font-mono">{countMatriculados}</span>
+            <div className="p-2.5 bg-slate-50/85 border border-slate-200/85 rounded-xl text-center">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.05em] text-slate-500 block">Matriculados</span>
+              <span className="text-base font-bold text-slate-800 font-mono tabular-nums">{countMatriculados}</span>
             </div>
-            <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-center text-emerald-700">
-              <span className="text-[10px] font-bold uppercase block">Presentes</span>
-              <span className="text-base font-black font-mono">{countPresentes}</span>
+            <div className="p-2.5 bg-emerald-50/75 border border-emerald-200/85 rounded-xl text-center text-emerald-700">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.05em] block">Presentes</span>
+              <span className="text-base font-bold font-mono tabular-nums">{countPresentes}</span>
             </div>
-            <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-center text-amber-700">
-              <span className="text-[10px] font-bold uppercase block">Tardanzas</span>
-              <span className="text-base font-black font-mono">{countTardanzas}</span>
+            <div className="p-2.5 bg-amber-50/75 border border-amber-200/85 rounded-xl text-center text-amber-700">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.05em] block">Tardanzas</span>
+              <span className="text-base font-bold font-mono tabular-nums">{countTardanzas}</span>
             </div>
-            <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl text-center text-red-700">
-              <span className="text-[10px] font-bold uppercase block">Faltas</span>
-              <span className="text-base font-black font-mono">{countFaltas}</span>
+            <div className="p-2.5 bg-red-50/75 border border-red-200/85 rounded-xl text-center text-red-700">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.05em] block">Faltas</span>
+              <span className="text-base font-bold font-mono tabular-nums">{countFaltas}</span>
             </div>
-            <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-center text-slate-600">
-              <span className="text-[10px] font-bold uppercase block">Sin registrar</span>
-              <span className="text-base font-black font-mono">{countSinRegistrar}</span>
+            <div className="p-2.5 bg-slate-50/85 border border-slate-200/85 rounded-xl text-center text-slate-600">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.05em] block">Sin registrar</span>
+              <span className="text-base font-bold font-mono tabular-nums">{countSinRegistrar}</span>
             </div>
           </div>
         </div>
@@ -1378,13 +1411,13 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
         <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 text-xs">
 
           <div className="sm:col-span-5 relative">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" strokeWidth={1.85} />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar código o nombre..."
-              className="w-full pl-8 pr-3 py-2 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] focus:ring-2 focus:ring-[#1F5FA8]/20 transition-all outline-none text-slate-800"
+              className="w-full h-10 pl-9 pr-3 text-xs font-medium bg-slate-50/60 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] focus:ring-2 focus:ring-[#1F5FA8]/20 transition-all outline-hidden text-slate-800"
             />
           </div>
 
@@ -1392,7 +1425,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="w-full px-2.5 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] transition-all outline-none text-slate-700 cursor-pointer"
+              className="w-full h-10 px-2.5 text-xs font-medium bg-slate-50/60 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] focus:ring-2 focus:ring-[#1F5FA8]/20 transition-all outline-hidden text-slate-700 cursor-pointer"
             >
               <option value="all">Estado: Todos ({countMatriculados})</option>
               <option value="presente">Presente ({countPresentes})</option>
@@ -1407,7 +1440,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
             <select
               value={methodFilter}
               onChange={(e) => setMethodFilter(e.target.value as any)}
-              className="w-full px-2.5 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] transition-all outline-none text-slate-700 cursor-pointer"
+              className="w-full h-10 px-2.5 text-xs font-medium bg-slate-50/60 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] focus:ring-2 focus:ring-[#1F5FA8]/20 transition-all outline-hidden text-slate-700 cursor-pointer"
             >
               <option value="all">Método: Todos</option>
               <option value="qr">Código QR</option>
@@ -1440,6 +1473,10 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
               const st = row.student;
               const isAnimated = Boolean(animatedStudentIds[st.id]);
               const animatedNewStatus = animatedStudentIds[st.id] || row.status;
+              const blockStatus = blockStatusMap[st.id];
+              const isStudentBlocked = Boolean(blockStatus?.isBlocked);
+              const cycleAbsences = blockStatus?.cycleAbsences ?? 0;
+              const isAbsenceWarning = !isStudentBlocked && cycleAbsences === 2;
 
               const isPresente = row.status === 'presente';
               const isTardanza = row.status === 'tardanza';
@@ -1461,6 +1498,8 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
                   className={`p-3.5 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
                     isAnimated
                       ? `${flashClass} shadow-md`
+                      : isStudentBlocked
+                      ? 'bg-red-50/50 border-red-300 shadow-2xs'
                       : isSinRegistrar
                       ? 'bg-white border-slate-200 hover:bg-slate-50/80 shadow-2xs'
                       : isPresente
@@ -1489,12 +1528,36 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
                         <strong className="text-xs font-bold text-slate-900 truncate">
                           {st.last_names}, {st.first_names}
                         </strong>
+                        {isStudentBlocked ? (
+                          <span
+                            title={blockStatus?.activeBlock?.reason || 'Inhabilitado en este curso'}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-50 border border-red-200/85 text-[#C8102E] text-[10px] font-semibold uppercase tracking-[0.04em]"
+                          >
+                            <ShieldAlert className="w-3 h-3" strokeWidth={1.85} />
+                            <span>INHABILITADO ({cycleAbsences}/3)</span>
+                          </span>
+                        ) : isAbsenceWarning ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200/85 text-amber-800 text-[10px] font-semibold">
+                            <AlertTriangle className="w-3 h-3" strokeWidth={1.85} />
+                            <span>2/3 faltas</span>
+                          </span>
+                        ) : blockStatus ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200/85 text-emerald-700 text-[10px] font-semibold">
+                            <CheckCircle2 className="w-3 h-3" strokeWidth={1.85} />
+                            <span>Habilitado ({cycleAbsences}/3)</span>
+                          </span>
+                        ) : null}
                       </div>
                       {st.career?.name && (
                         <div className="mt-1">
-                          <span className="inline-block px-2 py-0.5 rounded bg-blue-50 border border-blue-200 text-[#1F5FA8] text-[10px] font-bold uppercase tracking-wide">
+                          <span className="inline-block px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200/85 text-[#1F5FA8] text-[10px] font-semibold uppercase tracking-[0.04em]">
                             {st.career.name}
                           </span>
+                        </div>
+                      )}
+                      {isStudentBlocked && (
+                        <div className="mt-1 text-[10px] font-semibold text-[#C8102E]">
+                          Bloqueado en este curso (QR/Bluetooth deshabilitado hasta rehabilitación por Administración)
                         </div>
                       )}
 
@@ -1618,41 +1681,43 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
         </div>
       )}
 
-      <div className="ucv-card rounded-2xl border-l-4 border-l-[#1F5FA8] p-6 space-y-4">
+      <div className="ucv-card rounded-2xl p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <h2 className="text-xs uppercase font-extrabold text-[#0B2A5B] tracking-wider">
+            <h2 className="text-[11px] uppercase font-bold text-[#0B2A5B] tracking-[0.06em]">
               Sesión de Hoy ({formatDisplayDate(todayLima)})
             </h2>
           </div>
 
           <div className="flex items-center gap-2">
-            <button
+            <ActionButton
+              icon={RefreshCw}
+              variant="secondary"
+              size="sm"
+              spinningIcon={loadingSessions || loadingEnrolled}
+              disabled={loadingSessions || loadingEnrolled}
               onClick={() => {
                 loadSessions();
                 loadEnrolledStudents();
                 fetchSessionRecords();
               }}
-              disabled={loadingSessions || loadingEnrolled}
-              className="px-3.5 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-semibold text-slate-700 shadow-xs transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${(loadingSessions || loadingEnrolled) ? 'animate-spin text-[#1F5FA8]' : ''}`} />
-              <span>Actualizar datos</span>
-            </button>
+              Actualizar datos
+            </ActionButton>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
+            <label className="block text-[11px] font-semibold text-slate-600 mb-1.5 uppercase tracking-[0.06em]">
               Sesión programada para hoy:
             </label>
             <select
               value={selectedSessionId}
               disabled={isAttendanceOpen}
               onChange={(e) => setSelectedSessionId(e.target.value)}
-              className="w-full text-xs px-3 py-2.5 font-medium bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] transition-all outline-none text-slate-800 disabled:opacity-50 cursor-pointer"
+              className="w-full h-10 text-xs px-3 font-medium bg-slate-50/60 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] focus:ring-2 focus:ring-[#1F5FA8]/20 transition-all outline-hidden text-slate-800 disabled:opacity-50 cursor-pointer"
             >
               {sessions.length === 0 ? (
                 <option value="">No hay sesiones programadas para hoy</option>
@@ -1670,24 +1735,24 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
           </div>
 
           {activeSession && (
-            <div className="flex flex-col justify-center bg-slate-50 border border-slate-200 p-3.5 rounded-xl text-xs">
+            <div className="flex flex-col justify-center bg-slate-50/85 border border-slate-200/85 p-3.5 rounded-xl text-xs">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-slate-700">Estado de la sesión:</span>
+                <span className="font-semibold text-slate-700">Estado de la sesión:</span>
                 <span
-                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
+                  className={`px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase border ${
                     activeSession.status === 'abierta'
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200/85'
                       : activeSession.status === 'cerrada'
                       ? 'bg-slate-100 text-slate-600 border-slate-200'
-                      : 'bg-blue-50 text-[#1F5FA8] border-blue-200'
+                      : 'bg-blue-50 text-[#1F5FA8] border-blue-200/85'
                   }`}
                 >
                   {activeSession.status}
                 </span>
               </div>
-              <div className="mt-1.5 flex items-center justify-between text-slate-500 font-medium text-[11px]">
+              <div className="mt-1.5 flex items-center justify-between text-slate-500 font-medium text-[11px] font-mono tabular-nums">
                 <span>Horario: {activeSession.starts_at?.slice(0, 5)} - {activeSession.ends_at?.slice(0, 5)}</span>
-                <span>{activeSession.kind === 'practica' ? 'Práctica' : 'Teoría'}</span>
+                <span className="font-sans">{activeSession.kind === 'practica' ? 'Práctica' : 'Teoría'}</span>
               </div>
             </div>
           )}
@@ -1695,7 +1760,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
       </div>
 
       {activeSession && (
-        <div className="ucv-card rounded-2xl border-l-4 border-l-[#C8102E] p-6 flex flex-wrap items-center justify-between gap-4">
+        <div className="ucv-card rounded-2xl border-t-2 border-t-[#C8102E] p-6 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <span
               className={`w-3.5 h-3.5 rounded-full ${
@@ -1718,26 +1783,26 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
 
           <div className="flex items-center gap-3">
             {!isAttendanceOpen && activeSession.status !== 'cerrada' && activeSession.status !== 'cancelada' && (
-              <button
-                type="button"
+              <ActionButton
+                icon={Play}
+                variant="primary"
+                size="md"
+                loading={isOpenAttendanceLoading}
                 onClick={handleOpenAttendance}
-                disabled={isOpenAttendanceLoading}
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#0B2A5B] via-[#1F5FA8] to-[#C8102E] hover:brightness-110 active:scale-[0.98] text-white font-bold text-xs flex items-center gap-2 cursor-pointer shadow-sm transition-all disabled:opacity-50"
               >
-                {isOpenAttendanceLoading ? <RefreshCw className="w-4 h-4 animate-spin text-white" /> : <Play className="w-4 h-4 fill-white" />}
-                <span>{isOpenAttendanceLoading ? 'Abriendo...' : 'Abrir Asistencia QR'}</span>
-              </button>
+                {isOpenAttendanceLoading ? 'Abriendo...' : 'Abrir Asistencia QR'}
+              </ActionButton>
             )}
 
             {isAttendanceOpen && (
-              <button
-                type="button"
+              <ActionButton
+                icon={StopCircle}
+                variant="brand"
+                size="md"
                 onClick={() => setIsCloseModalOpen(true)}
-                className="px-5 py-2.5 rounded-xl bg-[#C8102E] hover:bg-[#A50D25] active:scale-[0.98] text-white font-bold text-xs flex items-center gap-2 cursor-pointer shadow-sm transition-all"
               >
-                <StopCircle className="w-4 h-4" />
-                <span>Cerrar Asistencia</span>
-              </button>
+                Cerrar Asistencia
+              </ActionButton>
             )}
           </div>
         </div>
@@ -1747,39 +1812,39 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
         <div className="ucv-card ucv-animate-in rounded-2xl p-6 space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+              <CheckCircle2 className="w-5 h-5 text-emerald-600" strokeWidth={1.85} />
               <h3 className="text-sm font-bold text-slate-900">Resumen de Cierre de Asistencia</h3>
             </div>
             <span className="text-xs font-semibold text-slate-500 font-mono bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-md">Sesión Cerrada</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-1">
-            <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl text-center">
-              <span className="text-[10px] font-bold text-slate-500 uppercase block">Matriculados</span>
-              <strong className="text-xl font-black text-slate-800 font-mono">
+            <div className="bg-slate-50/85 border border-slate-200/85 p-3.5 rounded-xl text-center">
+              <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-[0.05em] block">Matriculados</span>
+              <strong className="text-xl font-bold text-slate-800 font-mono tabular-nums">
                 {closeSummary?.enrolled ?? countMatriculados}
               </strong>
             </div>
-            <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl text-center text-emerald-700">
-              <span className="text-[10px] font-bold uppercase block">Presentes</span>
-              <strong className="text-xl font-black font-mono">
+            <div className="bg-emerald-50/75 border border-emerald-200/85 p-3.5 rounded-xl text-center text-emerald-700">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.05em] block">Presentes</span>
+              <strong className="text-xl font-bold font-mono tabular-nums">
                 {closeSummary?.presentes ?? countPresentes}
               </strong>
             </div>
-            <div className="bg-amber-50 border border-amber-200 p-3.5 rounded-xl text-center text-amber-700">
-              <span className="text-[10px] font-bold uppercase block">Tardanzas</span>
-              <strong className="text-xl font-black font-mono">
+            <div className="bg-amber-50/75 border border-amber-200/85 p-3.5 rounded-xl text-center text-amber-700">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.05em] block">Tardanzas</span>
+              <strong className="text-xl font-bold font-mono tabular-nums">
                 {closeSummary?.tardanzas ?? countTardanzas}
               </strong>
             </div>
-            <div className="bg-red-50 border border-red-200 p-3.5 rounded-xl text-center text-red-700">
-              <span className="text-[10px] font-bold uppercase block">Faltas</span>
-              <strong className="text-xl font-black font-mono">
+            <div className="bg-red-50/75 border border-red-200/85 p-3.5 rounded-xl text-center text-red-700">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.05em] block">Faltas</span>
+              <strong className="text-xl font-bold font-mono tabular-nums">
                 {closeSummary?.faltas ?? countFaltas}
               </strong>
             </div>
-            <div className="bg-blue-50 border border-blue-200 p-3.5 rounded-xl text-center text-[#1F5FA8]">
-              <span className="text-[10px] font-bold uppercase block">Justificados</span>
-              <strong className="text-xl font-black font-mono">
+            <div className="bg-blue-50/75 border border-blue-200/85 p-3.5 rounded-xl text-center text-[#1F5FA8]">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.05em] block">Justificados</span>
+              <strong className="text-xl font-bold font-mono tabular-nums">
                 {closeSummary?.justificados ?? allMergedStudents.filter((s) => s.status === 'justificado').length}
               </strong>
             </div>
@@ -1789,9 +1854,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
 
       {sessions.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-10 text-center space-y-3">
-          <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 text-[#1F5FA8] flex items-center justify-center mx-auto">
-            <Calendar className="w-6 h-6" />
-          </div>
+          <SectionIconBadge icon={Calendar} variant="blue" size="lg" className="mx-auto" />
           <h3 className="text-sm font-bold text-slate-800">
             No hay sesiones programadas para hoy ({formatDisplayDate(todayLima)})
           </h3>
@@ -1802,9 +1865,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
       ) : activeSession && activeSession.session_date !== todayLima ? (
 
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-10 text-center space-y-3">
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center mx-auto">
-            <AlertTriangle className="w-6 h-6" />
-          </div>
+          <SectionIconBadge icon={AlertTriangle} variant="amber" size="lg" className="mx-auto" />
           <h3 className="text-sm font-bold text-amber-900">
             Sesión no programada para hoy
           </h3>
@@ -1827,17 +1888,19 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
             <div className="p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-slate-100 border border-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs">
+                  <span className="w-7 h-7 rounded-lg bg-slate-100 border border-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs">
                     J
                   </span>
                   <h3 className="text-sm font-bold text-[#0B2A5B]">Justificar Inasistencia</h3>
                 </div>
-                <button
+                <IconActionButton
+                  icon={X}
+                  label="Cerrar modal"
+                  variant="neutral"
+                  size="xs"
+                  tooltipSide="bottom"
                   onClick={() => setJustifyingStudent(null)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+                />
               </div>
 
               <p className="text-xs text-slate-600 font-medium">
@@ -1866,21 +1929,24 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
                 </div>
 
                 <div className="flex gap-2 pt-2">
-                  <button
-                    type="button"
+                  <ActionButton
+                    variant="secondary"
+                    size="sm"
                     onClick={() => setJustifyingStudent(null)}
-                    className="flex-1 py-2 px-3 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl shadow-xs transition-all cursor-pointer"
+                    className="flex-1"
                   >
                     Cancelar
-                  </button>
-                  <button
+                  </ActionButton>
+                  <ActionButton
                     type="submit"
-                    disabled={isSavingJustification}
-                    className="flex-1 py-2 px-3 disabled:opacity-50 text-white text-xs font-bold rounded-xl bg-[#1F5FA8] hover:bg-[#0B2A5B] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-all"
+                    icon={CheckCircle2}
+                    variant="primary"
+                    size="sm"
+                    loading={isSavingJustification}
+                    className="flex-1"
                   >
-                    {isSavingJustification ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : null}
-                    <span>Guardar Justificación</span>
-                  </button>
+                    Guardar Justificación
+                  </ActionButton>
                 </div>
               </form>
             </div>
@@ -1893,9 +1959,7 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
           <div className="ucv-card ucv-scale-in rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden">
             <div className="h-1 ucv-topbar-split w-full" />
             <div className="p-6 space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-red-50 border border-red-100 text-[#C8102E] flex items-center justify-center mx-auto">
-                <StopCircle className="w-6 h-6" />
-              </div>
+              <SectionIconBadge icon={StopCircle} variant="red" size="lg" className="mx-auto" />
             <div className="text-center">
               <h3 className="text-base font-bold text-slate-900">¿Cerrar la Asistencia?</h3>
               <p className="text-xs text-slate-500 mt-1 font-medium">
@@ -1903,21 +1967,25 @@ export const TeacherQrAttendanceScreen: React.FC<TeacherQrAttendanceScreenProps>
               </p>
             </div>
             <div className="flex gap-2">
-              <button
-                onClick={() => setIsCloseModalOpen(false)}
+              <ActionButton
+                variant="secondary"
+                size="sm"
                 disabled={isClosing}
-                className="flex-1 py-2 px-3 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl shadow-xs transition-all cursor-pointer"
+                onClick={() => setIsCloseModalOpen(false)}
+                className="flex-1"
               >
                 Cancelar
-              </button>
-              <button
+              </ActionButton>
+              <ActionButton
+                icon={StopCircle}
+                variant="brand"
+                size="sm"
+                loading={isClosing}
                 onClick={handleConfirmCloseAttendance}
-                disabled={isClosing}
-                className="flex-1 py-2 px-3 text-white text-xs font-bold rounded-xl bg-[#C8102E] hover:bg-[#A50D25] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-all"
+                className="flex-1"
               >
-                {isClosing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : null}
-                <span>Sí, cerrar asistencia</span>
-              </button>
+                Sí, cerrar asistencia
+              </ActionButton>
             </div>
             </div>
           </div>

@@ -6,6 +6,7 @@ import { LoginScreen } from './components/LoginScreen';
 import { AdminDashboard } from './components/AdminDashboard';
 import { AdminUsersList } from './components/AdminUsersList';
 import { CoursesScreen } from './components/academic/CoursesScreen';
+import { AdminBlockedStudentsScreen } from './components/academic/AdminBlockedStudentsScreen';
 import { TeacherHome } from './components/teacher/TeacherHome';
 import { TeacherCoursesScreen } from './components/teacher/TeacherCoursesScreen';
 import { StudentHome } from './components/student/StudentHome';
@@ -13,11 +14,25 @@ import { StudentCoursesScreen } from './components/student/StudentCoursesScreen'
 import { StudentAttendanceScreen } from './components/student/StudentAttendanceScreen';
 import { StudentTeacherDashboard } from './components/StudentTeacherDashboard';
 import { AttendanceReportScreen } from './components/reports/AttendanceReportScreen';
+import { NotificationsProvider } from './context/NotificationsContext';
+import { TeacherRiskAlertModal } from './components/teacher/TeacherRiskAlertModal';
+import { NotificationDetailModal } from './components/NotificationDetailModal';
 import { Loader2 } from 'lucide-react';
 
 const MainContent: React.FC = () => {
   const { user, profile, loading } = useAuth();
   const [currentTab, setCurrentTab] = useState<string>('inicio');
+  const [targetAttendanceRequest, setTargetAttendanceRequest] = useState<{
+    refId: string;
+    key: number;
+  } | null>(null);
+
+  const handleSelectTab = (tab: string, targetRefId?: string) => {
+    setCurrentTab(tab);
+    setTargetAttendanceRequest(
+      targetRefId ? { refId: targetRefId, key: Date.now() } : null
+    );
+  };
 
   if (loading) {
     return (
@@ -50,11 +65,13 @@ const MainContent: React.FC = () => {
           return <AdminUsersList role="profesor" />;
         case 'cursos':
           return <CoursesScreen />;
+        case 'inhabilitados':
+          return <AdminBlockedStudentsScreen />;
         case 'reportes':
           return <AttendanceReportScreen />;
         case 'inicio':
         default:
-          return <AdminDashboard onNavigate={setCurrentTab} />;
+          return <AdminDashboard onNavigate={handleSelectTab} />;
       }
     }
 
@@ -67,7 +84,7 @@ const MainContent: React.FC = () => {
           return <AttendanceReportScreen />;
         case 'inicio':
         default:
-          return <TeacherHome onNavigate={setCurrentTab} />;
+          return <TeacherHome onNavigate={handleSelectTab} />;
       }
     }
 
@@ -76,10 +93,10 @@ const MainContent: React.FC = () => {
         case 'mis_asignaturas':
           return <StudentCoursesScreen />;
         case 'mi_asistencia':
-          return <StudentAttendanceScreen />;
+          return <StudentAttendanceScreen targetSectionOrCourseRequest={targetAttendanceRequest} />;
         case 'inicio':
         default:
-          return <StudentHome onNavigate={setCurrentTab} />;
+          return <StudentHome onNavigate={handleSelectTab} />;
       }
     }
 
@@ -90,24 +107,31 @@ const MainContent: React.FC = () => {
     <div className="min-h-screen flex flex-col ucv-canvas-bg">
       <Navbar
         currentTab={currentTab}
-        onSelectTab={(tab) => setCurrentTab(tab)}
+        onSelectTab={handleSelectTab}
       />
 
-      <div className="no-print">
-        <Breadcrumb
-          currentTab={currentTab}
-          onNavigate={(tab) => setCurrentTab(tab)}
-        />
-      </div>
+      {currentTab !== 'inicio' && (
+        <div className="no-print">
+          <Breadcrumb
+            currentTab={currentTab}
+            onNavigate={handleSelectTab}
+          />
+        </div>
+      )}
 
       <main className="flex-1 pb-10">
         {renderTabContent()}
       </main>
 
-      <footer className="no-print py-4 text-center text-xs border-t border-slate-200/70 bg-white/75 backdrop-blur-xs text-slate-500">
-        <span className="font-bold tracking-tight text-[#0B2A5B]">UCV</span>
-        <span className="font-bold tracking-tight text-[#C8102E]">GO</span>
+      <footer className="no-print py-4 text-center text-xs border-t border-slate-200/80 bg-white/85 backdrop-blur-xs text-slate-500">
+        <span className="font-bold tracking-[-0.025em] text-[#0B2A5B]">UCV</span>
+        <span className="font-bold tracking-[-0.025em] text-[#C8102E]">GO</span>
       </footer>
+
+      {profile.role === 'profesor' && (
+        <TeacherRiskAlertModal onNavigate={handleSelectTab} />
+      )}
+      <NotificationDetailModal onNavigate={handleSelectTab} />
     </div>
   );
 };
@@ -115,7 +139,9 @@ const MainContent: React.FC = () => {
 export default function App() {
   return (
     <AuthProvider>
-      <MainContent />
+      <NotificationsProvider>
+        <MainContent />
+      </NotificationsProvider>
     </AuthProvider>
   );
 }

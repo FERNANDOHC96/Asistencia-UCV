@@ -20,6 +20,7 @@ import { translateSupabaseError } from '../../lib/supabaseErrors';
 import { ClassSession, SessionKind, SessionStatus } from '../../types';
 import { getTodayLima, formatDisplayDate } from '../../lib/dateUtils';
 import { DeleteConfirmModal } from '../DeleteConfirmModal';
+import { IconActionButton, ActionButton, SectionIconBadge } from '../ui';
 
 interface CourseSessionsSectionProps {
   sectionId: string;
@@ -406,96 +407,104 @@ export const CourseSessionsSection: React.FC<CourseSessionsSectionProps> = ({ se
       {success && (
         <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center justify-between gap-2 ucv-slide-down">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" strokeWidth={1.9} />
             <span>{success}</span>
           </div>
-          <button onClick={() => setSuccess(null)} className="text-emerald-700 hover:text-emerald-950 cursor-pointer">
-            <X className="w-4 h-4" />
-          </button>
+          <IconActionButton
+            icon={X}
+            label="Cerrar aviso"
+            variant="confirm"
+            size="xs"
+            onClick={() => setSuccess(null)}
+          />
         </div>
       )}
 
       {error && (
         <div className="p-3.5 bg-red-50 border border-red-200 text-red-900 rounded-xl text-xs font-semibold flex items-center justify-between gap-2 ucv-slide-down">
           <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-[#C8102E] shrink-0" />
+            <AlertCircle className="w-4 h-4 text-[#C8102E] shrink-0" strokeWidth={1.9} />
             <span>{error}</span>
           </div>
-          <button onClick={() => setError(null)} className="text-red-700 hover:text-red-950 cursor-pointer">
-            <X className="w-4 h-4" />
-          </button>
+          <IconActionButton
+            icon={X}
+            label="Cerrar error"
+            variant="delete"
+            size="xs"
+            onClick={() => setError(null)}
+          />
         </div>
       )}
 
       <div className="ucv-card rounded-2xl p-6 space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-[#C8102E]" />
-              <h2 className="text-sm font-bold text-[#0B2A5B] uppercase tracking-wider">
+          <div className="flex items-start gap-2.5">
+            <SectionIconBadge icon={Calendar} variant="red" size="sm" />
+            <div>
+              <h2 className="text-[11px] font-bold text-[#0B2A5B] uppercase tracking-[0.06em]">
                 {showArchived
                   ? `Sesiones Archivadas (${sessions.length})`
                   : `Sesiones de Clase (${sessions.length})`}
               </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Genera sesiones desde el horario semanal o registra sesiones individuales. Las sesiones cerradas no se pueden modificar, pero sí archivar.
+              </p>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Genera sesiones desde el horario semanal o registra sesiones individuales. Las sesiones cerradas no se pueden modificar, pero sí archivar.
-            </p>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
-            <button
-              onClick={fetchSessions}
+            <ActionButton
+              icon={RefreshCw}
+              variant="secondary"
+              size="sm"
+              spinningIcon={loading}
               disabled={loading}
-              className="px-3 py-2 bg-white border border-slate-200 text-slate-700 hover:text-[#0B2A5B] hover:bg-slate-50 rounded-xl text-xs font-semibold transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
+              onClick={fetchSessions}
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-[#C8102E]' : 'text-[#1F5FA8]'}`} />
-              <span>Actualizar</span>
-            </button>
+              Actualizar
+            </ActionButton>
 
-            <button
-              type="button"
+            <ActionButton
+              icon={Archive}
+              variant={showArchived ? 'primary' : 'secondary'}
+              size="sm"
               onClick={() => {
                 setShowArchived((prev) => !prev);
                 setError(null);
                 setSuccess(null);
               }}
-              className={`px-3 py-2 border rounded-xl text-xs font-semibold transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer ${
-                showArchived
-                  ? 'bg-[#0B2A5B] text-white border-[#0B2A5B]'
-                  : 'bg-white border-slate-200 text-slate-700 hover:text-[#0B2A5B] hover:bg-slate-50'
-              }`}
             >
-              <Archive className="w-3.5 h-3.5" />
-              <span>{showArchived ? 'Ver activas' : 'Ver archivadas'}</span>
-            </button>
+              {showArchived ? 'Ver activas' : 'Ver archivadas'}
+            </ActionButton>
 
-            <button
+            <ActionButton
+              icon={Plus}
+              variant="primary"
+              size="sm"
               onClick={handleOpenGenerateModal}
-              className="px-3.5 py-2 bg-[#1F5FA8] hover:bg-[#0B2A5B] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs"
             >
-              <Plus className="w-4 h-4" />
-              <span>Crear día de clase</span>
-            </button>
+              Crear día de clase
+            </ActionButton>
 
-            <button
+            <ActionButton
+              icon={Edit3}
+              variant="view"
+              size="sm"
               onClick={handleOpenManualCreate}
-              className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-[#0B2A5B] rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
             >
-              <Edit3 className="w-3.5 h-3.5 text-[#C8102E]" />
-              <span>Sesión manual</span>
-            </button>
+              Sesión manual
+            </ActionButton>
           </div>
         </div>
 
         {loading ? (
           <div className="py-10 flex flex-col items-center justify-center text-slate-400">
-            <Loader2 className="w-6 h-6 animate-spin text-[#1F5FA8] mb-2" />
+            <Loader2 className="w-6 h-6 animate-spin text-[#1F5FA8] mb-2" strokeWidth={1.9} />
             <span className="text-xs font-medium">Cargando sesiones de clase...</span>
           </div>
         ) : sessions.length === 0 ? (
           <div className="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-            <Calendar className="w-9 h-9 text-slate-300 mx-auto mb-2" />
+            <SectionIconBadge icon={Calendar} variant="neutral" size="lg" className="mx-auto mb-2.5" />
             <p className="text-xs font-bold text-slate-700">
               {showArchived ? 'Sin sesiones archivadas' : 'Sin sesiones registradas'}
             </p>
@@ -508,14 +517,14 @@ export const CourseSessionsSection: React.FC<CourseSessionsSectionProps> = ({ se
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-slate-700">
-              <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
+              <thead className="bg-slate-50/90 text-slate-500 font-semibold uppercase tracking-[0.06em] text-[11px] border-b border-slate-200">
                 <tr>
-                  <th className="py-3 px-4">Tipo</th>
-                  <th className="py-3 px-4">Fecha</th>
-                  <th className="py-3 px-4">Horario</th>
-                  <th className="py-3 px-4">Tema</th>
-                  <th className="py-3 px-4">Estado</th>
-                  <th className="py-3 px-4 text-right">Acciones</th>
+                  <th className="py-3.5 px-4">Tipo</th>
+                  <th className="py-3.5 px-4">Fecha</th>
+                  <th className="py-3.5 px-4">Horario</th>
+                  <th className="py-3.5 px-4">Tema</th>
+                  <th className="py-3.5 px-4">Estado</th>
+                  <th className="py-3.5 px-4 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -526,27 +535,27 @@ export const CourseSessionsSection: React.FC<CourseSessionsSectionProps> = ({ se
                   const isCancelled = sess.status === 'cancelada';
 
                   return (
-                    <tr key={sess.id} className="hover:bg-slate-50/80 transition-colors">
+                    <tr key={sess.id} className="hover:bg-slate-50/85 transition-colors">
                       <td className="py-3 px-4">
                         <span
-                          className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${
+                          className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md border uppercase ${
                             isPractica
-                              ? 'bg-red-50 text-[#C8102E] border-red-200'
-                              : 'bg-blue-50 text-[#1F5FA8] border-blue-200'
+                              ? 'bg-red-50/90 text-[#B80E29] border-red-200/85'
+                              : 'bg-blue-50/90 text-[#154A8A] border-blue-200/85'
                           }`}
                         >
                           {isPractica ? (
-                            <FlaskConical className="w-2.5 h-2.5" />
+                            <FlaskConical className="w-2.5 h-2.5" strokeWidth={1.85} />
                           ) : (
-                            <BookOpen className="w-2.5 h-2.5" />
+                            <BookOpen className="w-2.5 h-2.5" strokeWidth={1.85} />
                           )}
                           <span>{isPractica ? 'Práctica' : 'Teoría'}</span>
                         </span>
                       </td>
-                      <td className="py-3 px-4 font-bold text-[#0B2A5B] font-mono whitespace-nowrap">
+                      <td className="py-3 px-4 font-semibold text-[#0B2A5B] font-mono whitespace-nowrap">
                         {formatDisplayDate(sess.session_date)}
                       </td>
-                      <td className="py-3 px-4 font-mono font-bold text-[#1F5FA8] whitespace-nowrap">
+                      <td className="py-3 px-4 font-mono font-semibold text-[#154A8A] whitespace-nowrap">
                         {sess.starts_at?.slice(0, 5)} - {sess.ends_at?.slice(0, 5)}
                       </td>
                       <td className="py-3 px-4 text-slate-800 font-medium max-w-xs truncate" title={sess.topic}>
@@ -554,7 +563,7 @@ export const CourseSessionsSection: React.FC<CourseSessionsSectionProps> = ({ se
                       </td>
                       <td className="py-3 px-4">
                         <span
-                          className={`inline-block px-2.5 py-0.5 rounded text-[10px] font-bold uppercase border ${
+                          className={`inline-block px-2.5 py-0.5 rounded-md text-[10px] font-semibold uppercase border ${
                             STATUS_BADGE_STYLES[sess.status] || STATUS_BADGE_STYLES.programada
                           }`}
                         >
@@ -563,55 +572,49 @@ export const CourseSessionsSection: React.FC<CourseSessionsSectionProps> = ({ se
                       </td>
                       <td className="py-3 px-4 text-right whitespace-nowrap">
                         {showArchived ? (
-                          <button
-                            type="button"
-                            onClick={() => handleRestoreSession(sess)}
-                            disabled={restoringId === sess.id}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold text-[#1F5FA8] bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
-                            title="Restaurar sesión"
-                          >
-                            {restoringId === sess.id ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            ) : (
-                              <RotateCcw className="w-3.5 h-3.5" />
-                            )}
-                            <span>Restaurar</span>
-                          </button>
+                          <div className="inline-flex items-center justify-end">
+                            <IconActionButton
+                              icon={RotateCcw}
+                              label="Restaurar sesión"
+                              variant="confirm"
+                              size="sm"
+                              spinning={restoringId === sess.id}
+                              disabled={restoringId === sess.id}
+                              onClick={() => handleRestoreSession(sess)}
+                            />
+                          </div>
                         ) : (
-                          <div className="inline-flex items-center gap-1">
+                          <div className="inline-flex items-center justify-end gap-1.5">
                             {!isClosed && (
-                              <button
+                              <IconActionButton
+                                icon={Edit2}
+                                label="Editar sesión"
+                                variant="edit"
+                                size="sm"
                                 onClick={() => handleOpenEditSession(sess)}
-                                className="p-1.5 text-slate-500 hover:text-[#1F5FA8] hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                                title="Editar sesión"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </button>
+                              />
                             )}
                             {!isClosed && !isCancelled && (
-                              <button
+                              <IconActionButton
+                                icon={Ban}
+                                label="Cancelar sesión"
+                                variant="delete"
+                                size="sm"
                                 onClick={() => setCancellingSession(sess)}
-                                className="px-2 py-1 text-slate-500 hover:text-[#C8102E] hover:bg-red-50 rounded-lg transition-colors inline-flex items-center gap-1 cursor-pointer"
-                                title="Cancelar sesión"
-                              >
-                                <Ban className="w-3.5 h-3.5" />
-                                <span className="text-xs font-semibold">Cancelar</span>
-                              </button>
+                              />
                             )}
                             {isOpen ? (
-                              <span className="text-slate-400 text-[11px] italic">
+                              <span className="text-slate-400 text-[11px] italic px-1">
                                 Cierra la asistencia para archivar
                               </span>
                             ) : (
-                              <button
-                                type="button"
+                              <IconActionButton
+                                icon={Archive}
+                                label="Archivar sesión"
+                                variant="warning"
+                                size="sm"
                                 onClick={() => setArchivingSession(sess)}
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 rounded-lg transition-colors cursor-pointer"
-                                title="Archivar sesión"
-                              >
-                                <Archive className="w-3.5 h-3.5" />
-                                <span>Archivar</span>
-                              </button>
+                              />
                             )}
                           </div>
                         )}
@@ -629,17 +632,20 @@ export const CourseSessionsSection: React.FC<CourseSessionsSectionProps> = ({ se
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
           <div className="ucv-card ucv-scale-in rounded-2xl max-w-md w-full shadow-2xl overflow-hidden">
             <div className="ucv-header-split text-white px-5 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-white" />
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center">
+                  <Calendar className="w-4 h-4 text-white" strokeWidth={1.9} />
+                </div>
                 <h3 className="text-sm font-extrabold">Crear Día de Clase</h3>
               </div>
-              <button
-                onClick={() => setIsGenerateModalOpen(false)}
+              <IconActionButton
+                icon={X}
+                label="Cerrar modal"
+                variant="ghost-light"
+                size="sm"
                 disabled={genLoading}
-                className="text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-1 rounded-lg transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
+                onClick={() => setIsGenerateModalOpen(false)}
+              />
             </div>
 
             <form onSubmit={handleGenerateSubmit} className="p-5 space-y-4 text-xs">
@@ -752,22 +758,25 @@ export const CourseSessionsSection: React.FC<CourseSessionsSectionProps> = ({ se
               </div>
 
               <div className="pt-2 flex gap-2">
-                <button
-                  type="button"
+                <ActionButton
+                  variant="secondary"
+                  size="sm"
                   onClick={() => setIsGenerateModalOpen(false)}
                   disabled={genLoading}
-                  className="flex-1 py-2 px-3 border border-slate-300 rounded-xl font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
+                  className="flex-1"
                 >
                   Cancelar
-                </button>
-                <button
+                </ActionButton>
+                <ActionButton
                   type="submit"
-                  disabled={genLoading}
-                  className="flex-1 py-2 px-3 bg-[#1F5FA8] hover:bg-[#0B2A5B] disabled:opacity-50 text-white rounded-xl font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                  icon={Plus}
+                  variant="primary"
+                  size="sm"
+                  loading={genLoading}
+                  className="flex-1"
                 >
-                  {genLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>{generateMode === 'single' ? 'Crear día' : 'Generar rango'}</span>
-                </button>
+                  {generateMode === 'single' ? 'Crear día' : 'Generar rango'}
+                </ActionButton>
               </div>
             </form>
           </div>
@@ -778,19 +787,22 @@ export const CourseSessionsSection: React.FC<CourseSessionsSectionProps> = ({ se
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
           <div className="ucv-card ucv-scale-in rounded-2xl max-w-md w-full shadow-2xl overflow-hidden">
             <div className="ucv-header-split text-white px-5 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Edit3 className="w-4 h-4 text-white" />
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center">
+                  <Edit3 className="w-4 h-4 text-white" strokeWidth={1.9} />
+                </div>
                 <h3 className="text-sm font-extrabold">
                   {editingSession ? 'Editar Sesión de Clase' : 'Nueva Sesión Manual'}
                 </h3>
               </div>
-              <button
-                onClick={() => setIsManualModalOpen(false)}
+              <IconActionButton
+                icon={X}
+                label="Cerrar modal"
+                variant="ghost-light"
+                size="sm"
                 disabled={manualLoading}
-                className="text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-1 rounded-lg transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
+                onClick={() => setIsManualModalOpen(false)}
+              />
             </div>
 
             <form onSubmit={handleManualSubmit} className="p-5 space-y-4 text-xs">
@@ -895,22 +907,25 @@ export const CourseSessionsSection: React.FC<CourseSessionsSectionProps> = ({ se
               </div>
 
               <div className="pt-2 flex gap-2">
-                <button
-                  type="button"
+                <ActionButton
+                  variant="secondary"
+                  size="sm"
                   onClick={() => setIsManualModalOpen(false)}
                   disabled={manualLoading}
-                  className="flex-1 py-2 px-3 border border-slate-300 rounded-xl font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
+                  className="flex-1"
                 >
                   Cancelar
-                </button>
-                <button
+                </ActionButton>
+                <ActionButton
                   type="submit"
-                  disabled={manualLoading}
-                  className="flex-1 py-2 px-3 bg-[#1F5FA8] hover:bg-[#0B2A5B] disabled:opacity-50 text-white rounded-xl font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                  icon={CheckCircle2}
+                  variant="primary"
+                  size="sm"
+                  loading={manualLoading}
+                  className="flex-1"
                 >
-                  {manualLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>{editingSession ? 'Guardar cambios' : 'Crear sesión'}</span>
-                </button>
+                  {editingSession ? 'Guardar cambios' : 'Crear sesión'}
+                </ActionButton>
               </div>
             </form>
           </div>

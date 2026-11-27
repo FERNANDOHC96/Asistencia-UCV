@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { UserCheck, Search, RefreshCw, AlertCircle, CheckCircle2, Loader2, History, BookOpen, FlaskConical, Lock, Unlock, Save } from 'lucide-react';
+import { UserCheck, Search, RefreshCw, AlertCircle, CheckCircle2, Loader2, History, BookOpen, FlaskConical, Lock, Unlock, Save, ShieldAlert, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getSupabaseClient, isSupabaseConfigured } from '../../lib/supabase';
 import { getTeacherSections, getSectionActiveStudents, TeacherSection } from '../../services/teacherService';
-import { ClassSession, LearningUnit, AcademicWeek, AttendanceRecord, AttendanceStatus, CloseAttendanceResult, Profile } from '../../types';
+import { fetchSectionStudentsBlockStatus } from '../../services/blockService';
+import { ClassSession, LearningUnit, AcademicWeek, AttendanceRecord, AttendanceStatus, CloseAttendanceResult, Profile, SectionStudentBlockStatus } from '../../types';
 import { formatDisplayDate, formatTime, formatLimaTime } from '../../lib/dateUtils';
 import { translateSupabaseError, translateAttendanceRpcError, translateCloseAttendanceError, translateReopenAttendanceError } from '../../lib/supabaseErrors';
 import { getMethodLabel } from '../../lib/attendanceUtils';
 import { StudentAvatar } from '../StudentAvatar';
 import { useStudentAvatarUrls } from '../../lib/avatarCache';
 import { AttendanceStatusButtonGroup } from './AttendanceStatusButton';
+import { ActionButton, SectionIconBadge } from '../ui';
 
 interface StudentAttendanceRow {
   student: Profile;
@@ -42,6 +44,7 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
   const [students, setStudents] = useState<Profile[]>([]);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [attendanceRows, setAttendanceRows] = useState<Record<string, StudentAttendanceRow>>({});
+  const [blockStatusMap, setBlockStatusMap] = useState<Record<string, SectionStudentBlockStatus>>({});
 
   const avatarUrls = useStudentAvatarUrls(students);
 
@@ -175,6 +178,7 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
       setStudents([]);
       setAttendanceRecords([]);
       setAttendanceRows({});
+      setBlockStatusMap({});
       return;
     }
 
@@ -187,14 +191,21 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
       const activeStudents = await getSectionActiveStudents(selectedSectionId);
       setStudents(activeStudents);
 
-      const { data: aRecords, error: aErr } = await supabase
-        .from('attendance_records')
-        .select('id, class_session_id, student_id, status, method, justification, registered_at, modified_by, modified_at')
-        .eq('class_session_id', selectedSessionId);
+      const studentIds = activeStudents.map((s) => s.id);
+      const [recordsRes, statusMap] = await Promise.all([
+        supabase
+          .from('attendance_records')
+          .select('id, class_session_id, student_id, status, method, justification, registered_at, modified_by, modified_at')
+          .eq('class_session_id', selectedSessionId),
+        studentIds.length > 0
+          ? fetchSectionStudentsBlockStatus(selectedSectionId, studentIds).catch(() => ({}))
+          : Promise.resolve({}),
+      ]);
 
-      if (aErr) throw aErr;
-      const records = (aRecords as AttendanceRecord[]) || [];
+      if (recordsRes.error) throw recordsRes.error;
+      const records = (recordsRes.data as AttendanceRecord[]) || [];
       setAttendanceRecords(records);
+      setBlockStatusMap(statusMap);
 
       const recordsMapByStudentId: Record<string, AttendanceRecord> = {};
       records.forEach((r) => {
@@ -226,6 +237,42 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
       fetchSessionAttendance();
     }
   }, [selectedSessionId, fetchSessionAttendance]);
+
+  const refreshBlockStatuses = useCallback(async () => {
+    if (!selectedSectionId || students.length === 0 || !isSupabaseConfigured()) return;
+    try {
+      const map = await fetchSectionStudentsBlockStatus(
+        selectedSectionId,
+        students.map((s) => s.id)
+      );
+      setBlockStatusMap(map);
+    } catch {
+    }
+  }, [selectedSectionId, students]);
+
+  useEffect(() => {
+    if (!selectedSectionId || students.length === 0 || !isSupabaseConfigured()) return;
+    const supabase = getSupabaseClient();
+    const channel = supabase
+      .channel(`teacher-manual-blocks-${selectedSectionId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'student_section_blocks',
+          filter: `section_id=eq.${selectedSectionId}`,
+        },
+        () => {
+          refreshBlockStatuses();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedSectionId, students.length, refreshBlockStatuses]);
 
   const handleSetAttendance = async (studentId: string, targetStatus: AttendanceStatus) => {
     if (!selectedSessionId) return;
@@ -325,6 +372,7 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
       if (freshRecords) {
         setAttendanceRecords(freshRecords as AttendanceRecord[]);
       }
+      await refreshBlockStatuses();
     } catch (err: unknown) {
       setAttendanceRows((prev) => ({
         ...prev,
@@ -549,49 +597,50 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-[11px] font-mono font-bold text-[#C8102E] uppercase tracking-wider mb-2">
-            <span>Módulo de Asistencia</span>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 text-[#1F5FA8] flex items-center justify-center">
-              <UserCheck className="w-5 h-5" />
-            </div>
-            <h1 className="text-xl sm:text-2xl font-extrabold text-[#0B2A5B] tracking-tight">
+          <span className="inline-block text-[11px] font-mono font-semibold text-[#C8102E] uppercase tracking-[0.08em] mb-1.5">
+            Módulo de Asistencia
+          </span>
+          <div className="flex items-center gap-3">
+            <SectionIconBadge icon={UserCheck} variant="blue" size="md" />
+            <h1 className="text-xl sm:text-2xl font-bold text-[#0B2A5B] tracking-[-0.02em]">
               Registro de Asistencia Manual
             </h1>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
             Control de asistencia por sesión con persistencia mediante función oficial institucional
           </p>
         </div>
 
-        <button
+        <ActionButton
+          icon={RefreshCw}
+          variant="secondary"
+          size="sm"
+          spinningIcon={loadingAttendance}
+          disabled={loadingSections || loadingAttendance}
           onClick={() => {
             fetchSections();
             fetchSessionAttendance();
           }}
-          disabled={loadingSections || loadingAttendance}
-          className="self-start sm:self-auto px-3.5 py-2 bg-white border border-slate-200/90 hover:bg-slate-50 rounded-xl text-xs font-semibold text-slate-700 hover:text-[#0B2A5B] shadow-xs transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
+          className="self-start sm:self-auto"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${loadingAttendance ? 'animate-spin text-[#C8102E]' : 'text-[#1F5FA8]'}`} />
-          <span>Actualizar</span>
-        </button>
+          Actualizar
+        </ActionButton>
       </div>
 
-      <div className="ucv-card rounded-2xl border-l-4 border-l-[#1F5FA8] p-6 space-y-4">
-        <h3 className="text-xs font-extrabold text-[#0B2A5B] uppercase tracking-wide flex items-center gap-2">
+      <div className="ucv-card rounded-2xl p-6 space-y-4">
+        <h3 className="text-[11px] font-bold text-[#0B2A5B] uppercase tracking-[0.06em] flex items-center gap-2">
           <span>1. Selección de Sesión de Clase</span>
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 text-xs">
 
           <div>
-            <label className="block text-slate-700 font-bold uppercase tracking-wider text-[11px] mb-1.5">Sección *</label>
+            <label className="block text-slate-600 font-semibold uppercase tracking-[0.06em] text-[11px] mb-1.5">Sección *</label>
             <select
               value={selectedSectionId}
               onChange={(e) => setSelectedSectionId(e.target.value)}
               disabled={sections.length === 0}
-              className="w-full px-3 py-2 font-mono text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] transition-all outline-none truncate cursor-pointer"
+              className="w-full h-10 px-3 font-mono text-slate-900 bg-slate-50/60 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] focus:ring-2 focus:ring-[#1F5FA8]/20 transition-all outline-hidden truncate cursor-pointer"
             >
               {sections.length === 0 ? (
                 <option value="">Sin secciones asignadas</option>
@@ -606,11 +655,11 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
           </div>
 
           <div>
-            <label className="block text-slate-700 font-bold uppercase tracking-wider text-[11px] mb-1.5">Tipo de Clase</label>
+            <label className="block text-slate-600 font-semibold uppercase tracking-[0.06em] text-[11px] mb-1.5">Tipo de Clase</label>
             <select
               value={selectedKind}
               onChange={(e) => setSelectedKind(e.target.value as 'all' | 'teoria' | 'practica')}
-              className="w-full px-3 py-2 text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] transition-all outline-none truncate cursor-pointer font-medium"
+              className="w-full h-10 px-3 text-slate-900 bg-slate-50/60 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] focus:ring-2 focus:ring-[#1F5FA8]/20 transition-all outline-hidden truncate cursor-pointer font-medium"
             >
               <option value="all">Todas (Teoría / Práctica)</option>
               <option value="teoria">Teoría</option>
@@ -619,12 +668,12 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
           </div>
 
           <div>
-            <label className="block text-slate-700 font-bold uppercase tracking-wider text-[11px] mb-1.5">Unidad (Opcional)</label>
+            <label className="block text-slate-600 font-semibold uppercase tracking-[0.06em] text-[11px] mb-1.5">Unidad (Opcional)</label>
             <select
               value={selectedUnitId}
               onChange={(e) => setSelectedUnitId(e.target.value)}
               disabled={units.length === 0}
-              className="w-full px-3 py-2 text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] transition-all outline-none truncate cursor-pointer font-medium"
+              className="w-full h-10 px-3 text-slate-900 bg-slate-50/60 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] focus:ring-2 focus:ring-[#1F5FA8]/20 transition-all outline-hidden truncate cursor-pointer font-medium"
             >
               <option value="all">Todas las unidades</option>
               {units.map((u) => (
@@ -636,12 +685,12 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
           </div>
 
           <div>
-            <label className="block text-slate-700 font-bold uppercase tracking-wider text-[11px] mb-1.5">Semana (Opcional)</label>
+            <label className="block text-slate-600 font-semibold uppercase tracking-[0.06em] text-[11px] mb-1.5">Semana (Opcional)</label>
             <select
               value={selectedWeekId}
               onChange={(e) => setSelectedWeekId(e.target.value)}
               disabled={weeks.length === 0}
-              className="w-full px-3 py-2 text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] transition-all outline-none truncate cursor-pointer font-medium"
+              className="w-full h-10 px-3 text-slate-900 bg-slate-50/60 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] focus:ring-2 focus:ring-[#1F5FA8]/20 transition-all outline-hidden truncate cursor-pointer font-medium"
             >
               <option value="all">Todas las semanas</option>
               {weeks.map((w) => (
@@ -653,12 +702,12 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
           </div>
 
           <div>
-            <label className="block text-slate-700 font-bold uppercase tracking-wider text-[11px] mb-1.5">Sesión de Clase *</label>
+            <label className="block text-slate-600 font-semibold uppercase tracking-[0.06em] text-[11px] mb-1.5">Sesión de Clase *</label>
             <select
               value={selectedSessionId}
               onChange={(e) => setSelectedSessionId(e.target.value)}
               disabled={filteredSessions.length === 0}
-              className="w-full px-3 py-2 font-mono text-slate-900 font-bold bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] transition-all outline-none truncate disabled:opacity-50 cursor-pointer"
+              className="w-full h-10 px-3 font-mono text-slate-900 font-semibold bg-slate-50/60 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] focus:ring-2 focus:ring-[#1F5FA8]/20 transition-all outline-hidden truncate disabled:opacity-50 cursor-pointer"
             >
               {filteredSessions.length === 0 ? (
                 <option value="">No hay sesiones programadas</option>
@@ -708,89 +757,85 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
       ) : (
         <div className="space-y-6">
 
-          <div className="ucv-card rounded-2xl border-l-4 border-l-[#C8102E] p-6 space-y-5">
+          <div className="ucv-card rounded-2xl border-t-2 border-t-[#C8102E] p-6 space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
               <div>
                 <div className="flex items-center gap-2 mb-1.5">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-400">
                     Sesión Activa
                   </span>
                   <span
-                    className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
+                    className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md border ${
                       currentSession?.kind === 'practica'
-                        ? 'bg-purple-50 text-purple-700 border-purple-200'
-                        : 'bg-blue-50 text-[#1F5FA8] border-blue-200'
+                        ? 'bg-purple-50 text-purple-700 border-purple-200/85'
+                        : 'bg-blue-50 text-[#1F5FA8] border-blue-200/85'
                     }`}
                   >
                     {currentSession?.kind === 'practica' ? (
-                      <FlaskConical className="w-3 h-3 text-purple-600" />
+                      <FlaskConical className="w-3 h-3 text-purple-600" strokeWidth={1.85} />
                     ) : (
-                      <BookOpen className="w-3 h-3 text-[#1F5FA8]" />
+                      <BookOpen className="w-3 h-3 text-[#1F5FA8]" strokeWidth={1.85} />
                     )}
                     <span>{currentSession?.kind === 'practica' ? 'Práctica' : 'Teoría'}</span>
                   </span>
                 </div>
-                <h3 className="text-base font-bold text-slate-900">
+                <h3 className="text-base font-bold text-[#0B2A5B] tracking-[-0.015em]">
                   {currentSession?.topic || 'Clase Presencial'}
                 </h3>
-                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 font-mono mt-1 font-medium">
-                  <span>📅 {formatDisplayDate(currentSession?.session_date || '')}</span>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 font-mono tabular-nums mt-1 font-medium">
+                  <span>{formatDisplayDate(currentSession?.session_date || '')}</span>
                   <span>•</span>
-                  <span>⏰ {formatTime(currentSession?.starts_at)} a {formatTime(currentSession?.ends_at)}</span>
+                  <span>{formatTime(currentSession?.starts_at)} a {formatTime(currentSession?.ends_at)}</span>
                   <span>•</span>
-                  <span className="capitalize font-bold text-slate-700">Estado: {currentSession?.status}</span>
+                  <span className="capitalize font-semibold text-slate-700">Estado: {currentSession?.status}</span>
                 </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
                 {currentSession?.status === 'cerrada' && (
                   <>
-                    <span className="bg-slate-100 border border-slate-200 px-3 py-1 text-xs font-bold text-slate-700 rounded-full inline-flex items-center gap-1.5">
-                      <Lock className="w-3.5 h-3.5 text-slate-500" />
+                    <span className="bg-slate-100 border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700 rounded-md inline-flex items-center gap-1.5">
+                      <Lock className="w-3.5 h-3.5 text-slate-500" strokeWidth={1.85} />
                       <span>Sesión cerrada</span>
                     </span>
-                    <button
-                      type="button"
+                    <ActionButton
+                      icon={Unlock}
+                      variant="primary"
+                      size="sm"
+                      loading={isReopening}
                       onClick={handleReopenSession}
-                      disabled={isReopening}
-                      className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#0B2A5B] via-[#1F5FA8] to-[#C8102E] hover:brightness-110 active:scale-[0.98] text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition-all disabled:opacity-50"
                     >
-                      {isReopening ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <Unlock className="w-3.5 h-3.5" />
-                      )}
-                      <span>{isReopening ? 'Reabriendo...' : 'Volver a abrir sesión'}</span>
-                    </button>
+                      {isReopening ? 'Reabriendo...' : 'Volver a abrir sesión'}
+                    </ActionButton>
                   </>
                 )}
 
                 {currentSession?.status === 'abierta' && (
                   <>
-                    <span className="bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-bold text-emerald-700 rounded-full inline-flex items-center gap-1.5">
+                    <span className="bg-emerald-50 border border-emerald-200/85 px-2.5 py-1 text-xs font-semibold text-emerald-700 rounded-md inline-flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                       <span>Sesión abierta</span>
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => setIsCloseConfirmOpen(true)}
+                    <ActionButton
+                      icon={Save}
+                      variant="brand"
+                      size="sm"
                       disabled={isClosingSession}
-                      className="px-4 py-2 rounded-xl bg-[#C8102E] hover:bg-[#A50D25] active:scale-[0.98] text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition-all disabled:opacity-50"
+                      onClick={() => setIsCloseConfirmOpen(true)}
                     >
-                      <Save className="w-3.5 h-3.5" />
-                      <span>Guardar y cerrar sesión</span>
-                    </button>
+                      Guardar y cerrar sesión
+                    </ActionButton>
                   </>
                 )}
 
                 {currentSession?.status === 'programada' && (
-                  <span className="bg-blue-50 border border-blue-200 px-3 py-1 text-xs font-bold text-[#1F5FA8] rounded-full">
+                  <span className="bg-blue-50 border border-blue-200/85 px-2.5 py-1 text-xs font-semibold text-[#1F5FA8] rounded-md">
                     Sesión programada
                   </span>
                 )}
 
                 {currentSession?.status === 'cancelada' && (
-                  <span className="bg-red-50 border border-red-200 px-3 py-1 text-xs font-bold text-red-700 rounded-full">
+                  <span className="bg-red-50 border border-red-200/85 px-2.5 py-1 text-xs font-semibold text-red-700 rounded-md">
                     Sesión cancelada
                   </span>
                 )}
@@ -798,9 +843,9 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
             </div>
 
             {currentSession?.status === 'cerrada' && (
-              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="p-3.5 rounded-xl bg-amber-50/85 border border-amber-200 text-amber-900 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2 font-medium">
-                  <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+                  <Lock className="w-4 h-4 text-amber-600 shrink-0" strokeWidth={1.85} />
                   <span>
                     Esta sesión fue cerrada. Pulsa <strong className="font-bold">Volver a abrir sesión</strong> para editar la asistencia de cualquier alumno y luego guardar.
                   </span>
@@ -809,46 +854,46 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
             )}
 
             <div className="grid grid-cols-2 sm:grid-cols-6 gap-2.5 text-center">
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                <span className="text-[10px] uppercase font-bold text-slate-500 block">Matriculados</span>
-                <span className="text-lg font-black text-slate-900 font-mono">{summary.total}</span>
+              <div className="p-3 bg-slate-50/85 border border-slate-200/85 rounded-xl">
+                <span className="text-[10px] uppercase tracking-[0.05em] font-semibold text-slate-500 block">Matriculados</span>
+                <span className="text-lg font-bold text-slate-900 font-mono tabular-nums">{summary.total}</span>
               </div>
-              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700">
-                <span className="text-[10px] uppercase font-bold block">Presentes</span>
-                <span className="text-lg font-black font-mono">{summary.presentes}</span>
+              <div className="p-3 bg-emerald-50/75 border border-emerald-200/85 rounded-xl text-emerald-700">
+                <span className="text-[10px] uppercase tracking-[0.05em] font-semibold block">Presentes</span>
+                <span className="text-lg font-bold font-mono tabular-nums">{summary.presentes}</span>
               </div>
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-700">
-                <span className="text-[10px] uppercase font-bold block">Tardanzas</span>
-                <span className="text-lg font-black font-mono">{summary.tardanzas}</span>
+              <div className="p-3 bg-amber-50/75 border border-amber-200/85 rounded-xl text-amber-700">
+                <span className="text-[10px] uppercase tracking-[0.05em] font-semibold block">Tardanzas</span>
+                <span className="text-lg font-bold font-mono tabular-nums">{summary.tardanzas}</span>
               </div>
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700">
-                <span className="text-[10px] uppercase font-bold block">Faltas</span>
-                <span className="text-lg font-black font-mono">{summary.faltas}</span>
+              <div className="p-3 bg-red-50/75 border border-red-200/85 rounded-xl text-red-700">
+                <span className="text-[10px] uppercase tracking-[0.05em] font-semibold block">Faltas</span>
+                <span className="text-lg font-bold font-mono tabular-nums">{summary.faltas}</span>
               </div>
-              <div className="p-3 bg-slate-100 border border-slate-200 rounded-xl text-slate-700">
-                <span className="text-[10px] uppercase font-bold block">Justificados</span>
-                <span className="text-lg font-black font-mono">{summary.justificados}</span>
+              <div className="p-3 bg-slate-100/85 border border-slate-200/85 rounded-xl text-slate-700">
+                <span className="text-[10px] uppercase tracking-[0.05em] font-semibold block">Justificados</span>
+                <span className="text-lg font-bold font-mono tabular-nums">{summary.justificados}</span>
               </div>
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-[#1F5FA8]">
-                <span className="text-[10px] uppercase font-bold block">Sin Registrar</span>
-                <span className="text-lg font-black font-mono">{summary.sinRegistrar}</span>
+              <div className="p-3 bg-blue-50/75 border border-blue-200/85 rounded-xl text-[#1F5FA8]">
+                <span className="text-[10px] uppercase tracking-[0.05em] font-semibold block">Sin Registrar</span>
+                <span className="text-lg font-bold font-mono tabular-nums">{summary.sinRegistrar}</span>
               </div>
             </div>
           </div>
 
           <div className="ucv-card rounded-2xl p-4 flex items-center justify-between gap-3 text-xs">
             <div className="relative flex-1 max-w-sm">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" strokeWidth={1.85} />
               <input
                 type="text"
                 placeholder="Buscar alumno por código o nombre..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] focus:ring-2 focus:ring-[#1F5FA8]/20 transition-all outline-none text-slate-800"
+                className="w-full h-10 pl-9 pr-3 text-xs font-medium bg-slate-50/60 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] focus:ring-2 focus:ring-[#1F5FA8]/20 transition-all outline-hidden text-slate-800"
               />
             </div>
             <span className="text-slate-500 font-medium">
-              Alumnos: <strong className="text-[#0B2A5B] font-mono">{filteredRows.length}</strong> de <span className="font-mono">{students.length}</span>
+              Alumnos: <strong className="text-[#0B2A5B] font-mono tabular-nums">{filteredRows.length}</strong> de <span className="font-mono tabular-nums">{students.length}</span>
             </span>
           </div>
 
@@ -869,11 +914,21 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
                 {filteredRows.map(({ student, record, optimisticStatus, justificationInput, isSaving }) => {
                   const isJustificado = optimisticStatus === 'justificado';
                   const isSessionLocked = currentSession?.status === 'cerrada' || currentSession?.status === 'cancelada';
+                  const blockStatus = blockStatusMap[student.id];
+                  const isStudentBlocked = Boolean(blockStatus?.isBlocked);
+                  const cycleAbsences = blockStatus?.cycleAbsences ?? 0;
+                  const isAbsenceWarning = !isStudentBlocked && cycleAbsences === 2;
 
                   return (
                     <div
                       key={student.id}
-                      className="p-4 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs rounded-2xl bg-white border border-slate-200 shadow-2xs hover:bg-slate-50/60"
+                      className={`p-4 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs rounded-2xl border shadow-2xs ${
+                        isStudentBlocked
+                          ? 'bg-red-50/35 border-red-200 hover:bg-red-50/55'
+                          : isAbsenceWarning
+                          ? 'bg-amber-50/35 border-amber-200 hover:bg-amber-50/55'
+                          : 'bg-white border-slate-200/90 hover:bg-slate-50/75'
+                      }`}
                     >
 
                       <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
@@ -884,17 +939,36 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
                         />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-mono font-bold text-[#0B2A5B] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded text-[11px]">
+                            <span className="font-mono font-semibold text-[#0B2A5B] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md text-[11px]">
                               {student.code}
                             </span>
                             <span className="font-bold text-slate-900 text-sm">
                               {student.first_names} {student.last_names}
                             </span>
                             {student.career?.name && (
-                              <span className="inline-block px-2 py-0.5 rounded bg-blue-50 border border-blue-200 text-[#1F5FA8] text-[10px] font-bold uppercase tracking-wide">
+                              <span className="inline-block px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200/85 text-[#1F5FA8] text-[10px] font-semibold uppercase tracking-[0.04em]">
                                 {student.career.name}
                               </span>
                             )}
+                            {isStudentBlocked ? (
+                              <span
+                                title={blockStatus?.activeBlock?.reason || 'Inhabilitado por inasistencias'}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-red-50 border border-red-200/85 text-[#C8102E] text-[10px] font-semibold uppercase tracking-[0.04em]"
+                              >
+                                <ShieldAlert className="w-3 h-3" strokeWidth={1.85} />
+                                <span>INHABILITADO ({cycleAbsences}/3 faltas)</span>
+                              </span>
+                            ) : isAbsenceWarning ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200/85 text-amber-800 text-[10px] font-semibold">
+                                <AlertTriangle className="w-3 h-3" strokeWidth={1.85} />
+                                <span>2/3 faltas (Riesgo)</span>
+                              </span>
+                            ) : blockStatus ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200/85 text-emerald-700 text-[10px] font-semibold">
+                                <CheckCircle2 className="w-3 h-3" strokeWidth={1.85} />
+                                <span>Habilitado ({cycleAbsences}/3 faltas)</span>
+                              </span>
+                            ) : null}
                           </div>
 
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
@@ -945,14 +1019,16 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
                                 disabled={isSessionLocked}
                                 className="w-full px-2.5 py-1.5 text-xs text-slate-800 font-medium bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-[#1F5FA8] outline-none disabled:opacity-60"
                               />
-                              <button
-                                type="button"
-                                onClick={() => handleSetAttendance(student.id, 'justificado')}
+                              <ActionButton
+                                icon={CheckCircle2}
+                                variant="view"
+                                size="xs"
+                                loading={isSaving}
                                 disabled={isSaving || isSessionLocked}
-                                className="px-3 py-1.5 bg-[#1F5FA8] hover:bg-[#0B2A5B] disabled:opacity-50 text-white text-[11px] font-bold rounded-lg shrink-0 cursor-pointer shadow-xs transition-all"
+                                onClick={() => handleSetAttendance(student.id, 'justificado')}
                               >
                                 Guardar
-                              </button>
+                              </ActionButton>
                             </div>
                           </div>
                         )}
@@ -978,8 +1054,8 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
           {attendanceRecords.length > 0 && (
             <div className="ucv-card rounded-2xl p-6 space-y-4">
               <div className="flex items-center gap-2">
-                <History className="w-4 h-4 text-[#C8102E]" />
-                <h4 className="text-xs font-extrabold text-[#0B2A5B] uppercase tracking-wide">
+                <History className="w-4 h-4 text-[#C8102E]" strokeWidth={1.85} />
+                <h4 className="text-[11px] font-bold text-[#0B2A5B] uppercase tracking-[0.06em]">
                   Historial de Marcaciones de la Sesión ({attendanceRecords.length})
                 </h4>
               </div>
@@ -987,7 +1063,7 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
               <div className="border border-slate-200 rounded-xl overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
-                    <thead className="text-slate-500 uppercase font-bold text-[10px] border-b border-slate-200 bg-slate-50">
+                    <thead className="text-slate-500 uppercase font-semibold tracking-[0.06em] text-[11px] border-b border-slate-200 bg-slate-50/90">
                       <tr>
                         <th className="px-4 py-3">Alumno</th>
                         <th className="px-4 py-3">Estado</th>
@@ -1000,20 +1076,20 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
                       {attendanceRecords.map((r) => {
                         const studentObj = students.find((s) => s.id === r.student_id);
                         return (
-                          <tr key={r.id} className="hover:bg-slate-50/60 transition-colors">
-                            <td className="px-4 py-2.5 font-bold text-slate-900">
+                          <tr key={r.id} className="hover:bg-slate-50/85 transition-colors">
+                            <td className="px-4 py-3 font-semibold text-slate-900">
                               {studentObj ? `${studentObj.first_names} ${studentObj.last_names}` : r.student_id}
                             </td>
-                            <td className="px-4 py-2.5">
-                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-100 border border-slate-200 text-slate-800">{r.status}</span>
+                            <td className="px-4 py-3">
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase bg-slate-100 border border-slate-200 text-slate-800">{r.status}</span>
                             </td>
-                            <td className="px-4 py-2.5 text-xs">
-                              <span className="font-semibold text-slate-800">{getMethodLabel(r.method)}</span>
+                            <td className="px-4 py-3 text-xs">
+                              <span className="font-medium text-slate-800">{getMethodLabel(r.method)}</span>
                             </td>
-                            <td className="px-4 py-2.5 font-mono text-slate-600">
+                            <td className="px-4 py-3 font-mono tabular-nums text-slate-600">
                               {r.registered_at ? formatLimaTime(r.registered_at) : '-'}
                             </td>
-                            <td className="px-4 py-2.5 text-slate-500 max-w-xs truncate font-medium">
+                            <td className="px-4 py-3 text-slate-500 max-w-xs truncate font-medium">
                               {r.justification || '-'}
                             </td>
                           </tr>
@@ -1033,9 +1109,7 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
           <div className="ucv-card ucv-scale-in rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden">
             <div className="h-1 ucv-topbar-split w-full" />
             <div className="p-6 space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-red-50 border border-red-100 text-[#C8102E] flex items-center justify-center mx-auto">
-                <Save className="w-6 h-6" />
-              </div>
+              <SectionIconBadge icon={Save} variant="red" size="lg" className="mx-auto" />
               <div className="text-center">
                 <h3 className="text-base font-bold text-slate-900">¿Guardar y cerrar asistencia?</h3>
                 <p className="text-xs text-slate-500 mt-1 font-medium">
@@ -1043,23 +1117,25 @@ export const TeacherAttendanceScreen: React.FC<TeacherAttendanceScreenProps> = (
                 </p>
               </div>
               <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsCloseConfirmOpen(false)}
+                <ActionButton
+                  variant="secondary"
+                  size="sm"
                   disabled={isClosingSession}
-                  className="flex-1 py-2 px-3 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl shadow-xs transition-all cursor-pointer"
+                  onClick={() => setIsCloseConfirmOpen(false)}
+                  className="flex-1"
                 >
                   Cancelar
-                </button>
-                <button
-                  type="button"
+                </ActionButton>
+                <ActionButton
+                  icon={Save}
+                  variant="brand"
+                  size="sm"
+                  loading={isClosingSession}
                   onClick={handleConfirmCloseSession}
-                  disabled={isClosingSession}
-                  className="flex-1 py-2 px-3 text-white text-xs font-bold rounded-xl bg-[#C8102E] hover:bg-[#A50D25] flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-all disabled:opacity-50"
+                  className="flex-1"
                 >
-                  {isClosingSession ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                  <span>Sí, guardar y cerrar</span>
-                </button>
+                  Sí, guardar y cerrar
+                </ActionButton>
               </div>
             </div>
           </div>

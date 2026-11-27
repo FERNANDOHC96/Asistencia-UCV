@@ -23,6 +23,7 @@ import {
 } from '../../services/reportService';
 import { getTodayLima, formatDisplayDate } from '../../lib/dateUtils';
 import { translateSupabaseError } from '../../lib/supabaseErrors';
+import { ActionButton, SectionIconBadge } from '../ui';
 
 function formatShortDayMonth(dateStr: string): string {
   if (!dateStr) return '-';
@@ -269,50 +270,50 @@ export const AttendanceReportScreen: React.FC = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6 ucv-animate-in print-report-root">
       <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-[11px] font-mono font-bold text-[#0B2A5B] uppercase tracking-wider mb-2">
-            <span>Módulo Académico</span>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#0B2A5B]/10 to-[#C8102E]/10 border border-slate-200 text-[#0B2A5B] flex items-center justify-center">
-              <FileBarChart2 className="w-5 h-5 text-[#C8102E]" />
+          <span className="inline-block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#154A8A] mb-1.5">
+            Módulo Académico
+          </span>
+          <div className="flex items-center gap-3">
+            <SectionIconBadge icon={FileBarChart2} variant="navy" size="md" />
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-[#0B2A5B] tracking-[-0.02em]">
+                Reportes de Asistencia
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-500 mt-0.5 font-medium">
+                Consulta consolidada por sección y rango de fechas sobre sesiones cerradas, con exportación en CSV
+              </p>
             </div>
-            <h1 className="text-xl sm:text-2xl font-extrabold text-[#0B2A5B] tracking-tight">
-              Reportes de Asistencia
-            </h1>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
-            Consulta consolidada por sección y rango de fechas sobre sesiones cerradas, con exportación en CSV
-          </p>
         </div>
 
         {report && report.sessions.length > 0 && (
           <div className="flex items-center gap-2 self-start sm:self-auto">
-            <button
-              type="button"
+            <ActionButton
+              icon={Download}
+              variant="confirm"
+              size="md"
               onClick={handleDownloadCsv}
-              className="px-4 py-2 rounded-xl bg-[#C8102E] hover:bg-[#A50D25] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all active:scale-95 cursor-pointer"
             >
-              <Download className="w-3.5 h-3.5" />
-              <span>Descargar CSV</span>
-            </button>
+              Descargar CSV
+            </ActionButton>
           </div>
         )}
       </div>
 
       <form
         onSubmit={handleSubmit}
-        className="no-print ucv-card rounded-2xl border-l-4 border-l-[#1F5FA8] p-5 space-y-4"
+        className="no-print ucv-card rounded-2xl p-5 space-y-4"
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3.5 items-end text-xs">
           <div className="lg:col-span-5">
-            <label className="block text-slate-700 font-bold uppercase tracking-wider text-[11px] mb-1.5">
+            <label className="block text-slate-600 font-semibold uppercase tracking-[0.06em] text-[11px] mb-1.5">
               Sección *
             </label>
             <select
               value={selectedSectionId}
               onChange={(e) => setSelectedSectionId(e.target.value)}
               disabled={loadingSections || sections.length === 0}
-              className="w-full px-3 py-2.5 font-medium text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] transition-all outline-none cursor-pointer disabled:opacity-60"
+              className="w-full h-10 px-3 font-medium text-slate-900 bg-slate-50/60 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] focus:ring-2 focus:ring-[#1F5FA8]/20 transition-all outline-none cursor-pointer disabled:opacity-60"
             >
               {sections.length === 0 ? (
                 <option value="">
@@ -330,7 +331,7 @@ export const AttendanceReportScreen: React.FC = () => {
           </div>
 
           <div className="lg:col-span-2">
-            <label className="block text-slate-700 font-bold uppercase tracking-wider text-[11px] mb-1.5">
+            <label className="block text-slate-600 font-semibold uppercase tracking-[0.06em] text-[11px] mb-1.5">
               Desde *
             </label>
             <input
@@ -338,12 +339,12 @@ export const AttendanceReportScreen: React.FC = () => {
               required
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
-              className="w-full px-3 py-2 font-mono font-semibold text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] transition-all outline-none"
+              className="w-full h-10 px-3 font-mono font-semibold text-slate-900 bg-slate-50/60 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] focus:ring-2 focus:ring-[#1F5FA8]/20 transition-all outline-none"
             />
           </div>
 
           <div className="lg:col-span-2">
-            <label className="block text-slate-700 font-bold uppercase tracking-wider text-[11px] mb-1.5">
+            <label className="block text-slate-600 font-semibold uppercase tracking-[0.06em] text-[11px] mb-1.5">
               Hasta *
             </label>
             <input
@@ -351,23 +352,22 @@ export const AttendanceReportScreen: React.FC = () => {
               required
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
-              className="w-full px-3 py-2 font-mono font-semibold text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] transition-all outline-none"
+              className="w-full h-10 px-3 font-mono font-semibold text-slate-900 bg-slate-50/60 border border-slate-200 rounded-xl focus:bg-white focus:border-[#1F5FA8] focus:ring-2 focus:ring-[#1F5FA8]/20 transition-all outline-none"
             />
           </div>
 
           <div className="lg:col-span-3 flex gap-2">
-            <button
+            <ActionButton
               type="submit"
-              disabled={loadingSections || loadingReport || !selectedSectionId}
-              className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#0B2A5B] via-[#1F5FA8] to-[#C8102E] hover:brightness-110 active:scale-[0.98] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer disabled:opacity-50"
+              icon={Search}
+              variant="primary"
+              size="md"
+              loading={loadingReport}
+              disabled={loadingSections || !selectedSectionId}
+              className="flex-1"
             >
-              {loadingReport ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Search className="w-4 h-4" />
-              )}
-              <span>{loadingReport ? 'Generando...' : 'Generar reporte'}</span>
-            </button>
+              {loadingReport ? 'Generando...' : 'Generar reporte'}
+            </ActionButton>
           </div>
         </div>
       </form>
@@ -409,10 +409,10 @@ export const AttendanceReportScreen: React.FC = () => {
             <div className="p-6 space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-slate-200 pb-4">
                 <div>
-                  <h2 className="text-lg sm:text-xl font-extrabold text-[#0B2A5B] tracking-tight">
+                  <h2 className="text-lg sm:text-xl font-bold text-[#0B2A5B] tracking-[-0.02em]">
                     UCVGO — Reporte de Asistencia
                   </h2>
-                  <p className="text-xs sm:text-sm font-bold text-[#C8102E] mt-1">
+                  <p className="text-xs sm:text-sm font-semibold text-[#C8102E] mt-1">
                     {report.courseLabel} · Sección {report.sectionLabel}
                   </p>
                 </div>
@@ -422,57 +422,57 @@ export const AttendanceReportScreen: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                <div className="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase block">Periodo</span>
-                  <span className="font-bold text-[#0B2A5B]">{report.periodLabel}</span>
+                <div className="bg-slate-50/80 border border-slate-200/85 rounded-xl px-3.5 py-2.5">
+                  <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-[0.06em] block">Periodo</span>
+                  <span className="font-semibold text-[#0B2A5B]">{report.periodLabel}</span>
                 </div>
-                <div className="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase block">Rango de fechas</span>
-                  <span className="font-bold font-mono text-[#0B2A5B]">
+                <div className="bg-slate-50/80 border border-slate-200/85 rounded-xl px-3.5 py-2.5">
+                  <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-[0.06em] block">Rango de fechas</span>
+                  <span className="font-semibold font-mono tabular-nums text-[#0B2A5B]">
                     {formatDisplayDate(appliedRange.from)} al {formatDisplayDate(appliedRange.to)}
                   </span>
                 </div>
-                <div className="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase block">Docente</span>
-                  <span className="font-bold text-[#0B2A5B]">{resolvedTeacherName}</span>
+                <div className="bg-slate-50/80 border border-slate-200/85 rounded-xl px-3.5 py-2.5">
+                  <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-[0.06em] block">Docente</span>
+                  <span className="font-semibold text-[#0B2A5B]">{resolvedTeacherName}</span>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200 flex items-center justify-between">
+                <div className="p-3.5 rounded-xl bg-blue-50/60 border border-blue-200/85 flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] font-bold text-[#1F5FA8] uppercase block">
+                    <span className="text-[10px] font-semibold text-[#154A8A] uppercase tracking-[0.06em] block">
                       Sesiones evaluadas
                     </span>
-                    <strong className="text-xl font-black text-[#0B2A5B] font-mono">
+                    <strong className="text-xl font-bold text-[#0B2A5B] font-mono tabular-nums">
                       {report.totals.sessionsCount}
                     </strong>
                   </div>
-                  <Calendar className="w-6 h-6 text-[#1F5FA8] no-print" />
+                  <SectionIconBadge icon={Calendar} variant="blue" size="md" className="no-print" />
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-200/85 flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] font-bold text-slate-500 uppercase block">
+                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-[0.06em] block">
                       Alumnos
                     </span>
-                    <strong className="text-xl font-black text-[#0B2A5B] font-mono">
+                    <strong className="text-xl font-bold text-[#0B2A5B] font-mono tabular-nums">
                       {report.totals.studentsCount}
                     </strong>
                   </div>
-                  <Users className="w-6 h-6 text-[#0B2A5B] no-print" />
+                  <SectionIconBadge icon={Users} variant="navy" size="md" className="no-print" />
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-red-50/70 border border-red-200 flex items-center justify-between">
+                <div className="p-3.5 rounded-xl bg-red-50/60 border border-red-200/85 flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] font-bold text-[#C8102E] uppercase block">
+                    <span className="text-[10px] font-semibold text-[#B80E29] uppercase tracking-[0.06em] block">
                       % promedio del curso
                     </span>
-                    <strong className="text-xl font-black text-[#C8102E] font-mono">
+                    <strong className="text-xl font-bold text-[#C8102E] font-mono tabular-nums">
                       {report.totals.averagePercentage.toFixed(1)}%
                     </strong>
                   </div>
-                  <CheckCircle2 className="w-6 h-6 text-[#C8102E] no-print" />
+                  <SectionIconBadge icon={CheckCircle2} variant="red" size="md" className="no-print" />
                 </div>
               </div>
             </div>
@@ -480,20 +480,20 @@ export const AttendanceReportScreen: React.FC = () => {
 
           <div className="ucv-card rounded-2xl overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-xs font-extrabold text-[#0B2A5B] uppercase tracking-wider">
+              <h3 className="text-[11px] font-bold text-[#0B2A5B] uppercase tracking-[0.06em]">
                 Matriz de Asistencia por Alumno
               </h3>
-              <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold">
-                <span className="px-2 py-0.5 rounded border bg-emerald-50 text-emerald-700 border-emerald-200">
+              <div className="flex flex-wrap items-center gap-2 text-[10px] font-semibold">
+                <span className="px-2 py-0.5 rounded-md border bg-emerald-50 text-emerald-700 border-emerald-200/85">
                   P = Presente
                 </span>
-                <span className="px-2 py-0.5 rounded border bg-amber-50 text-amber-700 border-amber-200">
+                <span className="px-2 py-0.5 rounded-md border bg-amber-50 text-amber-700 border-amber-200/85">
                   T = Tardanza
                 </span>
-                <span className="px-2 py-0.5 rounded border bg-red-50 text-[#C8102E] border-red-200">
+                <span className="px-2 py-0.5 rounded-md border bg-red-50 text-[#B80E29] border-red-200/85">
                   F = Falta
                 </span>
-                <span className="px-2 py-0.5 rounded border bg-blue-50 text-[#1F5FA8] border-blue-200">
+                <span className="px-2 py-0.5 rounded-md border bg-blue-50 text-[#154A8A] border-blue-200/85">
                   J = Justificado
                 </span>
               </div>
@@ -501,7 +501,7 @@ export const AttendanceReportScreen: React.FC = () => {
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-slate-700 print-table">
-                <thead className="bg-slate-50 text-[#0B2A5B] font-bold uppercase text-[10px] border-b border-slate-200">
+                <thead className="bg-slate-50/90 text-slate-600 font-semibold uppercase tracking-[0.05em] text-[10px] border-b border-slate-200">
                   <tr>
                     <th className="py-3 px-3 whitespace-nowrap">Código</th>
                     <th className="py-3 px-3 min-w-[200px]">Apellido y nombres</th>
@@ -530,8 +530,8 @@ export const AttendanceReportScreen: React.FC = () => {
                     </tr>
                   ) : (
                     report.students.map((st) => (
-                      <tr key={st.studentId} className="hover:bg-slate-50/70 transition-colors">
-                        <td className="py-2.5 px-3 font-mono font-bold text-[#0B2A5B] whitespace-nowrap">
+                      <tr key={st.studentId} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="py-2.5 px-3 font-mono font-semibold text-[#0B2A5B] whitespace-nowrap">
                           {st.code}
                         </td>
                         <td className="py-2.5 px-3 font-semibold text-slate-900">
@@ -544,20 +544,20 @@ export const AttendanceReportScreen: React.FC = () => {
                             <td key={sess.sessionId} className="py-2 px-1.5 text-center">
                               <span
                                 title={badge.title}
-                                className={`inline-flex items-center justify-center w-6 h-6 rounded border font-mono text-[11px] font-extrabold ${badge.className}`}
+                                className={`inline-flex items-center justify-center w-6 h-6 rounded-md border font-mono text-[11px] font-bold ${badge.className}`}
                               >
                                 {badge.label}
                               </span>
                             </td>
                           );
                         })}
-                        <td className="py-2.5 px-3 text-center font-mono font-extrabold text-[#0B2A5B] whitespace-nowrap">
+                        <td className="py-2.5 px-3 text-center font-mono font-bold text-[#0B2A5B] whitespace-nowrap">
                           {st.porcentaje.toFixed(1)}%
                         </td>
-                        <td className="py-2.5 px-3 text-center font-mono font-bold text-[#C8102E]">
+                        <td className="py-2.5 px-3 text-center font-mono font-semibold text-[#C8102E]">
                           {st.faltas}
                         </td>
-                        <td className="py-2.5 px-3 text-center font-mono font-bold text-amber-700">
+                        <td className="py-2.5 px-3 text-center font-mono font-semibold text-amber-700">
                           {st.tardanzas}
                         </td>
                       </tr>
@@ -565,10 +565,10 @@ export const AttendanceReportScreen: React.FC = () => {
                   )}
                 </tbody>
                 {report.students.length > 0 && (
-                  <tfoot className="bg-slate-50 border-t-2 border-slate-200 font-bold text-xs text-[#0B2A5B]">
+                  <tfoot className="bg-slate-50 border-t-2 border-slate-200 font-semibold text-xs text-[#0B2A5B]">
                     <tr>
-                      <td className="py-2.5 px-3 font-extrabold uppercase text-[10px]">Totales</td>
-                      <td className="py-2.5 px-3 text-slate-600 font-semibold">
+                      <td className="py-2.5 px-3 font-bold uppercase text-[10px]">Totales</td>
+                      <td className="py-2.5 px-3 text-slate-600 font-medium">
                         {report.totals.studentsCount} alumnos evaluados
                       </td>
                       {report.sessions.map((sess) => {
@@ -589,13 +589,13 @@ export const AttendanceReportScreen: React.FC = () => {
                           </td>
                         );
                       })}
-                      <td className="py-2.5 px-3 text-center font-mono font-black text-[#0B2A5B]">
+                      <td className="py-2.5 px-3 text-center font-mono font-bold text-[#0B2A5B]">
                         {report.totals.averagePercentage.toFixed(1)}%
                       </td>
-                      <td className="py-2.5 px-3 text-center font-mono font-black text-[#C8102E]">
+                      <td className="py-2.5 px-3 text-center font-mono font-bold text-[#C8102E]">
                         {report.totals.faltas}
                       </td>
-                      <td className="py-2.5 px-3 text-center font-mono font-black text-amber-700">
+                      <td className="py-2.5 px-3 text-center font-mono font-bold text-amber-700">
                         {report.totals.tardanzas}
                       </td>
                     </tr>
@@ -607,14 +607,14 @@ export const AttendanceReportScreen: React.FC = () => {
 
           <div className="ucv-card rounded-2xl overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-200">
-              <h3 className="text-xs font-extrabold text-[#0B2A5B] uppercase tracking-wider">
+              <h3 className="text-[11px] font-bold text-[#0B2A5B] uppercase tracking-[0.06em]">
                 Detalle por día
               </h3>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-slate-700 print-table">
-                <thead className="bg-slate-50 text-[#0B2A5B] font-bold uppercase text-[10px] border-b border-slate-200">
+                <thead className="bg-slate-50/90 text-slate-600 font-semibold uppercase tracking-[0.05em] text-[10px] border-b border-slate-200">
                   <tr>
                     <th className="py-3 px-3 whitespace-nowrap">Fecha</th>
                     <th className="py-3 px-3 whitespace-nowrap">Horario</th>

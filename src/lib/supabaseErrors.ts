@@ -99,6 +99,11 @@ export function translateAttendanceRpcError(rpcResult: string): string {
       return 'La sesión ya está cerrada.';
     case 'not_enrolled':
       return 'El alumno no está matriculado en esta sección.';
+    case 'student_blocked':
+    case 'blocked':
+    case 'section_blocked':
+    case 'inhabilitado':
+      return 'El alumno se encuentra inhabilitado en este curso por acumulación de faltas.';
     case 'success':
       return 'Asistencia registrada correctamente.';
     default:
@@ -171,5 +176,26 @@ export function translateReopenAttendanceError(code: string): string {
       return 'Sesión reabierta exitosamente.';
     default:
       return `Error al reabrir sesión: ${code}`;
+  }
+}
+
+export function translateUnblockStudentError(code: string): string {
+  switch (code) {
+    case 'unauthorized':
+    case 'forbidden':
+      return 'Solo los administradores pueden rehabilitar alumnos.';
+    case 'missing_reason':
+      return 'Debes ingresar el motivo de la rehabilitación.';
+    case 'not_blocked':
+    case 'block_not_found':
+      return 'El alumno no tiene una inhabilitación activa en esta sección.';
+    case 'invalid_student':
+      return 'El alumno indicado no es válido.';
+    case 'invalid_section':
+      return 'La sección indicada no es válida.';
+    case 'success':
+      return 'Alumno rehabilitado correctamente.';
+    default:
+      return `No se pudo rehabilitar al alumno (${code}).`;
   }
 }

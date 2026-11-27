@@ -235,3 +235,142 @@ export interface TeacherName {
   last_names: string;
 }
 
+export type NotificationKind =
+  | 'riesgo_asistencia'
+  | 'riesgo_asistencia_profesor'
+  | 'general'
+  | (string & {});
+
+export interface NotificationCourseRef {
+  sectionId?: string;
+  sectionName?: string;
+  courseId?: string;
+  courseCode?: string;
+  courseName?: string;
+}
+
+export interface StudentAttendanceHistoryEntry {
+  sessionId: string;
+  date: string;
+  startsAt: string;
+  topic: string;
+  kind: 'teoria' | 'practica';
+  status: AttendanceStatus;
+}
+
+export interface TeacherRiskStudentEntry {
+  studentId?: string | null;
+  name: string;
+  code?: string | null;
+  careerName?: string | null;
+  riskLevel?: string | null;
+  absences?: string | null;
+  absencesNum?: number;
+  cycleAbsencesNum?: number;
+  evaluatedSessionsNum?: number;
+  attendedNum?: number;
+  tardanzasNum?: number;
+  justificadosNum?: number;
+  absencePercentage?: string | null;
+  absencePercentageNum?: number;
+  consecutiveAbsences?: string | null;
+  consecutiveAbsencesNum?: number;
+  maxConsecutiveAbsencesNum?: number;
+  isBlocked?: boolean;
+  lastAbsenceSessionId?: string | null;
+  absenceDates?: string[];
+  attendanceHistory?: StudentAttendanceHistoryEntry[];
+}
+
+export interface TeacherRiskDetails {
+  riskLevel: string | null;
+  absencesCount: string | null;
+  totalAbsencesNum?: number;
+  maxAbsencesNum?: number;
+  absencePercentage: string | null;
+  consecutiveAbsences: string | null;
+  recommendation: string | null;
+  students: TeacherRiskStudentEntry[];
+  formattedBody: string;
+  evaluatedSessionsCount?: number;
+  isLiveCalculated?: boolean;
+  isResolved?: boolean;
+  riskSignature?: string;
+  sectionId?: string | null;
+}
+
+export interface AppNotification {
+  id: string;
+  user_id: string;
+  kind: NotificationKind;
+  title: string;
+  body: string;
+  ref_type?: string | null;
+  ref_id?: string | null;
+  read_at?: string | null;
+  created_at: string;
+  courseRef?: NotificationCourseRef | null;
+  teacherRisk?: TeacherRiskDetails | null;
+}
+
+export interface TeacherAlertDismissal {
+  id?: string;
+  teacher_id: string;
+  section_id: string;
+  notification_id?: string | null;
+  risk_signature: string;
+  read_at?: string | null;
+  dismissed_at?: string | null;
+}
+
+export interface LiveSectionRiskAlert {
+  id: string;
+  notificationId: string | null;
+  notification: AppNotification | null;
+  sectionId: string;
+  courseId: string;
+  courseCode: string;
+  courseName: string;
+  sectionName: string;
+  periodName: string;
+  title: string;
+  createdAt: string;
+  readAt: string | null;
+  isLiveOnly: boolean;
+  details: TeacherRiskDetails;
+}
+
+export interface StudentSectionBlock {
+  student_id: string;
+  section_id: string;
+  blocked_at: string;
+  blocked_by?: string | null;
+  reason?: string | null;
+  unblocked_at?: string | null;
+  unblocked_by?: string | null;
+  unblock_reason?: string | null;
+  absences_at_unblock?: number | null;
+}
+
+export interface StudentBlockRecordWithDetails extends StudentSectionBlock {
+  studentName: string;
+  studentCode: string;
+  courseId: string;
+  courseCode: string;
+  courseName: string;
+  sectionName: string;
+  periodName: string;
+  totalAbsences: number;
+  cycleAbsences: number;
+  isActive: boolean;
+  unblockedByName?: string | null;
+}
+
+export interface SectionStudentBlockStatus {
+  isBlocked: boolean;
+  activeBlock: StudentSectionBlock | null;
+  lastUnblock: StudentSectionBlock | null;
+  totalAbsences: number;
+  cycleAbsences: number;
+}
+
